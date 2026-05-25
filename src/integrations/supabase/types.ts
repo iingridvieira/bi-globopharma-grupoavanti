@@ -14,16 +14,350 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      itens_nf: {
+        Row: {
+          codigo_produto: string | null
+          desconto: number
+          id: string
+          nota_fiscal_id: string
+          produto: string
+          quantidade: number
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          codigo_produto?: string | null
+          desconto?: number
+          id?: string
+          nota_fiscal_id: string
+          produto: string
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          codigo_produto?: string | null
+          desconto?: number
+          id?: string
+          nota_fiscal_id?: string
+          produto?: string
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_nf_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mapas_vendas_arquivos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mapas_vendas_arquivos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metas_mensais: {
+        Row: {
+          ano: number
+          cliente_id: string
+          created_at: string
+          id: string
+          mes: number
+          pendencia_inicial: number
+          valor: number
+        }
+        Insert: {
+          ano: number
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          pendencia_inicial?: number
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          pendencia_inicial?: number
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metas_mensais_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_fiscais: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data: string
+          desconto: number
+          id: string
+          numero: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data: string
+          desconto?: number
+          id?: string
+          numero: string
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          desconto?: number
+          id?: string
+          numero?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_enviados: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data: string
+          id: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data: string
+          id?: string
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_enviados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+        }
+        Relationships: []
+      }
+      sell_in: {
+        Row: {
+          ano: number
+          cliente_id: string
+          created_at: string
+          id: string
+          mes: number
+          valor: number
+        }
+        Insert: {
+          ano: number
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sell_in_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sell_out: {
+        Row: {
+          ano: number
+          cliente_id: string
+          created_at: string
+          id: string
+          mes: number
+          valor: number
+        }
+        Insert: {
+          ano: number
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sell_out_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "representante" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +484,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "representante", "viewer"],
+    },
   },
 } as const
