@@ -9,61 +9,231 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedSellInRouteImport } from './routes/_authenticated/sell-in'
+import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
+import { Route as AuthenticatedNotasFiscaisRouteImport } from './routes/_authenticated/notas-fiscais'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedSellOutIndexRouteImport } from './routes/_authenticated/sell-out.index'
+import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_authenticated/sell-out.$clienteId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSellInRoute = AuthenticatedSellInRouteImport.update({
+  id: '/sell-in',
+  path: '/sell-in',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPedidosRoute = AuthenticatedPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNotasFiscaisRoute =
+  AuthenticatedNotasFiscaisRouteImport.update({
+    id: '/notas-fiscais',
+    path: '/notas-fiscais',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSellOutIndexRoute =
+  AuthenticatedSellOutIndexRouteImport.update({
+    id: '/sell-out/',
+    path: '/sell-out/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSellOutClienteIdRoute =
+  AuthenticatedSellOutClienteIdRouteImport.update({
+    id: '/sell-out/$clienteId',
+    path: '/sell-out/$clienteId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/login': typeof LoginRoute
+  '/importar': typeof AuthenticatedImportarRoute
+  '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
+  '/pedidos': typeof AuthenticatedPedidosRoute
+  '/sell-in': typeof AuthenticatedSellInRoute
+  '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/sell-out/': typeof AuthenticatedSellOutIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/importar': typeof AuthenticatedImportarRoute
+  '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
+  '/pedidos': typeof AuthenticatedPedidosRoute
+  '/sell-in': typeof AuthenticatedSellInRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/sell-out': typeof AuthenticatedSellOutIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_authenticated/importar': typeof AuthenticatedImportarRoute
+  '/_authenticated/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
+  '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
+  '/_authenticated/sell-in': typeof AuthenticatedSellInRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/_authenticated/sell-out/': typeof AuthenticatedSellOutIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/importar'
+    | '/notas-fiscais'
+    | '/pedidos'
+    | '/sell-in'
+    | '/sell-out/$clienteId'
+    | '/sell-out/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/login'
+    | '/importar'
+    | '/notas-fiscais'
+    | '/pedidos'
+    | '/sell-in'
+    | '/'
+    | '/sell-out/$clienteId'
+    | '/sell-out'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/login'
+    | '/_authenticated/importar'
+    | '/_authenticated/notas-fiscais'
+    | '/_authenticated/pedidos'
+    | '/_authenticated/sell-in'
+    | '/_authenticated/'
+    | '/_authenticated/sell-out/$clienteId'
+    | '/_authenticated/sell-out/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sell-in': {
+      id: '/_authenticated/sell-in'
+      path: '/sell-in'
+      fullPath: '/sell-in'
+      preLoaderRoute: typeof AuthenticatedSellInRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pedidos': {
+      id: '/_authenticated/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof AuthenticatedPedidosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/notas-fiscais': {
+      id: '/_authenticated/notas-fiscais'
+      path: '/notas-fiscais'
+      fullPath: '/notas-fiscais'
+      preLoaderRoute: typeof AuthenticatedNotasFiscaisRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/importar': {
+      id: '/_authenticated/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AuthenticatedImportarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sell-out/': {
+      id: '/_authenticated/sell-out/'
+      path: '/sell-out'
+      fullPath: '/sell-out/'
+      preLoaderRoute: typeof AuthenticatedSellOutIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sell-out/$clienteId': {
+      id: '/_authenticated/sell-out/$clienteId'
+      path: '/sell-out/$clienteId'
+      fullPath: '/sell-out/$clienteId'
+      preLoaderRoute: typeof AuthenticatedSellOutClienteIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
+  AuthenticatedNotasFiscaisRoute: typeof AuthenticatedNotasFiscaisRoute
+  AuthenticatedPedidosRoute: typeof AuthenticatedPedidosRoute
+  AuthenticatedSellInRoute: typeof AuthenticatedSellInRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedSellOutClienteIdRoute: typeof AuthenticatedSellOutClienteIdRoute
+  AuthenticatedSellOutIndexRoute: typeof AuthenticatedSellOutIndexRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedImportarRoute: AuthenticatedImportarRoute,
+  AuthenticatedNotasFiscaisRoute: AuthenticatedNotasFiscaisRoute,
+  AuthenticatedPedidosRoute: AuthenticatedPedidosRoute,
+  AuthenticatedSellInRoute: AuthenticatedSellInRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedSellOutClienteIdRoute: AuthenticatedSellOutClienteIdRoute,
+  AuthenticatedSellOutIndexRoute: AuthenticatedSellOutIndexRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
