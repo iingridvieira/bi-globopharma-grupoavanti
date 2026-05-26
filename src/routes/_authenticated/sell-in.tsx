@@ -38,7 +38,7 @@ function SellInPage() {
 
   const { data: descricoes } = useQuery({
     queryKey: ["descricoes-sell-in"],
-    queryFn: async () => (await supabase.from("descricoes_sell_in").select("*,clientes(nome)").order("updated_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("descricoes_sell_in").select("*").order("updated_at", { ascending: false })).data ?? [],
   });
 
   const { data: clientes } = useQuery({
