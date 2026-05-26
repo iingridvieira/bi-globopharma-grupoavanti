@@ -1,15 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, MESES_BR_SHORT } from "@/lib/format";
+import { formatBRL, formatDateBR, MESES_BR_SHORT } from "@/lib/format";
 import { useState } from "react";
 import { exportToExcel } from "@/lib/excel";
-import { Download } from "lucide-react";
+import { Download, Plus, Trash2, Save } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
 
 function SellInPage() {
   const [ano, setAno] = useState(new Date().getFullYear());
+  const { canEdit } = useAuth();
+  const qc = useQueryClient();
 
   const { data } = useQuery({
     queryKey: ["sell-in-consolidado", ano],
@@ -30,6 +34,48 @@ function SellInPage() {
       const totalGeral = totaisMes.reduce((a, b) => a + b, 0);
       return { rows, totaisMes, totalGeral };
     },
+  });
+
+  const { data: descricoes } = useQuery({
+    queryKey: ["descricoes-sell-in"],
+    queryFn: async () => (await supabase.from("descricoes_sell_in").select("*").order("updated_at", { ascending: false })).data ?? [],
+  });
+
+  const { data: clientes } = useQuery({
+    queryKey: ["clientes"],
+    queryFn: async () => (await supabase.from("clientes").select("id,nome").order("nome")).data ?? [],
+  });
+
+  const [novoTitulo, setNovoTitulo] = useState("");
+  const [novoTexto, setNovoTexto] = useState("");
+  const [novoCliente, setNovoCliente] = useState("");
+
+  const addDesc = useMutation({
+    mutationFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const { error } = await supabase.from("descricoes_sell_in").insert({
+        titulo: novoTitulo || null,
+        texto: novoTexto,
+        cliente_id: novoCliente || null,
+        created_by: u.user?.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Observação adicionada"); setNovoTitulo(""); setNovoTexto(""); setNovoCliente(""); void qc.invalidateQueries({ queryKey: ["descricoes-sell-in"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const delDesc = useMutation({
+    mutationFn: async (id: string) => { const { error } = await supabase.from("descricoes_sell_in").delete().eq("id", id); if (error) throw error; },
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["descricoes-sell-in"] }),
+  });
+
+  const updDesc = useMutation({
+    mutationFn: async (d: { id: string; texto: string; titulo: string | null }) => {
+      const { error } = await supabase.from("descricoes_sell_in").update({ texto: d.texto, titulo: d.titulo }).eq("id", d.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Observação atualizada"); void qc.invalidateQueries({ queryKey: ["descricoes-sell-in"] }); },
   });
 
   function handleExport() {
@@ -86,6 +132,87 @@ function SellInPage() {
             </tr>
           </tfoot>
         </table>
+      </div>
+
+      <section className="mt-10">
+        <div className="flex items-end justify-between mb-4">
+          <div>
+            <div className="bi-stat-label">Observações & Descrições</div>
+            <h2 className="font-display text-xl font-bold mt-1">Notas do Sell In</h2>
+          </div>
+        </div>
+
+        {canEdit && (
+          <div className="bi-card p-5 mb-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input value={novoTitulo} onChange={(e) => setNovoTitulo(e.target.value)} placeholder="Título (opcional)" className="bi-desc-input md:col-span-2" />
+            <select value={novoCliente} onChange={(e) => setNovoCliente(e.target.value)} className="bi-desc-input">
+              <option value="">Sem cliente vinculado</option>
+              {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+            <textarea value={novoTexto} onChange={(e) => setNovoTexto(e.target.value)} placeholder="Cole aqui descrição, observação ou comentário…"
+              rows={4} className="bi-desc-input md:col-span-3 font-sans" />
+            <div className="md:col-span-3 flex justify-end">
+              <button disabled={!novoTexto || addDesc.isPending} onClick={() => addDesc.mutate()}
+                className="h-10 px-5 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase flex items-center gap-2 disabled:opacity-50">
+                <Plus className="h-4 w-4" /> Adicionar
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(descricoes ?? []).map((d) => {
+            const clienteNome = clientes?.find((c) => c.id === d.cliente_id)?.nome ?? null;
+            return <DescCard key={d.id} d={{ ...d, clienteNome }} canEdit={canEdit}
+              onDelete={() => delDesc.mutate(d.id)}
+              onSave={(t, ti) => updDesc.mutate({ id: d.id, texto: t, titulo: ti })} />;
+          })}
+          {descricoes?.length === 0 && <div className="text-sm text-muted-foreground bi-card p-6 col-span-full">Nenhuma observação ainda.</div>}
+        </div>
+      </section>
+
+      <style>{`
+        .bi-desc-input { background: var(--color-input); border: 1px solid var(--color-border); border-radius: 6px; padding: 10px 12px; font-size: 14px; color: var(--color-foreground); outline: none; width: 100%; }
+        .bi-desc-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-ring); }
+      `}</style>
+    </div>
+  );
+}
+
+type DescItem = { id: string; titulo: string | null; texto: string; updated_at: string; clienteNome: string | null };
+
+function DescCard({ d, canEdit, onDelete, onSave }: { d: DescItem; canEdit: boolean; onDelete: () => void; onSave: (texto: string, titulo: string | null) => void }) {
+  const [edit, setEdit] = useState(false);
+  const [texto, setTexto] = useState(d.texto);
+  const [titulo, setTitulo] = useState(d.titulo ?? "");
+
+  return (
+    <div className="bi-card p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          {edit
+            ? <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título" className="bi-desc-input mb-2" />
+            : <div className="font-display font-bold">{d.titulo || "Observação"}</div>
+          }
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {d.clienteNome ? `${d.clienteNome} · ` : ""}{formatDateBR(d.updated_at)}
+          </div>
+        </div>
+        {canEdit && (
+          <div className="flex items-center gap-1">
+            {edit
+              ? <button onClick={() => { onSave(texto, titulo || null); setEdit(false); }} className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center"><Save className="h-4 w-4 text-primary" /></button>
+              : <button onClick={() => setEdit(true)} className="text-xs text-primary font-semibold px-2">Editar</button>
+            }
+            <button onClick={onDelete} className="h-8 w-8 rounded hover:bg-destructive/20 text-destructive inline-flex items-center justify-center"><Trash2 className="h-4 w-4" /></button>
+          </div>
+        )}
+      </div>
+      <div className="mt-3">
+        {edit
+          ? <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={5} className="bi-desc-input" />
+          : <p className="text-sm whitespace-pre-wrap text-foreground/90">{d.texto}</p>
+        }
       </div>
     </div>
   );

@@ -35,6 +35,36 @@ export type Database = {
         }
         Relationships: []
       }
+      descricoes_sell_in: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          texto: string
+          titulo: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          texto?: string
+          titulo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          texto?: string
+          titulo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       itens_nf: {
         Row: {
           codigo_produto: string | null
