@@ -4,11 +4,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* === BI GLOBO PHARMA — Design System ===
- * Visual executivo BI corporativo.
- * Paleta: laranja forte / verde militar escuro / preto grafite / cinza escuro.
- * Fonts: Space Grotesk (display/números) + Inter (body).
- */
+/* === BI GLOBO PHARMA — Design System === */
 
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
 
@@ -62,15 +58,70 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ===== Light theme (default :root) ===== */
 :root {
   --radius: 6px;
 
-  /* Base: preto grafite com leve tom verde militar */
-  --background: oklch(0.18 0.012 130);     /* #1A1D17 verde militar escuríssimo */
-  --foreground: oklch(0.96 0.005 95);      /* texto claro */
+  --background: oklch(0.985 0.003 100);
+  --foreground: oklch(0.18 0.012 130);
 
-  --surface: oklch(0.22 0.012 130);        /* cards */
-  --surface-2: oklch(0.26 0.013 130);      /* elevated */
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.97 0.004 100);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.012 130);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.012 130);
+
+  --primary: oklch(0.65 0.20 45);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --secondary: oklch(0.94 0.005 100);
+  --secondary-foreground: oklch(0.20 0.012 130);
+
+  --muted: oklch(0.95 0.004 100);
+  --muted-foreground: oklch(0.46 0.012 130);
+
+  --accent: oklch(0.42 0.08 145);
+  --accent-foreground: oklch(0.99 0 0);
+
+  --destructive: oklch(0.58 0.22 28);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --success: oklch(0.55 0.15 150);
+  --success-foreground: oklch(0.99 0 0);
+
+  --warning: oklch(0.70 0.16 80);
+  --warning-foreground: oklch(0.18 0.012 130);
+
+  --border: oklch(0.88 0.006 110);
+  --input: oklch(0.96 0.004 100);
+  --ring: oklch(0.65 0.20 45 / 0.4);
+
+  --chart-1: oklch(0.65 0.20 45);
+  --chart-2: oklch(0.50 0.14 150);
+  --chart-3: oklch(0.70 0.16 80);
+  --chart-4: oklch(0.45 0.12 220);
+  --chart-5: oklch(0.60 0.20 20);
+
+  --sidebar: oklch(0.18 0.010 130);
+  --sidebar-foreground: oklch(0.92 0.005 100);
+  --sidebar-primary: oklch(0.70 0.19 50);
+  --sidebar-primary-foreground: oklch(0.12 0.01 130);
+  --sidebar-accent: oklch(0.24 0.013 130);
+  --sidebar-accent-foreground: oklch(0.96 0.005 95);
+  --sidebar-border: oklch(0.28 0.012 130);
+  --sidebar-ring: oklch(0.70 0.19 50 / 0.6);
+}
+
+/* ===== Dark theme ===== */
+.dark {
+  --background: oklch(0.18 0.012 130);
+  --foreground: oklch(0.96 0.005 95);
+
+  --surface: oklch(0.22 0.012 130);
+  --surface-2: oklch(0.26 0.013 130);
 
   --card: oklch(0.22 0.012 130);
   --card-foreground: oklch(0.96 0.005 95);
@@ -78,8 +129,7 @@
   --popover: oklch(0.24 0.013 130);
   --popover-foreground: oklch(0.96 0.005 95);
 
-  /* Laranja forte — acento principal */
-  --primary: oklch(0.70 0.19 50);          /* #F26A1F */
+  --primary: oklch(0.70 0.19 50);
   --primary-foreground: oklch(0.12 0.01 130);
 
   --secondary: oklch(0.30 0.013 130);
@@ -88,7 +138,7 @@
   --muted: oklch(0.26 0.012 130);
   --muted-foreground: oklch(0.70 0.012 110);
 
-  --accent: oklch(0.42 0.08 145);          /* verde militar mais claro */
+  --accent: oklch(0.42 0.08 145);
   --accent-foreground: oklch(0.97 0.005 95);
 
   --destructive: oklch(0.60 0.22 28);
@@ -110,21 +160,10 @@
   --chart-4: oklch(0.50 0.10 220);
   --chart-5: oklch(0.65 0.20 20);
 
-  /* Sidebar — preto grafite mais profundo */
   --sidebar: oklch(0.14 0.010 130);
   --sidebar-foreground: oklch(0.88 0.008 100);
-  --sidebar-primary: oklch(0.70 0.19 50);
-  --sidebar-primary-foreground: oklch(0.12 0.01 130);
   --sidebar-accent: oklch(0.22 0.013 130);
-  --sidebar-accent-foreground: oklch(0.96 0.005 95);
   --sidebar-border: oklch(0.26 0.012 130);
-  --sidebar-ring: oklch(0.70 0.19 50 / 0.6);
-}
-
-.dark {
-  /* Tema é dark por padrão; mantém para shadcn */
-  --background: oklch(0.18 0.012 130);
-  --foreground: oklch(0.96 0.005 95);
 }
 
 @layer base {
@@ -133,11 +172,18 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    background-attachment: fixed;
+    font-feature-settings: "ss01", "cv11";
+  }
+  .dark body {
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.22 0.04 50 / 0.18), transparent 60%),
       linear-gradient(180deg, var(--color-background) 0%, oklch(0.16 0.010 130) 100%);
-    background-attachment: fixed;
-    font-feature-settings: "ss01", "cv11";
+  }
+  :root:not(.dark) body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.85 0.05 50 / 0.20), transparent 60%),
+      linear-gradient(180deg, var(--color-background) 0%, oklch(0.96 0.004 100) 100%);
   }
   h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
   .tabular-nums { font-variant-numeric: tabular-nums; }
@@ -145,15 +191,21 @@
 
 @layer components {
   .bi-card {
-    background: linear-gradient(180deg, var(--color-surface) 0%, oklch(0.20 0.012 130) 100%);
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
+    box-shadow:
+      0 1px 0 0 oklch(1 0 0 / 0.03) inset,
+      0 8px 24px -12px oklch(0 0 0 / 0.18);
+  }
+  .dark .bi-card {
+    background: linear-gradient(180deg, var(--color-surface) 0%, oklch(0.20 0.012 130) 100%);
     box-shadow:
       0 1px 0 0 oklch(1 0 0 / 0.03) inset,
       0 8px 24px -12px oklch(0 0 0 / 0.5);
   }
   .bi-card-accent {
-    background: linear-gradient(135deg, oklch(0.70 0.19 50) 0%, oklch(0.60 0.20 40) 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, oklch(0.60 0.20 40) 100%);
     color: var(--color-primary-foreground);
     border: 1px solid oklch(0.75 0.18 55);
     border-radius: var(--radius-md);
@@ -174,19 +226,19 @@
     color: var(--color-muted-foreground);
     padding: 12px 14px;
     border-bottom: 1px solid var(--color-border);
-    background: oklch(0.20 0.012 130);
+    background: var(--color-surface-2);
   }
   .bi-table tbody td {
     padding: 12px 14px;
-    border-bottom: 1px solid oklch(0.26 0.012 130 / 0.4);
+    border-bottom: 1px solid var(--color-border);
     font-size: 14px;
   }
-  .bi-table tbody tr:hover { background: oklch(0.24 0.012 130 / 0.5); }
+  .bi-table tbody tr:hover { background: color-mix(in oklab, var(--color-primary) 6%, transparent); }
   .bi-table tfoot td {
     padding: 14px;
     font-family: var(--font-display);
     font-weight: 700;
-    background: oklch(0.16 0.012 130);
+    background: var(--color-surface-2);
     border-top: 2px solid var(--color-primary);
   }
 
