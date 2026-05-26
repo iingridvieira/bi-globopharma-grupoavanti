@@ -161,7 +161,12 @@ function SellInPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(descricoes ?? []).map((d) => <DescCard key={d.id} d={d} canEdit={canEdit} onDelete={() => delDesc.mutate(d.id)} onSave={(t, ti) => updDesc.mutate({ id: d.id, texto: t, titulo: ti })} />)}
+          {(descricoes ?? []).map((d) => {
+            const clienteNome = clientes?.find((c) => c.id === d.cliente_id)?.nome ?? null;
+            return <DescCard key={d.id} d={{ ...d, clienteNome }} canEdit={canEdit}
+              onDelete={() => delDesc.mutate(d.id)}
+              onSave={(t, ti) => updDesc.mutate({ id: d.id, texto: t, titulo: ti })} />;
+          })}
           {descricoes?.length === 0 && <div className="text-sm text-muted-foreground bi-card p-6 col-span-full">Nenhuma observação ainda.</div>}
         </div>
       </section>
@@ -174,7 +179,7 @@ function SellInPage() {
   );
 }
 
-type DescItem = { id: string; titulo: string | null; texto: string; updated_at: string; clientes: { nome: string } | null };
+type DescItem = { id: string; titulo: string | null; texto: string; updated_at: string; clienteNome: string | null };
 
 function DescCard({ d, canEdit, onDelete, onSave }: { d: DescItem; canEdit: boolean; onDelete: () => void; onSave: (texto: string, titulo: string | null) => void }) {
   const [edit, setEdit] = useState(false);
@@ -190,7 +195,7 @@ function DescCard({ d, canEdit, onDelete, onSave }: { d: DescItem; canEdit: bool
             : <div className="font-display font-bold">{d.titulo || "Observação"}</div>
           }
           <div className="text-[11px] text-muted-foreground mt-0.5">
-            {d.clientes?.nome ? `${d.clientes.nome} · ` : ""}{formatDateBR(d.updated_at)}
+            {d.clienteNome ? `${d.clienteNome} · ` : ""}{formatDateBR(d.updated_at)}
           </div>
         </div>
         {canEdit && (
