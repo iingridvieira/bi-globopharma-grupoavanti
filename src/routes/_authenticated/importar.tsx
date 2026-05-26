@@ -4,36 +4,30 @@ import { readExcelFile, pickCol, rowToBRDate, rowToBRNumber, type ExcelRow } fro
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { buildClienteIndex, clienteIdFromRazao, normalizeKey } from "@/lib/cliente-mapping";
 
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
 
-type TipoImport = "metas" | "pedidos" | "notas_fiscais" | "itens_nf" | "sell_in" | "sell_out";
+type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out";
 
 const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
+  { key: "faturamento", label: "Faturamento Sell In", desc: "Planilha com Data Lançamento, NF, Cliente, EAN, Faturado (R$). Cria NFs + itens + sell in automaticamente." },
   { key: "metas", label: "Metas Mensais", desc: "Colunas: Cliente, Ano, Mes, Valor, PendenciaInicial" },
-  { key: "pedidos", label: "Pedidos Enviados", desc: "Colunas: Data, Cliente, Valor" },
-  { key: "notas_fiscais", label: "Notas Fiscais", desc: "Colunas: Data, Numero, Cliente, Valor, Desconto" },
-  { key: "itens_nf", label: "Itens da NF", desc: "Colunas: NumeroNF, Codigo, Produto, Quantidade, ValorUnitario, ValorTotal, Desconto" },
-  { key: "sell_in", label: "Sell In", desc: "Colunas: Cliente, Ano, Mes, Valor" },
-  { key: "sell_out", label: "Sell Out", desc: "Colunas: Cliente, Ano, Mes, Valor" },
+  { key: "pedidos", label: "Pedidos Enviados", desc: "Colunas: DATA, CLIENTE, VALOR (também aceito colar manual)" },
+  { key: "sell_out", label: "Sell Out (manual)", desc: "Colunas: Cliente, Ano, Mes, Valor" },
 ];
 
 function ImportarPage() {
-  const [tipo, setTipo] = useState<TipoImport>("pedidos");
+  const [tipo, setTipo] = useState<TipoImport>("faturamento");
   const [loading, setLoading] = useState(false);
   const [resumo, setResumo] = useState<string | null>(null);
+  const qc = useQueryClient();
 
   const { data: clientes } = useQuery({
-    queryKey: ["clientes"],
+    queryKey: ["clientes-all"],
     queryFn: async () => (await supabase.from("clientes").select("id,nome")).data ?? [],
   });
-
-  function clienteIdByName(nome: string): string | null {
-    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-    const target = norm(nome);
-    return clientes?.find((c) => norm(c.nome) === target)?.id ?? null;
-  }
 
   async function processFile(file: File) {
     setLoading(true); setResumo(null);
@@ -42,58 +36,46 @@ function ImportarPage() {
       const firstSheet = Object.values(sheets)[0] as ExcelRow[];
       if (!firstSheet || firstSheet.length === 0) throw new Error("Planilha vazia");
 
-      let inserted = 0;
-      if (tipo === "pedidos") {
+      const idx = buildClienteIndex(clientes ?? []);
+      let resumoTxt = "";
+
+      if (tipo === "faturamento") {
+        resumoTxt = await processFaturamento(firstSheet, idx);
+      } else if (tipo === "pedidos") {
         const rows = firstSheet.map((r) => {
-          const nome = String(pickCol(r, "Cliente") ?? "");
-          return { data: rowToBRDate(pickCol(r, "Data")), cliente_id: clienteIdByName(nome), valor: rowToBRNumber(pickCol(r, "Valor")) };
-        }).filter((r) => r.data && r.cliente_id);
-        const { error } = await supabase.from("pedidos_enviados").insert(rows as never);
-        if (error) throw error; inserted = rows.length;
+          const nome = String(pickCol(r, "Cliente", "CLIENTE") ?? "");
+          return {
+            data: rowToBRDate(pickCol(r, "Data", "DATA")),
+            cliente_id: clienteIdFromRazao(nome, idx),
+            valor: rowToBRNumber(pickCol(r, "Valor", "VALOR")),
+          };
+        }).filter((r) => r.data && r.cliente_id && r.valor > 0);
+        const { error, count } = await supabase.from("pedidos_enviados").upsert(rows as never, { onConflict: "data,cliente_id,valor", ignoreDuplicates: true, count: "exact" });
+        if (error) throw error;
+        resumoTxt = `${count ?? rows.length} pedidos processados (duplicados ignorados).`;
       } else if (tipo === "metas") {
         const rows = firstSheet.map((r) => ({
-          cliente_id: clienteIdByName(String(pickCol(r, "Cliente") ?? "")),
+          cliente_id: clienteIdFromRazao(String(pickCol(r, "Cliente") ?? ""), idx),
           ano: Number(pickCol(r, "Ano")), mes: Number(pickCol(r, "Mes", "Mês")),
           valor: rowToBRNumber(pickCol(r, "Valor", "Meta")),
           pendencia_inicial: rowToBRNumber(pickCol(r, "PendenciaInicial", "Pendencia Inicial") ?? 0),
         })).filter((r) => r.cliente_id && r.ano && r.mes);
         const { error } = await supabase.from("metas_mensais").upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
-        if (error) throw error; inserted = rows.length;
-      } else if (tipo === "notas_fiscais") {
+        if (error) throw error;
+        resumoTxt = `${rows.length} metas importadas.`;
+      } else if (tipo === "sell_out") {
         const rows = firstSheet.map((r) => ({
-          data: rowToBRDate(pickCol(r, "Data")), numero: String(pickCol(r, "Numero", "Número", "NF") ?? ""),
-          cliente_id: clienteIdByName(String(pickCol(r, "Cliente") ?? "")),
-          valor: rowToBRNumber(pickCol(r, "Valor", "Total")),
-          desconto: rowToBRNumber(pickCol(r, "Desconto") ?? 0),
-        })).filter((r) => r.data && r.cliente_id && r.numero);
-        const { error } = await supabase.from("notas_fiscais").insert(rows as never);
-        if (error) throw error; inserted = rows.length;
-      } else if (tipo === "itens_nf") {
-        // requer NF já criada
-        const { data: allNf } = await supabase.from("notas_fiscais").select("id,numero");
-        const nfMap = new Map((allNf ?? []).map((n) => [n.numero, n.id]));
-        const rows = firstSheet.map((r) => ({
-          nota_fiscal_id: nfMap.get(String(pickCol(r, "NumeroNF", "NF", "Numero") ?? "")) ?? null,
-          codigo_produto: String(pickCol(r, "Codigo", "Código", "CodProduto") ?? ""),
-          produto: String(pickCol(r, "Produto", "Descrição", "Descricao") ?? ""),
-          quantidade: rowToBRNumber(pickCol(r, "Quantidade", "Qtd")),
-          valor_unitario: rowToBRNumber(pickCol(r, "ValorUnitario", "VlrUnit", "Unitario")),
-          valor_total: rowToBRNumber(pickCol(r, "ValorTotal", "Total")),
-          desconto: rowToBRNumber(pickCol(r, "Desconto") ?? 0),
-        })).filter((r) => r.nota_fiscal_id);
-        const { error } = await supabase.from("itens_nf").insert(rows as never);
-        if (error) throw error; inserted = rows.length;
-      } else if (tipo === "sell_in" || tipo === "sell_out") {
-        const rows = firstSheet.map((r) => ({
-          cliente_id: clienteIdByName(String(pickCol(r, "Cliente") ?? "")),
+          cliente_id: clienteIdFromRazao(String(pickCol(r, "Cliente") ?? ""), idx),
           ano: Number(pickCol(r, "Ano")), mes: Number(pickCol(r, "Mes", "Mês")),
           valor: rowToBRNumber(pickCol(r, "Valor")),
         })).filter((r) => r.cliente_id && r.ano && r.mes);
-        const { error } = await supabase.from(tipo).upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
-        if (error) throw error; inserted = rows.length;
+        const { error } = await supabase.from("sell_out").upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
+        if (error) throw error;
+        resumoTxt = `${rows.length} registros sell out importados.`;
       }
-      setResumo(`${inserted} registros importados com sucesso.`);
-      toast.success(`${inserted} registros importados`);
+      setResumo(resumoTxt);
+      toast.success(resumoTxt);
+      await qc.invalidateQueries();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Erro";
       toast.error(msg); setResumo(`Erro: ${msg}`);
@@ -105,15 +87,15 @@ function ImportarPage() {
       <header className="mb-6">
         <div className="bi-stat-label">Atualização de dados</div>
         <h1 className="font-display text-3xl font-bold mt-1">Importar Excel</h1>
-        <p className="text-muted-foreground mt-2">Formato brasileiro (datas DD/MM/AAAA · vírgula decimal · R$).</p>
+        <p className="text-muted-foreground mt-2">Padrão brasileiro · datas DD/MM/AAAA · vírgula decimal · R$. Cruzamento automático de clientes.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {TIPOS.map((t) => (
           <button key={t.key} onClick={() => setTipo(t.key)}
             className={"bi-card p-4 text-left transition-colors " + (tipo === t.key ? "border-primary bi-orange-glow" : "hover:border-primary")}>
             <div className="flex items-start gap-3">
-              <FileSpreadsheet className={"h-5 w-5 " + (tipo === t.key ? "text-primary" : "text-muted-foreground")} />
+              <FileSpreadsheet className={"h-5 w-5 mt-0.5 " + (tipo === t.key ? "text-primary" : "text-muted-foreground")} />
               <div>
                 <div className="font-display font-bold">{t.label}</div>
                 <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
@@ -135,4 +117,92 @@ function ImportarPage() {
       {resumo && <div className="mt-4 bi-card p-4 text-sm">{resumo}</div>}
     </div>
   );
+}
+
+/**
+ * Processa planilha de faturamento Sell In:
+ * - Agrupa linhas por Número da NF
+ * - Cria/upserta `notas_fiscais` (uma por NF) com cliente padronizado
+ * - Insere `itens_nf` (uma linha por produto)
+ * - Recalcula agregados `sell_in` por cliente x ano-mês
+ */
+async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): Promise<string> {
+  type NFAgg = {
+    numero: string; data: string; cliente_id: string; total: number;
+    itens: Array<{ codigo_produto: string; produto: string; quantidade: number; valor_unitario: number; valor_total: number }>;
+  };
+  const nfMap = new Map<string, NFAgg>();
+  const sellInAgg = new Map<string, { cliente_id: string; ano: number; mes: number; valor: number }>();
+
+  for (const r of rows) {
+    const numero = String(pickCol(r, "Número da NF", "Numero da NF", "NF", "Número NF") ?? "").trim();
+    const dataISO = rowToBRDate(pickCol(r, "Data de Lançamento", "Data Lançamento", "Data"));
+    const rs = String(pickCol(r, "Cliente") ?? "");
+    const cliente_id = clienteIdFromRazao(rs, idx);
+    const valor = rowToBRNumber(pickCol(r, "Faturado (R$)", "Faturado R$", "Faturado"));
+    const qtd = rowToBRNumber(pickCol(r, "Faturado (VOL)", "Faturado VOL", "Quantidade"));
+    const cod = String(pickCol(r, "Código do PN", "Codigo do PN", "EAN") ?? "");
+    const desc = String(pickCol(r, "Descrição", "Descricao") ?? "");
+
+    if (!numero || !dataISO || !cliente_id) continue;
+
+    let agg = nfMap.get(numero);
+    if (!agg) {
+      agg = { numero, data: dataISO, cliente_id, total: 0, itens: [] };
+      nfMap.set(numero, agg);
+    }
+    agg.total += valor;
+    agg.itens.push({
+      codigo_produto: cod, produto: desc,
+      quantidade: qtd, valor_unitario: qtd > 0 ? valor / qtd : valor, valor_total: valor,
+    });
+
+    const d = new Date(dataISO);
+    const ano = d.getUTCFullYear(); const mes = d.getUTCMonth() + 1;
+    const k = `${cliente_id}|${ano}|${mes}`;
+    const cur = sellInAgg.get(k) ?? { cliente_id, ano, mes, valor: 0 };
+    cur.valor += valor;
+    sellInAgg.set(k, cur);
+  }
+
+  // Upsert NFs (numero é chave única) — captura ids existentes vs novos
+  const nfsArr = Array.from(nfMap.values());
+  const { data: nfsRet, error: nfErr } = await supabase.from("notas_fiscais").upsert(
+    nfsArr.map((n) => ({ numero: n.numero, data: n.data, cliente_id: n.cliente_id, valor: n.total })) as never,
+    { onConflict: "numero" }
+  ).select("id,numero");
+  if (nfErr) throw nfErr;
+
+  const idByNumero = new Map((nfsRet ?? []).map((n) => [n.numero, n.id]));
+
+  // Re-cria itens (limpa para evitar duplicação em re-import)
+  const allNfIds = Array.from(idByNumero.values()).filter(Boolean) as string[];
+  if (allNfIds.length > 0) {
+    await supabase.from("itens_nf").delete().in("nota_fiscal_id", allNfIds);
+  }
+
+  const itensRows: unknown[] = [];
+  for (const n of nfsArr) {
+    const nfId = idByNumero.get(n.numero);
+    if (!nfId) continue;
+    for (const it of n.itens) {
+      itensRows.push({ nota_fiscal_id: nfId, ...it, desconto: 0 });
+    }
+  }
+  if (itensRows.length > 0) {
+    const { error } = await supabase.from("itens_nf").insert(itensRows as never);
+    if (error) throw error;
+  }
+
+  // Upsert sell_in agregado
+  const sellArr = Array.from(sellInAgg.values());
+  if (sellArr.length > 0) {
+    const { error } = await supabase.from("sell_in").upsert(sellArr as never, { onConflict: "cliente_id,ano,mes" });
+    if (error) throw error;
+  }
+
+  // discard normalizeKey usage warning
+  void normalizeKey;
+
+  return `${nfsArr.length} NFs processadas · ${itensRows.length} itens · ${sellArr.length} agregados sell in atualizados.`;
 }
