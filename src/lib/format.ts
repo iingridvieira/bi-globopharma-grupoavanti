@@ -46,12 +46,18 @@ export function formatDateBR(value: string | Date | null | undefined): string {
 /** Converte string "1.234,56" ou "1234,56" em number 1234.56. Aceita number direto. */
 export function parseBRNumber(value: unknown): number {
   if (value == null || value === "") return 0;
-  if (typeof value === "number") return value;
-  const s = String(value).trim().replace(/\s|R\$/g, "");
-  // Se tem vírgula, é decimal BR; remove pontos de milhar e troca vírgula por ponto.
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  const s = String(value).trim().replace(/\s|R\$/gi, "");
+  if (!s) return 0;
+  // Se tem vírgula, é decimal BR: remove pontos de milhar, troca vírgula por ponto.
   if (s.includes(",")) {
-    const cleaned = s.replace(/\./g, "").replace(",", ".");
-    const n = Number(cleaned);
+    const n = Number(s.replace(/\./g, "").replace(",", "."));
+    return Number.isNaN(n) ? 0 : n;
+  }
+  // Só pontos: se padrão BR de milhar (ex: "3.614" ou "1.234.567"), remove os pontos.
+  if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+    const n = Number(s.replace(/\./g, ""));
     return Number.isNaN(n) ? 0 : n;
   }
   const n = Number(s);
