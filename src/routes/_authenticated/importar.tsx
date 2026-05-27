@@ -120,11 +120,13 @@ function ImportarPage() {
 }
 
 /**
- * Processa planilha de faturamento Sell In:
- * - Agrupa linhas por Número da NF
- * - Cria/upserta `notas_fiscais` (uma por NF) com cliente padronizado
- * - Insere `itens_nf` (uma linha por produto)
- * - Recalcula agregados `sell_in` por cliente x ano-mês
+ * Processa planilha de faturamento Sell In (formato padrão BI GLOBO PHARMA):
+ * Colunas esperadas: Data de Lançamento, Número Documento, Número de Ref. do Cliente,
+ * Número da NF, Código do PN, Cliente, CNPJ, Descrição, EAN, Nitro (S/N), MÊS/ANO,
+ * Utilização, Faturado (VOL), Faturado (R$).
+ *
+ * Apenas Número da NF, Data, Cliente e Faturado (R$) são obrigatórios — demais são opcionais.
+ * Agrupa linhas por NF, recria itens, e agrega sell_in por cliente x ano-mês.
  */
 async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): Promise<string> {
   type NFAgg = {
@@ -133,18 +135,20 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
   };
   const nfMap = new Map<string, NFAgg>();
   const sellInAgg = new Map<string, { cliente_id: string; ano: number; mes: number; valor: number }>();
+  let puladas = 0;
 
   for (const r of rows) {
-    const numero = String(pickCol(r, "Número da NF", "Numero da NF", "NF", "Número NF") ?? "").trim();
-    const dataISO = rowToBRDate(pickCol(r, "Data de Lançamento", "Data Lançamento", "Data"));
-    const rs = String(pickCol(r, "Cliente") ?? "");
-    const cliente_id = clienteIdFromRazao(rs, idx);
-    const valor = rowToBRNumber(pickCol(r, "Faturado (R$)", "Faturado R$", "Faturado"));
-    const qtd = rowToBRNumber(pickCol(r, "Faturado (VOL)", "Faturado VOL", "Quantidade"));
-    const cod = String(pickCol(r, "Código do PN", "Codigo do PN", "EAN") ?? "");
-    const desc = String(pickCol(r, "Descrição", "Descricao") ?? "");
+    const numero = String(pickCol(r, "Número da NF", "Numero da NF", "NF", "Número NF", "Num NF") ?? "").trim();
+    const dataISO = rowToBRDate(pickCol(r, "Data de Lançamento", "Data Lançamento", "Data de Lancamento", "Data Lancamento", "Data"));
+    const rs = String(pickCol(r, "Cliente", "Razão Social", "Razao Social") ?? "").trim();
+    const valor = rowToBRNumber(pickCol(r, "Faturado (R$)", "Faturado R$", "Faturado RS", "Faturado", "Valor"));
+    const qtd = rowToBRNumber(pickCol(r, "Faturado (VOL)", "Faturado VOL", "Quantidade", "Qtd", "VOL"));
+    const cod = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN", "EAN") ?? "").trim();
+    const desc = String(pickCol(r, "Descrição", "Descricao", "Produto") ?? "").trim();
 
-    if (!numero || !dataISO || !cliente_id) continue;
+    if (!numero || !dataISO || !rs) { puladas++; continue; }
+    const cliente_id = clienteIdFromRazao(rs, idx);
+    if (!cliente_id) { puladas++; continue; }
 
     let agg = nfMap.get(numero);
     if (!agg) {
@@ -165,44 +169,51 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     sellInAgg.set(k, cur);
   }
 
-  // Upsert NFs (numero é chave única) — captura ids existentes vs novos
   const nfsArr = Array.from(nfMap.values());
-  const { data: nfsRet, error: nfErr } = await supabase.from("notas_fiscais").upsert(
-    nfsArr.map((n) => ({ numero: n.numero, data: n.data, cliente_id: n.cliente_id, valor: n.total })) as never,
-    { onConflict: "numero" }
-  ).select("id,numero");
-  if (nfErr) throw nfErr;
-
-  const idByNumero = new Map((nfsRet ?? []).map((n) => [n.numero, n.id]));
-
-  // Re-cria itens (limpa para evitar duplicação em re-import)
-  const allNfIds = Array.from(idByNumero.values()).filter(Boolean) as string[];
-  if (allNfIds.length > 0) {
-    await supabase.from("itens_nf").delete().in("nota_fiscal_id", allNfIds);
+  if (nfsArr.length === 0) {
+    return `Nenhuma NF válida encontrada. ${puladas} linhas puladas (verifique colunas Data, NF, Cliente).`;
   }
 
+  // Upsert NFs em lotes de 500
+  const BATCH = 500;
+  const idByNumero = new Map<string, string>();
+  for (let i = 0; i < nfsArr.length; i += BATCH) {
+    const slice = nfsArr.slice(i, i + BATCH);
+    const { data: nfsRet, error: nfErr } = await supabase.from("notas_fiscais").upsert(
+      slice.map((n) => ({ numero: n.numero, data: n.data, cliente_id: n.cliente_id, valor: n.total })) as never,
+      { onConflict: "numero" }
+    ).select("id,numero");
+    if (nfErr) throw new Error(`NFs lote ${i / BATCH + 1}: ${nfErr.message}`);
+    (nfsRet ?? []).forEach((n) => idByNumero.set(n.numero, n.id));
+  }
+
+  // Limpa itens antigos das NFs reimportadas (em lotes)
+  const allNfIds = Array.from(idByNumero.values()).filter(Boolean) as string[];
+  for (let i = 0; i < allNfIds.length; i += BATCH) {
+    await supabase.from("itens_nf").delete().in("nota_fiscal_id", allNfIds.slice(i, i + BATCH));
+  }
+
+  // Insere itens em lotes
   const itensRows: unknown[] = [];
   for (const n of nfsArr) {
     const nfId = idByNumero.get(n.numero);
     if (!nfId) continue;
-    for (const it of n.itens) {
-      itensRows.push({ nota_fiscal_id: nfId, ...it, desconto: 0 });
-    }
+    for (const it of n.itens) itensRows.push({ nota_fiscal_id: nfId, ...it, desconto: 0 });
   }
-  if (itensRows.length > 0) {
-    const { error } = await supabase.from("itens_nf").insert(itensRows as never);
-    if (error) throw error;
+  for (let i = 0; i < itensRows.length; i += BATCH) {
+    const { error } = await supabase.from("itens_nf").insert(itensRows.slice(i, i + BATCH) as never);
+    if (error) throw new Error(`Itens lote ${i / BATCH + 1}: ${error.message}`);
   }
 
-  // Upsert sell_in agregado
+  // Upsert sell_in agregado em lotes
   const sellArr = Array.from(sellInAgg.values());
-  if (sellArr.length > 0) {
-    const { error } = await supabase.from("sell_in").upsert(sellArr as never, { onConflict: "cliente_id,ano,mes" });
-    if (error) throw error;
+  for (let i = 0; i < sellArr.length; i += BATCH) {
+    const { error } = await supabase.from("sell_in").upsert(sellArr.slice(i, i + BATCH) as never, { onConflict: "cliente_id,ano,mes" });
+    if (error) throw new Error(`Sell In lote ${i / BATCH + 1}: ${error.message}`);
   }
 
-  // discard normalizeKey usage warning
   void normalizeKey;
 
-  return `${nfsArr.length} NFs processadas · ${itensRows.length} itens · ${sellArr.length} agregados sell in atualizados.`;
+  const aviso = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
+  return `${nfsArr.length} NFs · ${itensRows.length} itens · ${sellArr.length} agregados sell in atualizados${aviso}.`;
 }
