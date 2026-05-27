@@ -5,11 +5,13 @@ export type ExcelRow = Record<string, unknown>;
 
 export async function readExcelFile(file: File): Promise<{ sheets: Record<string, ExcelRow[]> }> {
   const buffer = await file.arrayBuffer();
+  // raw: true preserva números nativos do Excel (evita interpretar "3.614" como 3,614)
+  // cellDates: true converte datas em objetos Date
   const wb = XLSX.read(buffer, { type: "array", cellDates: true });
   const sheets: Record<string, ExcelRow[]> = {};
   wb.SheetNames.forEach((name) => {
     const ws = wb.Sheets[name];
-    sheets[name] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: false });
+    sheets[name] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
   });
   return { sheets };
 }
