@@ -87,59 +87,32 @@ function PedidosPage() {
       </div>
 
       {canEdit && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
-          <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
-            className="bi-card p-5 grid grid-cols-2 gap-3 lg:col-span-1">
-            <div className="col-span-2 bi-stat-label">Adicionar Pedido</div>
-            <Field label="Data">
-              <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="bi-input-sm" />
-            </Field>
-            <Field label="Cliente">
-              <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} required className="bi-input-sm">
-                <option value="">Selecione...</option>
-                {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            </Field>
-            <Field label="Valor (R$)">
-              <input value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" className="bi-input-sm" />
-            </Field>
-            <div className="flex items-end">
-              <button disabled={create.isPending} className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-semibold uppercase text-xs tracking-wider hover:opacity-90 disabled:opacity-50 w-full">
-                Adicionar
-              </button>
-            </div>
-          </form>
-
-          <div className="bi-card p-5 lg:col-span-2">
-            <div className="flex items-center justify-between mb-3">
-              <div className="bi-stat-label">Importar em lote</div>
-              <button onClick={() => setPasteOpen((v) => !v)} className="text-xs text-primary font-semibold flex items-center gap-1">
-                <Clipboard className="h-3 w-3" /> {pasteOpen ? "Fechar" : "Colar manualmente"}
-              </button>
-            </div>
-            <label className="border-2 border-dashed border-border rounded-md p-6 flex items-center justify-center gap-3 cursor-pointer hover:border-primary transition-colors">
-              <Upload className="h-5 w-5 text-primary" />
-              <span className="text-sm">Selecionar .xlsx (DATA · CLIENTE · VALOR)</span>
-              <input type="file" accept=".xlsx,.xls" className="hidden" onChange={(e) => e.target.files?.[0] && processExcel(e.target.files[0])} />
-            </label>
-            {pasteOpen && (
-              <div className="mt-3">
-                <textarea
-                  value={pasteText} onChange={(e) => setPasteText(e.target.value)}
-                  rows={6} placeholder={"12/01/2026\tANDORINHA\tR$ 18.787,62\n12/01/2026\tJK MEDICAMENTOS\tR$ 336.794,64"}
-                  className="w-full bg-input border border-border rounded-md p-3 text-sm font-mono"
-                />
-                <div className="flex justify-end mt-2">
-                  <button onClick={() => { const r = parsePastedText(); if (r.length === 0) toast.error("Nenhuma linha válida"); else bulkInsert.mutate(r); }}
-                    className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase">
-                    Importar {pasteText ? `(${pasteText.split(/\r?\n/).filter(Boolean).length} linhas)` : ""}
-                  </button>
-                </div>
-              </div>
-            )}
+        <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
+          className="bi-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
+          <div className="md:col-span-4 bi-stat-label">Adicionar Pedido</div>
+          <Field label="Data">
+            <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="bi-input-sm" />
+          </Field>
+          <Field label="Cliente">
+            <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} required className="bi-input-sm">
+              <option value="">Selecione...</option>
+              {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+          </Field>
+          <Field label="Valor (R$)">
+            <input value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" className="bi-input-sm" />
+          </Field>
+          <div className="flex items-end">
+            <button disabled={create.isPending} className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-semibold uppercase text-xs tracking-wider hover:opacity-90 disabled:opacity-50 w-full">
+              Adicionar
+            </button>
           </div>
-        </div>
+          <div className="md:col-span-4 text-xs text-muted-foreground">
+            Para importação em lote (Excel ou colar manualmente), use a página <strong>Importar Excel</strong>.
+          </div>
+        </form>
       )}
+
 
       <div className="bi-card mt-6 overflow-hidden">
         <div className="overflow-x-auto">
