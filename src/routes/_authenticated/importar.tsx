@@ -449,10 +449,10 @@ function ImportarPage() {
               {tipo === "metas" && (
                 <div className="flex items-center gap-3 mb-3">
                   <label className="text-xs font-semibold uppercase text-muted-foreground">Período:</label>
-                  <select value={metaMes} onChange={(e) => setMetaMes(Number(e.target.value))} className="bi-input-sm w-40">
+                  <select value={metaMes} onChange={(e) => setMetaMes(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-40">
                     {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
                   </select>
-                  <select value={metaAno} onChange={(e) => setMetaAno(Number(e.target.value))} className="bi-input-sm w-28">
+                  <select value={metaAno} onChange={(e) => setMetaAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-28">
                     {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => <option key={a} value={a}>{a}</option>)}
                   </select>
                 </div>
