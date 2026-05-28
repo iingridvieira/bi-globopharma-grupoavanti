@@ -35,12 +35,21 @@ function PedidosPage() {
       const start = `${ano}-${String(mes).padStart(2, "0")}-01`;
       const end = new Date(ano, mes, 0).toISOString().slice(0, 10);
       let q = supabase.from("pedidos_enviados")
-        .select("id,data,valor,cliente_id,clientes(nome)")
+        .select("id,data,valor,status,cliente_id,clientes(nome)")
         .gte("data", start).lte("data", end).order("data", { ascending: false });
       if (clienteFiltro) q = q.eq("cliente_id", clienteFiltro);
       const { data } = await q;
       return data ?? [];
     },
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from("pedidos_enviados").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const filtrados = useMemo(() => {
