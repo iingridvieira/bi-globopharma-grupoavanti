@@ -20,8 +20,18 @@ const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
 ];
 
 const MESES_MAP: Record<string, number> = {
-  jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
-  jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12,
+  jan: 1, janeiro: 1, january: 1,
+  fev: 2, fevereiro: 2, feb: 2, february: 2,
+  mar: 3, marco: 3, march: 3,
+  abr: 4, abril: 4, apr: 4, april: 4,
+  mai: 5, maio: 5, may: 5,
+  jun: 6, junho: 6, june: 6,
+  jul: 7, julho: 7, july: 7,
+  ago: 8, agosto: 8, aug: 8, august: 8,
+  set: 9, setembro: 9, sep: 9, september: 9,
+  out: 10, outubro: 10, oct: 10, october: 10,
+  nov: 11, novembro: 11, november: 11,
+  dez: 12, dezembro: 12, dec: 12, december: 12,
 };
 
 function parseMesAno(header: unknown): { mes: number; ano: number } | null {
@@ -35,14 +45,33 @@ function parseMesAno(header: unknown): { mes: number; ano: number } | null {
     if (!Number.isNaN(d.getTime())) return { mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
   }
   const raw = String(header ?? "").trim();
+  const serial = Number(raw.replace(",", "."));
+  if (Number.isFinite(serial) && serial > 10000 && serial < 100000) {
+    const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+    if (!Number.isNaN(d.getTime())) return { mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
+  }
   const s = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  // jan/25, jan-25, jan 2025, jan.25, janeiro/2025 etc.
-  const m = s.match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*[\s\/\-_.]*(\d{2,4})$/);
+  // jan/25, janeiro/2025, fevereiro de 2026, feb 2026, etc.
+  const monthNames = Object.keys(MESES_MAP).sort((a, b) => b.length - a.length).join("|");
+  const m = s.match(new RegExp(`\\b(${monthNames})\\b(?:\\s*(?:de|do|da)\\s*|[\\s\\/\\-_.]+)(\\d{2,4})\\b`));
   if (m) {
     const mes = MESES_MAP[m[1]];
     let ano = Number(m[2]);
     if (ano < 100) ano += 2000;
     return { mes, ano };
+  }
+  // MM/YYYY, MM-YY, YYYY/MM, YYYY-MM
+  const mesAno = s.match(/^(\d{1,2})[\/\-_.](\d{2,4})$/);
+  if (mesAno) {
+    const mes = Number(mesAno[1]);
+    let ano = Number(mesAno[2]);
+    if (ano < 100) ano += 2000;
+    if (mes >= 1 && mes <= 12) return { mes, ano };
+  }
+  const anoMes = s.match(/^(\d{4})[\/\-_.](\d{1,2})$/);
+  if (anoMes) {
+    const mes = Number(anoMes[2]);
+    if (mes >= 1 && mes <= 12) return { mes, ano: Number(anoMes[1]) };
   }
   // ISO ou DD/MM/YYYY dentro do header
   const iso = raw.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
