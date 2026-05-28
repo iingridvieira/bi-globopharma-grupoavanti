@@ -436,6 +436,51 @@ function ImportarPage() {
         />
       </label>
 
+      {(tipo === "pedidos" || tipo === "metas") && (
+        <div className="bi-card p-5 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="bi-stat-label">Colar manualmente</div>
+            <button onClick={() => setPasteOpen((v) => !v)} className="text-xs text-primary font-semibold flex items-center gap-1">
+              <Clipboard className="h-3 w-3" /> {pasteOpen ? "Fechar" : "Abrir"}
+            </button>
+          </div>
+          {pasteOpen && (
+            <div>
+              {tipo === "metas" && (
+                <div className="flex items-center gap-3 mb-3">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">Período:</label>
+                  <select value={metaMes} onChange={(e) => setMetaMes(Number(e.target.value))} className="bi-input-sm w-40">
+                    {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  <select value={metaAno} onChange={(e) => setMetaAno(Number(e.target.value))} className="bi-input-sm w-28">
+                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+              )}
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={tipo === "metas" ? 16 : 8}
+                placeholder={tipo === "pedidos"
+                  ? "12/01/2026\tANDORINHA\tR$ 18.787,62\n12/01/2026\tJK MEDICAMENTOS\tR$ 336.794,64"
+                  : "ANDORINHA R$ 70.000,00\nBANDEIRANTES R$ 45.000,00\nCAMPEÃ R$ 50.000,00\nCG MEDICAMENTOS R$ 50.000,00\nDF DISTRIBUIDORA R$ 50.000,00\nDISMAP R$ 40.000,00\nFARMA CONDE R$ 15.000,00\nIMPACTA MED R$ 35.000,00\nJK MEDICAMENTOS R$ 150.000,00\nMAXIFARMA R$ 10.000,00\nMEDSOL R$ 30.000,00\nMILFARMA R$ 130.000,00\nNAVARRO INTER R$ 130.000,00\nNAVARRO SP R$ 170.000,00\nNUCLEO R$ 80.000,00"}
+                className="w-full bg-input border border-border rounded-md p-3 text-sm font-mono"
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  disabled={loading}
+                  onClick={processPasted}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
+                  Importar {pasteText ? `(${pasteText.split(/\r?\n/).filter(Boolean).length} linhas)` : ""}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+
+
       {loading && <div className="mt-4 text-sm text-muted-foreground">Processando…</div>}
       {resumo && <div className="mt-4 bi-card p-4 text-sm">{resumo}</div>}
     </div>
