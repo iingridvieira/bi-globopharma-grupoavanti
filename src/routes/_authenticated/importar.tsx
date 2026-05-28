@@ -321,6 +321,70 @@ function ImportarPage() {
     }
   }
 
+  async function processPasted() {
+    if (!pasteText.trim()) { toast.error("Cole os dados primeiro"); return; }
+    setLoading(true);
+    setResumo(null);
+    try {
+      const idx = buildClienteIndex(clientes ?? []);
+      const lines = pasteText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      let resumoTxt = "";
+
+      if (tipo === "pedidos") {
+        // Formato: DATA<sep>CLIENTE<sep>VALOR
+        const rows: { data: string; cliente_id: string; valor: number }[] = [];
+        const ignoradas: string[] = [];
+        for (const line of lines) {
+          const parts = line.split(/\t|;|\s{2,}/).map((p) => p.trim()).filter(Boolean);
+          if (parts.length < 3) { ignoradas.push(line); continue; }
+          const dataISO = parseBRDate(parts[0]);
+          const cid = clienteIdFromRazao(parts[1], idx);
+          const v = parseBRNumber(parts.slice(2).join(" "));
+          if (dataISO && cid && v > 0) rows.push({ data: dataISO, cliente_id: cid, valor: v });
+          else ignoradas.push(line);
+        }
+        if (rows.length === 0) throw new Error("Nenhuma linha válida (formato: DATA CLIENTE VALOR)");
+        const { error } = await supabase.from("pedidos_enviados").upsert(rows as never, {
+          onConflict: "data,cliente_id,valor", ignoreDuplicates: true,
+        });
+        if (error) throw error;
+        resumoTxt = `${rows.length} pedidos importados${ignoradas.length ? ` · ${ignoradas.length} linhas ignoradas` : ""}.`;
+      } else if (tipo === "metas") {
+        // Formato: CLIENTE  R$ VALOR  (uma linha por cliente, ano/mes do seletor)
+        const rows: { cliente_id: string; ano: number; mes: number; valor: number; pendencia_inicial: number }[] = [];
+        const ignoradas: string[] = [];
+        for (const line of lines) {
+          // separa cliente do valor: pega o último token monetário "R$ X" ou número
+          const m = line.match(/^(.+?)\s+(R\$\s*)?([\d.,]+)\s*$/i);
+          if (!m) { ignoradas.push(line); continue; }
+          const nome = m[1].trim();
+          const valor = parseBRNumber(m[3]);
+          const cid = clienteIdFromRazao(nome, idx);
+          if (cid && valor > 0) rows.push({ cliente_id: cid, ano: metaAno, mes: metaMes, valor, pendencia_inicial: 0 });
+          else ignoradas.push(line);
+        }
+        if (rows.length === 0) throw new Error("Nenhuma linha válida (formato: CLIENTE R$ VALOR)");
+        const { error } = await supabase.from("metas_mensais").upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
+        if (error) throw error;
+        resumoTxt = `${rows.length} metas importadas para ${String(metaMes).padStart(2, "0")}/${metaAno}${ignoradas.length ? ` · ${ignoradas.length} linhas ignoradas` : ""}.`;
+      } else {
+        throw new Error("Colar manualmente disponível apenas para Pedidos e Metas.");
+      }
+      setResumo(resumoTxt);
+      toast.success(resumoTxt);
+      setPasteText("");
+      setPasteOpen(false);
+      await qc.invalidateQueries();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro";
+      toast.error(msg);
+      setResumo(`Erro: ${msg}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
   return (
     <div className="p-8 max-w-[1100px] mx-auto">
       <header className="mb-6">
