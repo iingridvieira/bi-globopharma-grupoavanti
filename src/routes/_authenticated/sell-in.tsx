@@ -22,17 +22,23 @@ function SellInPage() {
         supabase.from("clientes").select("id,nome").order("nome"),
         supabase.from("sell_in").select("cliente_id,mes,valor").eq("ano", ano),
       ]);
-      const matrix = new Map<string, { nome: string; meses: number[]; total: number }>();
-      (clientes.data ?? []).forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0 }));
+      const matrix = new Map<string, { nome: string; meses: number[]; total: number; media: number; repr: number }>();
+      (clientes.data ?? []).forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
       (sellIn.data ?? []).forEach((s) => {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
       });
-      const rows = Array.from(matrix.values());
+      const mesAtual = new Date().getMonth() + 1; // 1-12
+      const rows = Array.from(matrix.values()).map((r) => ({
+        ...r,
+        media: mesAtual > 0 ? r.total / mesAtual : 0,
+        repr: 0, // calculado depois
+      }));
       const totaisMes = Array(12).fill(0);
       rows.forEach((r) => r.meses.forEach((v, i) => (totaisMes[i] += v)));
       const totalGeral = totaisMes.reduce((a, b) => a + b, 0);
-      return { rows, totaisMes, totalGeral };
+      rows.forEach((r) => (r.repr = totalGeral > 0 ? (r.total / totalGeral) * 100 : 0));
+      return { rows, totaisMes, totalGeral, mesAtual };
     },
   });
 
@@ -84,6 +90,8 @@ function SellInPage() {
       const obj: Record<string, unknown> = { Cliente: r.nome };
       MESES_BR_SHORT.forEach((m, i) => (obj[m] = r.meses[i]));
       obj.Total = r.total;
+      obj.Média = r.media;
+      obj.Representatividade = `${r.repr.toFixed(1).replace(".", ",")}%`;
       return obj;
     });
     exportToExcel(rows, `sell-in-${ano}.xlsx`, "Sell In");
@@ -113,6 +121,8 @@ function SellInPage() {
               <th>Cliente</th>
               {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
               <th className="text-right">Total</th>
+              <th className="text-right">Média</th>
+              <th className="text-right">Representatividade</th>
             </tr>
           </thead>
           <tbody>
@@ -121,6 +131,16 @@ function SellInPage() {
                 <td className="font-medium">{r.nome}</td>
                 {r.meses.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
                 <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(r.total)}</td>
+                <td className="text-right tabular-nums text-xs text-muted-foreground">{formatBRL(r.media)}</td>
+                <td className="text-right">
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                    r.repr >= 15 ? "bg-emerald-500/20 text-emerald-400" :
+                    r.repr >= 5 ? "bg-yellow-500/20 text-yellow-400" :
+                    "bg-red-500/20 text-red-400"
+                  }`}>
+                    {r.repr.toFixed(1).replace(".", ",")}%
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -129,6 +149,10 @@ function SellInPage() {
               <td>TOTAL</td>
               {data?.totaisMes.map((v, i) => <td key={i} className="text-right text-xs">{formatBRL(v)}</td>)}
               <td className="text-right text-primary">{formatBRL(data?.totalGeral ?? 0)}</td>
+              <td className="text-right text-xs text-muted-foreground">
+                {data?.totalGeral && data?.mesAtual ? formatBRL(data.totalGeral / data.mesAtual) : formatBRL(0)}
+              </td>
+              <td className="text-right text-xs font-semibold">100%</td>
             </tr>
           </tfoot>
         </table>
