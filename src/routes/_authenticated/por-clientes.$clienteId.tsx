@@ -38,6 +38,16 @@ function ClienteDetalhe() {
       (await supabase.from("sell_out").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
   });
 
+  const { data: pendencias } = useQuery({
+    queryKey: ["pendencias-cliente", clienteId, ano],
+    queryFn: async () =>
+      (await supabase.from("pendencias").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
+  });
+
+  const sellInAgg = useMemo(() => buildAgg(sellIn ?? []), [sellIn]);
+  const sellOutAgg = useMemo(() => buildAgg(sellOut ?? []), [sellOut]);
+  const pendAgg = useMemo(() => buildAgg(pendencias ?? []), [pendencias]);
+
   const sellInAgg = useMemo(() => buildAgg(sellIn ?? []), [sellIn]);
   const sellOutAgg = useMemo(() => buildAgg(sellOut ?? []), [sellOut]);
 
