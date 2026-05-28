@@ -107,7 +107,9 @@ function NFsPage() {
       {/* Barra de busca */}
       <div className="bi-card mt-6 p-4 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {!busca && (
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          )}
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
