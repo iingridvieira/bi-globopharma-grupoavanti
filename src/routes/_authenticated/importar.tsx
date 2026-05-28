@@ -35,10 +35,24 @@ function parseMesAno(header: string): { mes: number; ano: number } | null {
 }
 
 function ImportarPage() {
+  const { canEdit } = useAuth();
   const [tipo, setTipo] = useState<TipoImport>("faturamento");
   const [loading, setLoading] = useState(false);
   const [resumo, setResumo] = useState<string | null>(null);
   const qc = useQueryClient();
+
+  if (!canEdit) {
+    return (
+      <div className="p-8 max-w-xl mx-auto">
+        <div className="bi-card p-8 text-center">
+          <h1 className="font-display text-2xl font-bold mb-2">Acesso restrito</h1>
+          <p className="text-sm text-muted-foreground">
+            Apenas o usuário autorizado pode importar planilhas neste sistema.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const { data: clientes } = useQuery({
     queryKey: ["clientes-all"],
