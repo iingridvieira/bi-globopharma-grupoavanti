@@ -1,0 +1,1 @@
+ALTER TABLE public.pedidos_enviados ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'aguardando' CHECK (status IN ('aguardando','aprovado'));
