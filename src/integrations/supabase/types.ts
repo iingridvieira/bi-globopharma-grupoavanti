@@ -194,6 +194,7 @@ export type Database = {
           desconto: number
           id: string
           numero: string
+          razao_social: string | null
           valor: number
         }
         Insert: {
@@ -204,6 +205,7 @@ export type Database = {
           desconto?: number
           id?: string
           numero: string
+          razao_social?: string | null
           valor: number
         }
         Update: {
@@ -214,6 +216,7 @@ export type Database = {
           desconto?: number
           id?: string
           numero?: string
+          razao_social?: string | null
           valor?: number
         }
         Relationships: [
@@ -254,6 +257,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_enviados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pendencias: {
+        Row: {
+          ano: number
+          cliente_id: string
+          created_at: string
+          id: string
+          mes: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ano: number
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendencias_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
