@@ -24,14 +24,36 @@ const MESES_MAP: Record<string, number> = {
   jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12,
 };
 
-function parseMesAno(header: string): { mes: number; ano: number } | null {
-  const s = header.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  const m = s.match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[\s\/\-_.]*(\d{2,4})$/);
-  if (!m) return null;
-  const mes = MESES_MAP[m[1]];
-  let ano = Number(m[2]);
-  if (ano < 100) ano += 2000;
-  return { mes, ano };
+function parseMesAno(header: unknown): { mes: number; ano: number } | null {
+  // Suporta cabeçalho Date (planilhas onde "jan/25" é formatação de uma data real).
+  if (header instanceof Date && !Number.isNaN(header.getTime())) {
+    return { mes: header.getUTCMonth() + 1, ano: header.getUTCFullYear() };
+  }
+  // Suporta serial Excel (número) — converte para Date.
+  if (typeof header === "number" && header > 10000 && header < 100000) {
+    const d = new Date(Math.round((header - 25569) * 86400 * 1000));
+    if (!Number.isNaN(d.getTime())) return { mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
+  }
+  const raw = String(header ?? "").trim();
+  const s = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  // jan/25, jan-25, jan 2025, jan.25, janeiro/2025 etc.
+  const m = s.match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*[\s\/\-_.]*(\d{2,4})$/);
+  if (m) {
+    const mes = MESES_MAP[m[1]];
+    let ano = Number(m[2]);
+    if (ano < 100) ano += 2000;
+    return { mes, ano };
+  }
+  // ISO ou DD/MM/YYYY dentro do header
+  const iso = raw.match(/^(\d{4})-(\d{1,2})(?:-\d{1,2})?$/);
+  if (iso) return { mes: Number(iso[2]), ano: Number(iso[1]) };
+  const br = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (br) {
+    let ano = Number(br[3]);
+    if (ano < 100) ano += 2000;
+    return { mes: Number(br[2]), ano };
+  }
+  return null;
 }
 
 function ImportarPage() {

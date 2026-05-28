@@ -30,12 +30,38 @@ export function normalizeKey(s: string): string {
 
 const NORMALIZED_MAP = new Map(RAW_MAP.map(([k, v]) => [normalizeKey(k), v]));
 
+/** Palavras-chave distintivas → nome padrão. Fallback robusto para variações. */
+const KEYWORDS: Array<[string, string]> = [
+  ["sleiman", "SLEIMAN"],
+  ["andorinha", "ANDORINHA"],
+  ["bandeirantes", "BANDEIRANTES"],
+  ["dismap", "DISMAP"],
+  ["dismed", "DISMED"],
+  ["maxifarma", "MAXIFARMA"],
+  ["milfarma", "MILFARMA"],
+  ["medsol", "MEDSOL"],
+  ["nucleofarma", "NÚCLEO FARMA"],
+  ["impactamed", "IMPACTA MED"],
+  ["medvalle", "MED VALLE"],
+  ["farmaconde", "FARMA CONDE"],
+  ["gemeli", "GEMELI"],
+  ["timeh", "TIMEH"],
+  ["valecomercial", "VALE COMERCIAL"],
+  ["drogariacampea", "CAMPEÃ"],
+  ["jkmedicamentos", "JK MEDICAMENTOS"],
+  ["ambrosioecorrea", "DISMAP"],
+];
+
 /** Resolve uma razão social bruta da planilha para o nome padrão. Retorna "OUTROS" se não mapeado. */
 export function mapRazaoSocialToCliente(razaoSocial: string): string {
   if (!razaoSocial) return "OUTROS";
   const key = normalizeKey(razaoSocial);
   if (NORMALIZED_MAP.has(key)) return NORMALIZED_MAP.get(key)!;
-  // Busca por correspondência parcial (start-of-string) para variações leves
+  // Match por palavra-chave distintiva (mais confiável que prefixo).
+  for (const [kw, std] of KEYWORDS) {
+    if (key.includes(kw)) return std;
+  }
+  // Fallback: correspondência por prefixo amplo.
   for (const [k, v] of NORMALIZED_MAP) {
     if (key.startsWith(k.slice(0, 12)) || k.startsWith(key.slice(0, 12))) return v;
   }
