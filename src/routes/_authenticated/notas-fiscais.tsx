@@ -99,7 +99,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClienteFiltro(""); setValorMin(""); setValorMax("");
+    setBusca(""); setClienteFiltro(""); setValorMin(""); setValorMax(""); setOperacao("todas");
   }
 
   return (
