@@ -169,7 +169,7 @@ function NFsPage() {
             className="bi-input-sm w-36"
           />
 
-          {(busca || clienteFiltro || valorMin || valorMax) && (
+          {(busca || clienteFiltro || valorMin || valorMax || operacao !== "todas") && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
