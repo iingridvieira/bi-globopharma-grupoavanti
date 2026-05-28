@@ -84,9 +84,11 @@ function NFsPage() {
       const v = Number(n.valor);
       if (min && v < min) return false;
       if (max && v > max) return false;
+      if (operacao === "venda" && v <= 0) return false;
+      if (operacao === "bonificacao" && v > 0) return false;
       return true;
     });
-  }, [nfs, valorMin, valorMax]);
+  }, [nfs, valorMin, valorMax, operacao]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
