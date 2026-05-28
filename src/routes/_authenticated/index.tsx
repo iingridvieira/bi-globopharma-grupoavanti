@@ -25,7 +25,7 @@ function Dashboard() {
         supabase.from("metas_mensais").select("cliente_id,valor").eq("ano", ANO).eq("mes", MES),
         supabase.from("pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", endDate),
         supabase.from("notas_fiscais").select("cliente_id,valor").gte("data", start).lte("data", endDate),
-        supabase.from("pendencias").select("cliente_id,valor").eq("ano", ANO).eq("mes", MES),
+        supabase.from("pendencias_produtos").select("cliente_id,valor"),
       ]);
 
       const map = new Map<string, { nome: string; pendencia: number; enviado: number; meta: number; faturado: number }>();
