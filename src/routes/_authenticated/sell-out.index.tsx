@@ -15,7 +15,7 @@ function SellOutIndex() {
     <div className="p-8 max-w-[1400px] mx-auto">
       <header className="mb-8">
         <div className="bi-stat-label">Selecione um cliente</div>
-        <h1 className="font-display text-3xl font-bold mt-1">Consolidado Sell Out</h1>
+        <h1 className="font-display text-3xl font-bold mt-1">Sell Out</h1>
         <p className="text-muted-foreground mt-2">Acompanhamento mensal e mapas de vendas por distribuidor.</p>
       </header>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
