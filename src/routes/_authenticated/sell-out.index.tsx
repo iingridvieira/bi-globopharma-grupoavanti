@@ -24,7 +24,7 @@ function SellOutPage() {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
       });
-      const rows = Array.from(matrix.values());
+      const rows = Array.from(matrix.values()).filter((r) => r.total > 0);
       const totaisMes = Array(12).fill(0);
       rows.forEach((r) => r.meses.forEach((v, i) => (totaisMes[i] += v)));
       const totalGeral = totaisMes.reduce((a, b) => a + b, 0);
