@@ -17,6 +17,7 @@ import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedNotasFiscaisRouteImport } from './routes/_authenticated/notas-fiscais'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedSellOutIndexRouteImport } from './routes/_authenticated/sell-out.index'
+import { Route as AuthenticatedPorClientesIndexRouteImport } from './routes/_authenticated/por-clientes.index'
 import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_authenticated/sell-out.$clienteId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -60,6 +61,12 @@ const AuthenticatedSellOutIndexRoute =
     path: '/sell-out/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedPorClientesIndexRoute =
+  AuthenticatedPorClientesIndexRouteImport.update({
+    id: '/por-clientes/',
+    path: '/por-clientes/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedSellOutClienteIdRoute =
   AuthenticatedSellOutClienteIdRouteImport.update({
     id: '/sell-out/$clienteId',
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out/': typeof AuthenticatedSellOutIndexRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +93,7 @@ export interface FileRoutesByTo {
   '/sell-in': typeof AuthenticatedSellInRoute
   '/': typeof AuthenticatedIndexRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/por-clientes': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out': typeof AuthenticatedSellOutIndexRoute
 }
 export interface FileRoutesById {
@@ -97,6 +106,7 @@ export interface FileRoutesById {
   '/_authenticated/sell-in': typeof AuthenticatedSellInRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/_authenticated/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/_authenticated/sell-out/': typeof AuthenticatedSellOutIndexRoute
 }
 export interface FileRouteTypes {
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/pedidos'
     | '/sell-in'
     | '/sell-out/$clienteId'
+    | '/por-clientes/'
     | '/sell-out/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/sell-in'
     | '/'
     | '/sell-out/$clienteId'
+    | '/por-clientes'
     | '/sell-out'
   id:
     | '__root__'
@@ -130,6 +142,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sell-in'
     | '/_authenticated/'
     | '/_authenticated/sell-out/$clienteId'
+    | '/_authenticated/por-clientes/'
     | '/_authenticated/sell-out/'
   fileRoutesById: FileRoutesById
 }
@@ -196,6 +209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellOutIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/por-clientes/': {
+      id: '/_authenticated/por-clientes/'
+      path: '/por-clientes'
+      fullPath: '/por-clientes/'
+      preLoaderRoute: typeof AuthenticatedPorClientesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/sell-out/$clienteId': {
       id: '/_authenticated/sell-out/$clienteId'
       path: '/sell-out/$clienteId'
@@ -213,6 +233,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSellInRoute: typeof AuthenticatedSellInRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSellOutClienteIdRoute: typeof AuthenticatedSellOutClienteIdRoute
+  AuthenticatedPorClientesIndexRoute: typeof AuthenticatedPorClientesIndexRoute
   AuthenticatedSellOutIndexRoute: typeof AuthenticatedSellOutIndexRoute
 }
 
@@ -223,6 +244,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSellInRoute: AuthenticatedSellInRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedSellOutClienteIdRoute: AuthenticatedSellOutClienteIdRoute,
+  AuthenticatedPorClientesIndexRoute: AuthenticatedPorClientesIndexRoute,
   AuthenticatedSellOutIndexRoute: AuthenticatedSellOutIndexRoute,
 }
 
@@ -237,3 +259,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
