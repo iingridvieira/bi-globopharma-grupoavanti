@@ -90,6 +90,8 @@ function SellInPage() {
       const obj: Record<string, unknown> = { Cliente: r.nome };
       MESES_BR_SHORT.forEach((m, i) => (obj[m] = r.meses[i]));
       obj.Total = r.total;
+      obj.Média = r.media;
+      obj.Representatividade = `${r.repr.toFixed(1).replace(".", ",")}%`;
       return obj;
     });
     exportToExcel(rows, `sell-in-${ano}.xlsx`, "Sell In");
