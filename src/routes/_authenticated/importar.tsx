@@ -79,14 +79,43 @@ function ImportarPage() {
         if (error) throw error;
         resumoTxt = `${rows.length} metas importadas.`;
       } else if (tipo === "sell_out") {
-        const rows = firstSheet.map((r) => ({
-          cliente_id: clienteIdFromRazao(String(pickCol(r, "Cliente") ?? ""), idx),
-          ano: Number(pickCol(r, "Ano")), mes: Number(pickCol(r, "Mes", "Mês")),
-          valor: rowToBRNumber(pickCol(r, "Valor")),
-        })).filter((r) => r.cliente_id && r.ano && r.mes);
+        const headers = Object.keys(firstSheet[0] ?? {});
+        const wideCols = headers
+          .map((h) => ({ h, parsed: parseMesAno(h) }))
+          .filter((x) => x.parsed) as { h: string; parsed: { mes: number; ano: number } }[];
+
+        type SellOutRow = { cliente_id: string; ano: number; mes: number; valor: number };
+        const rows: SellOutRow[] = [];
+
+        if (wideCols.length > 0) {
+          // Formato largo: 1ª coluna = nome do cliente, demais = jan/25, fev/25...
+          const clienteCol = headers.find((h) => !parseMesAno(h)) ?? headers[0];
+          for (const r of firstSheet) {
+            const nome = String(r[clienteCol] ?? "").trim();
+            if (!nome) continue;
+            const cliente_id = idx.get(normalizeKey(nome)) ?? clienteIdFromRazao(nome, idx);
+            if (!cliente_id) continue;
+            for (const { h, parsed } of wideCols) {
+              const valor = rowToBRNumber(r[h]);
+              if (!valor) continue;
+              rows.push({ cliente_id, ano: parsed.ano, mes: parsed.mes, valor });
+            }
+          }
+        } else {
+          // Formato longo: Cliente, Ano, Mes, Valor
+          for (const r of firstSheet) {
+            const cliente_id = clienteIdFromRazao(String(pickCol(r, "Cliente") ?? ""), idx);
+            const ano = Number(pickCol(r, "Ano"));
+            const mes = Number(pickCol(r, "Mes", "Mês"));
+            const valor = rowToBRNumber(pickCol(r, "Valor"));
+            if (cliente_id && ano && mes) rows.push({ cliente_id, ano, mes, valor });
+          }
+        }
+
+        if (rows.length === 0) throw new Error("Nenhuma linha válida encontrada na planilha.");
         const { error } = await supabase.from("sell_out").upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
         if (error) throw error;
-        resumoTxt = `${rows.length} registros sell out importados.`;
+        resumoTxt = `${rows.length} registros sell out atualizados (períodos não presentes no arquivo foram preservados).`;
       }
       setResumo(resumoTxt);
       toast.success(resumoTxt);
