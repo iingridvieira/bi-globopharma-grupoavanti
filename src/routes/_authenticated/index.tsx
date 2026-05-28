@@ -20,33 +20,32 @@ function Dashboard() {
       const start = `${ANO}-${String(MES).padStart(2, "0")}-01`;
       const endDate = new Date(ANO, MES, 0).toISOString().slice(0, 10);
 
-      const [clientes, metas, pedidos, nfs] = await Promise.all([
+      const [clientes, metas, pedidos, nfs, pendencias] = await Promise.all([
         supabase.from("clientes").select("id,nome").order("nome"),
-        supabase.from("metas_mensais").select("cliente_id,valor,pendencia_inicial").eq("ano", ANO).eq("mes", MES),
+        supabase.from("metas_mensais").select("cliente_id,valor").eq("ano", ANO).eq("mes", MES),
         supabase.from("pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", endDate),
         supabase.from("notas_fiscais").select("cliente_id,valor").gte("data", start).lte("data", endDate),
+        supabase.from("pendencias").select("cliente_id,valor").eq("ano", ANO).eq("mes", MES),
       ]);
 
-      const map = new Map<string, { nome: string; pendInicial: number; enviado: number; meta: number; faturado: number }>();
-      (clientes.data ?? []).forEach((c) => map.set(c.id, { nome: c.nome, pendInicial: 0, enviado: 0, meta: 0, faturado: 0 }));
-      (metas.data ?? []).forEach((m) => {
-        const r = map.get(m.cliente_id); if (!r) return;
-        r.meta = Number(m.valor); r.pendInicial = Number(m.pendencia_inicial);
-      });
+      const map = new Map<string, { nome: string; pendencia: number; enviado: number; meta: number; faturado: number }>();
+      (clientes.data ?? []).forEach((c) => map.set(c.id, { nome: c.nome, pendencia: 0, enviado: 0, meta: 0, faturado: 0 }));
+      (metas.data ?? []).forEach((m) => { const r = map.get(m.cliente_id); if (r) r.meta = Number(m.valor); });
       (pedidos.data ?? []).forEach((p) => { const r = map.get(p.cliente_id); if (r) r.enviado += Number(p.valor); });
       (nfs.data ?? []).forEach((n) => { const r = map.get(n.cliente_id); if (r) r.faturado += Number(n.valor); });
+      (pendencias.data ?? []).forEach((p) => { const r = map.get(p.cliente_id); if (r) r.pendencia += Number(p.valor); });
 
-      const rows = Array.from(map.values()).map((r) => ({ ...r, pendFinal: r.meta - r.faturado }));
+      const rows = Array.from(map.values()).filter((r) => r.meta > 0 || r.faturado > 0 || r.enviado > 0 || r.pendencia > 0);
       const totals = rows.reduce((a, r) => ({
         meta: a.meta + r.meta, enviado: a.enviado + r.enviado, faturado: a.faturado + r.faturado,
-        pendInicial: a.pendInicial + r.pendInicial, pendFinal: a.pendFinal + r.pendFinal,
-      }), { meta: 0, enviado: 0, faturado: 0, pendInicial: 0, pendFinal: 0 });
+        pendencia: a.pendencia + r.pendencia,
+      }), { meta: 0, enviado: 0, faturado: 0, pendencia: 0 });
 
       return { rows, totals };
     },
   });
 
-  const t = data?.totals ?? { meta: 0, enviado: 0, faturado: 0, pendInicial: 0, pendFinal: 0 };
+  const t = data?.totals ?? { meta: 0, enviado: 0, faturado: 0, pendencia: 0 };
   const gap = t.meta - t.faturado;
   const pctFat = t.meta > 0 ? (t.faturado / t.meta) * 100 : 0;
 
@@ -70,7 +69,7 @@ function Dashboard() {
         <header className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">Resumo por cliente</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Pendência inicial · Enviado · Meta · Faturado · Pendência final</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Enviado · Meta · Faturado · Pendência (importada)</p>
           </div>
         </header>
         <div className="overflow-x-auto">
@@ -78,26 +77,24 @@ function Dashboard() {
             <thead>
               <tr>
                 <th>Cliente</th>
-                <th className="text-right">Pend. Inicial</th>
                 <th className="text-right">Enviado</th>
                 <th className="text-right">Meta</th>
                 <th className="text-right">Faturado</th>
-                <th className="text-right">Pend. Final</th>
+                <th className="text-right">Pendência</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} className="text-center text-muted-foreground py-10">Carregando…</td></tr>
+                <tr><td colSpan={5} className="text-center text-muted-foreground py-10">Carregando…</td></tr>
               )}
               {data?.rows.map((r) => (
                 <tr key={r.nome}>
                   <td className="font-medium">{r.nome}</td>
-                  <td className="text-right tabular-nums">{formatBRL(r.pendInicial)}</td>
                   <td className="text-right tabular-nums">{formatBRL(r.enviado)}</td>
                   <td className="text-right tabular-nums">{formatBRL(r.meta)}</td>
                   <td className="text-right tabular-nums">{formatBRL(r.faturado)}</td>
-                  <td className={"text-right tabular-nums font-semibold " + (r.pendFinal > 0 ? "text-warning" : "text-success")}>
-                    {formatBRL(r.pendFinal)}
+                  <td className={"text-right tabular-nums font-semibold " + (r.pendencia > 0 ? "text-warning" : "text-muted-foreground")}>
+                    {r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}
                   </td>
                 </tr>
               ))}
@@ -105,11 +102,10 @@ function Dashboard() {
             <tfoot>
               <tr>
                 <td>TOTAL GERAL</td>
-                <td className="text-right tabular-nums">{formatBRL(t.pendInicial)}</td>
                 <td className="text-right tabular-nums">{formatBRL(t.enviado)}</td>
                 <td className="text-right tabular-nums">{formatBRL(t.meta)}</td>
                 <td className="text-right tabular-nums">{formatBRL(t.faturado)}</td>
-                <td className="text-right tabular-nums text-primary">{formatBRL(t.pendFinal)}</td>
+                <td className="text-right tabular-nums text-primary">{formatBRL(t.pendencia)}</td>
               </tr>
             </tfoot>
           </table>
