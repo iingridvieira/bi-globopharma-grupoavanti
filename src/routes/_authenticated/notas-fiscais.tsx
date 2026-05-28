@@ -111,7 +111,7 @@ function NFsPage() {
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Pesquisar por número da NF, produto ou código..."
+            placeholder="          Pesquisar por número da NF, produto ou código..."
             className="bi-input-sm w-full pl-10 pr-10"
             style={{ height: 44 }}
           />
