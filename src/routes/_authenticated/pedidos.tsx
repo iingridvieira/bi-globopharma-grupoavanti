@@ -19,8 +19,7 @@ function PedidosPage() {
   const [ano, setAno] = useState(now.getFullYear());
   const [clienteFiltro, setClienteFiltro] = useState("");
   const [valorMin, setValorMin] = useState("");
-  const [pasteOpen, setPasteOpen] = useState(false);
-  const [pasteText, setPasteText] = useState("");
+
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [clienteId, setClienteId] = useState("");
   const [valor, setValor] = useState("");
