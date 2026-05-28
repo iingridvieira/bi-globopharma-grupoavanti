@@ -48,8 +48,6 @@ function ClienteDetalhe() {
   const sellOutAgg = useMemo(() => buildAgg(sellOut ?? []), [sellOut]);
   const pendAgg = useMemo(() => buildAgg(pendencias ?? []), [pendencias]);
 
-  const sellInAgg = useMemo(() => buildAgg(sellIn ?? []), [sellIn]);
-  const sellOutAgg = useMemo(() => buildAgg(sellOut ?? []), [sellOut]);
 
   const { data: arquivos } = useQuery({
     queryKey: ["mapas", clienteId],
