@@ -258,6 +258,57 @@ function ImportarPage() {
           .upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
         if (error) throw error;
         resumoTxt = `${rows.length} registros sell out atualizados (períodos não presentes no arquivo foram preservados).`;
+      } else if (tipo === "pendencias") {
+        // Formato 1 (largo): 1ª coluna = Cliente, demais = jan/25, fev/25 com valores em R$.
+        // Formato 2 (longo / relatório faturamento): Cliente, MÊS/ANO, Pend em aberto (R$).
+        const headers = Object.keys(firstSheet[0] ?? {});
+        const wideCols = headers
+          .map((h) => ({ h, parsed: parseMesAno(h) }))
+          .filter((x) => x.parsed) as { h: string; parsed: { mes: number; ano: number } }[];
+
+        type PendRow = { cliente_id: string; ano: number; mes: number; valor: number };
+        const agg = new Map<string, PendRow>();
+
+        if (wideCols.length > 0) {
+          const clienteCol = headers.find((h) => !parseMesAno(h)) ?? headers[0];
+          for (const r of firstSheet) {
+            const nome = String(r[clienteCol] ?? "").trim();
+            if (!nome) continue;
+            const cliente_id = idx.get(normalizeKey(nome)) ?? clienteIdFromRazao(nome, idx);
+            if (!cliente_id) continue;
+            for (const { h, parsed } of wideCols) {
+              const valor = rowToBRNumber(r[h]);
+              if (!valor) continue;
+              const k = `${cliente_id}|${parsed.ano}|${parsed.mes}`;
+              const cur = agg.get(k) ?? { cliente_id, ano: parsed.ano, mes: parsed.mes, valor: 0 };
+              cur.valor += valor;
+              agg.set(k, cur);
+            }
+          }
+        } else {
+          for (const r of firstSheet) {
+            const nome = String(pickCol(r, "Cliente", "Razão Social", "Razao Social") ?? "").trim();
+            const cliente_id = clienteIdFromRazao(nome, idx);
+            const mesAnoRaw = pickCol(r, "MÊS/ANO", "MES/ANO", "MesAno", "Periodo", "Período");
+            const valor = rowToBRNumber(
+              pickCol(r, "Pend em aberto (R$)", "Pend em aberto R$", "Pendencia", "Pendência", "Valor"),
+            );
+            if (!cliente_id || !valor) continue;
+            const parsed = parseMesAno(mesAnoRaw);
+            if (!parsed) continue;
+            const k = `${cliente_id}|${parsed.ano}|${parsed.mes}`;
+            const cur = agg.get(k) ?? { cliente_id, ano: parsed.ano, mes: parsed.mes, valor: 0 };
+            cur.valor += valor;
+            agg.set(k, cur);
+          }
+        }
+        const rows = Array.from(agg.values());
+        if (rows.length === 0) throw new Error("Nenhuma pendência válida encontrada.");
+        const { error } = await supabase
+          .from("pendencias")
+          .upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
+        if (error) throw error;
+        resumoTxt = `${rows.length} períodos de pendências atualizados.`;
       }
       setResumo(resumoTxt);
       toast.success(resumoTxt);
