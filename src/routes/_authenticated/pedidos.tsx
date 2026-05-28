@@ -112,7 +112,7 @@ function PedidosPage() {
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
       <h1 className="font-display text-3xl font-bold">Pedidos Enviados</h1>
-      <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes. Importação automática e colagem manual.</p>
+      <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
 
       <div className="flex flex-wrap items-center gap-3 mt-6">
         <PeriodoSelect mes={mes} ano={ano} onMes={setMes} onAno={setAno} />

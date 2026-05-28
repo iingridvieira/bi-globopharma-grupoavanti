@@ -7,8 +7,8 @@ const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/pedidos", label: "Pedidos Enviados", icon: Send },
   { to: "/notas-fiscais", label: "Notas Fiscais", icon: FileText },
-  { to: "/sell-in", label: "Consolidado Sell In", icon: TrendingUp },
-  { to: "/sell-out", label: "Consolidado Sell Out", icon: ShoppingCart },
+  { to: "/sell-in", label: "Sell in", icon: TrendingUp },
+  { to: "/sell-out", label: "Sell Out", icon: ShoppingCart },
   { to: "/importar", label: "Importar Excel", icon: Upload },
 ];
 
