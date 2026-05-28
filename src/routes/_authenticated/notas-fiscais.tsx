@@ -88,7 +88,8 @@ function NFsPage() {
   }, [nfs, valorMin, valorMax]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
-  const totalDesc = useMemo(() => filtradas.reduce((a, n) => a + Number(n.desconto || 0), 0), [filtradas]);
+  const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
+  const totalBonif = useMemo(() => filtradas.filter((n) => Number(n.valor) <= 0).length, [filtradas]);
 
   function toggle(id: string) {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
