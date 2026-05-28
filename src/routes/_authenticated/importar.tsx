@@ -657,7 +657,6 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
       const ano = d.getUTCFullYear();
       const mes = d.getUTCMonth() + 1;
       const k = `${n.cliente_id}|${ano}|${mes}`;
-      if (!periodos.has(k)) return; // só recalcula períodos do arquivo importado
       const cur = totais.get(k) ?? { cliente_id: n.cliente_id as string, ano, mes, valor: 0 };
       cur.valor += Number(n.valor);
       totais.set(k, cur);
