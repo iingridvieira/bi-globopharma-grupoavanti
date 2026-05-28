@@ -43,7 +43,7 @@ function SellOutPage() {
       MESES_BR_SHORT.forEach((m, i) => (o[m] = r.meses[i]));
       o.Total = r.total;
       o.Média = r.media;
-      o.Representatividade = `${r.repr.toFixed(1).replace(".", ",")}%`;
+      o["Rep."] = `${r.repr.toFixed(1).replace(".", ",")}%`;
       return o;
     });
     exportToExcel(rows, `sell-out-${ano}.xlsx`, "Sell Out");
@@ -74,7 +74,7 @@ function SellOutPage() {
               {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
               <th className="text-right">Total</th>
               <th className="text-right">Média</th>
-              <th className="text-right">Representatividade</th>
+              <th className="text-right">Rep.</th>
             </tr>
           </thead>
           <tbody>
