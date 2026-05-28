@@ -38,15 +38,25 @@ function ClienteDetalhe() {
       (await supabase.from("sell_out").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
   });
 
-  const { data: pendencias } = useQuery({
-    queryKey: ["pendencias-cliente", clienteId, ano],
+  const { data: pendProdutos } = useQuery({
+    queryKey: ["pendencias-produtos-cliente", clienteId],
     queryFn: async () =>
-      (await supabase.from("pendencias").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
+      (await supabase
+        .from("pendencias_produtos")
+        .select("codigo_produto,produto,quantidade,valor")
+        .eq("cliente_id", clienteId)
+        .order("valor", { ascending: false })).data ?? [],
   });
 
   const sellInAgg = useMemo(() => buildAgg(sellIn ?? []), [sellIn]);
   const sellOutAgg = useMemo(() => buildAgg(sellOut ?? []), [sellOut]);
-  const pendAgg = useMemo(() => buildAgg(pendencias ?? []), [pendencias]);
+  const pendTotais = useMemo(() => {
+    const list = pendProdutos ?? [];
+    return {
+      vol: list.reduce((a, b) => a + Number(b.quantidade), 0),
+      valor: list.reduce((a, b) => a + Number(b.valor), 0),
+    };
+  }, [pendProdutos]);
 
 
   const { data: arquivos } = useQuery({
@@ -113,7 +123,50 @@ function ClienteDetalhe() {
 
       <MonthlyTable title={`Sell In · ${ano}`} agg={sellInAgg} colorVar="var(--color-chart-1)" />
       <MonthlyTable title={`Sell Out · ${ano}`} agg={sellOutAgg} colorVar="var(--color-chart-2)" />
-      <MonthlyTable title={`Pendências · ${ano}`} agg={pendAgg} colorVar="var(--color-chart-3)" />
+
+      <section className="bi-card mb-6 overflow-hidden">
+        <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Pendências em aberto</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Produtos pendentes deste cliente</p>
+          </div>
+          <div className="flex items-center gap-6 text-right">
+            <div>
+              <div className="bi-stat-label">Total VOL</div>
+              <div className="font-display text-lg font-bold tabular-nums">{pendTotais.vol.toLocaleString("pt-BR")}</div>
+            </div>
+            <div>
+              <div className="bi-stat-label">Total R$</div>
+              <div className="font-display text-lg font-bold tabular-nums text-primary">{formatBRL(pendTotais.valor)}</div>
+            </div>
+          </div>
+        </header>
+        <div className="overflow-x-auto">
+          <table className="bi-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Produto</th>
+                <th className="text-right">Pend em aberto (VOL)</th>
+                <th className="text-right">Pend em aberto (R$)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(pendProdutos ?? []).map((p, i) => (
+                <tr key={i}>
+                  <td className="text-xs text-muted-foreground tabular-nums">{p.codigo_produto || "—"}</td>
+                  <td className="font-medium">{p.produto || "—"}</td>
+                  <td className="text-right tabular-nums">{Number(p.quantidade).toLocaleString("pt-BR")}</td>
+                  <td className="text-right tabular-nums font-semibold">{formatBRL(Number(p.valor))}</td>
+                </tr>
+              ))}
+              {(!pendProdutos || pendProdutos.length === 0) && (
+                <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma pendência registrada.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Mapas de vendas */}
       <section className="bi-card overflow-hidden">
