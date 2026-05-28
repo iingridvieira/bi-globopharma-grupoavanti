@@ -73,6 +73,7 @@ function PedidosPage() {
       Data: formatDateBR(p.data),
       Cliente: p.clientes?.nome ?? "",
       Valor: Number(p.valor),
+      Status: p.status === "aprovado" ? "APROVADO" : "AGUARDANDO",
     }));
     exportToExcel(rows, `pedidos-${ano}-${String(mes).padStart(2, "0")}.xlsx`, "Pedidos");
   }
