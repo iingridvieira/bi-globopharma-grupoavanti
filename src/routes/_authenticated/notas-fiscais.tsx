@@ -19,6 +19,7 @@ function NFsPage() {
   const [busca, setBusca] = useState("");
   const [valorMin, setValorMin] = useState("");
   const [valorMax, setValorMax] = useState("");
+  const [operacao, setOperacao] = useState<"todas" | "venda" | "bonificacao">("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
