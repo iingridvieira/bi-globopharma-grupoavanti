@@ -80,10 +80,18 @@ function parseMesAno(header: unknown): { mes: number; ano: number } | null {
     const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
     if (!Number.isNaN(d.getTime())) return { mes: d.getUTCMonth() + 1, ano: d.getUTCFullYear() };
   }
-  const s = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const s = raw
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
   // jan/25, janeiro/2025, fevereiro de 2026, feb 2026, etc.
-  const monthNames = Object.keys(MESES_MAP).sort((a, b) => b.length - a.length).join("|");
-  const m = s.match(new RegExp(`\\b(${monthNames})\\b(?:\\s*(?:de|do|da)\\s*|[\\s\\/\\-_.]+)(\\d{2,4})\\b`));
+  const monthNames = Object.keys(MESES_MAP)
+    .sort((a, b) => b.length - a.length)
+    .join("|");
+  const m = s.match(
+    new RegExp(`\\b(${monthNames})\\b(?:\\s*(?:de|do|da)\\s*|[\\s/_.-]+)(\\d{2,4})\\b`),
+  );
   if (m) {
     const mes = MESES_MAP[m[1]];
     let ano = Number(m[2]);
@@ -91,14 +99,14 @@ function parseMesAno(header: unknown): { mes: number; ano: number } | null {
     return { mes, ano };
   }
   // MM/YYYY, MM-YY, YYYY/MM, YYYY-MM
-  const mesAno = s.match(/^(\d{1,2})[\/\-_.](\d{2,4})$/);
+  const mesAno = s.match(/^(\d{1,2})[/_.-](\d{2,4})$/);
   if (mesAno) {
     const mes = Number(mesAno[1]);
     let ano = Number(mesAno[2]);
     if (ano < 100) ano += 2000;
     if (mes >= 1 && mes <= 12) return { mes, ano };
   }
-  const anoMes = s.match(/^(\d{4})[\/\-_.](\d{1,2})$/);
+  const anoMes = s.match(/^(\d{4})[/_.-](\d{1,2})$/);
   if (anoMes) {
     const mes = Number(anoMes[2]);
     if (mes >= 1 && mes <= 12) return { mes, ano: Number(anoMes[1]) };
