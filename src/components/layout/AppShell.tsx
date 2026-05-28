@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Activity, LayoutDashboard, Send, FileText, TrendingUp, ShoppingCart, Upload, LogOut, Sun, Moon } from "lucide-react";
+import { Activity, LayoutDashboard, Send, FileText, TrendingUp, ShoppingCart, Users, Upload, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -9,6 +9,7 @@ const NAV = [
   { to: "/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/sell-in", label: "Sell in", icon: TrendingUp },
   { to: "/sell-out", label: "Sell Out", icon: ShoppingCart },
+  { to: "/por-clientes", label: "Por Clientes", icon: Users },
   { to: "/importar", label: "Importar Excel", icon: Upload },
 ];
 
