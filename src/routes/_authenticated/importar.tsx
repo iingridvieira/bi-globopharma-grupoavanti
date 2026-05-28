@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
 
-type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out";
+type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias";
 
 const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
   {
@@ -32,6 +32,11 @@ const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
     key: "sell_out",
     label: "Sell Out",
     desc: "Aceita formato largo (1ª coluna Cliente, demais como jan/25, fev/25, …) ou longo (Cliente, Ano, Mes, Valor). Apenas períodos presentes são atualizados.",
+  },
+  {
+    key: "pendencias",
+    label: "Pendências",
+    desc: "Planilha com Cliente, MÊS/ANO e Pend em aberto (R$). Soma por cliente x período. Aceita o mesmo formato do relatório de faturamento.",
   },
 ];
 
