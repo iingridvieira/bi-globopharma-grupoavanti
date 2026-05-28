@@ -91,8 +91,19 @@ function ClienteSellOut() {
     onSuccess: () => { toast.success("Removido"); void qc.invalidateQueries({ queryKey: ["mapas", clienteId] }); },
   });
 
-  function shareUrl(path: string) { return supabase.storage.from("mapas-vendas").getPublicUrl(path).data.publicUrl; }
-  function copy(text: string) { void navigator.clipboard.writeText(text); toast.success("Link copiado"); }
+  async function shareUrl(path: string): Promise<string> {
+    const { data, error } = await supabase.storage.from("mapas-vendas").createSignedUrl(path, 3600);
+    if (error || !data) throw error ?? new Error("Falha ao gerar link");
+    return data.signedUrl;
+  }
+  async function openFile(path: string) {
+    try { window.open(await shareUrl(path), "_blank", "noreferrer"); }
+    catch (e) { toast.error((e as Error).message); }
+  }
+  async function copyLink(path: string) {
+    try { await navigator.clipboard.writeText(await shareUrl(path)); toast.success("Link copiado (válido por 1h)"); }
+    catch (e) { toast.error((e as Error).message); }
+  }
 
   function tipoArquivo(mime: string | null, nome: string): string {
     if (!mime) return nome.split(".").pop()?.toUpperCase() ?? "—";
@@ -226,18 +237,18 @@ function ClienteSellOut() {
             {arquivosFiltrados.map((a) => (
               <tr key={a.id}>
                 <td className="font-medium">
-                  <a href={shareUrl(a.storage_path)} target="_blank" rel="noreferrer" className="hover:text-primary">{a.nome_arquivo}</a>
+                  <button onClick={() => openFile(a.storage_path)} className="hover:text-primary text-left">{a.nome_arquivo}</button>
                 </td>
                 <td className="text-xs text-muted-foreground">{tipoArquivo(a.mime_type, a.nome_arquivo)}</td>
                 <td className="text-muted-foreground">{a.tamanho_bytes ? (Number(a.tamanho_bytes) / 1024).toFixed(0) + " KB" : "—"}</td>
                 <td>{formatDateBR(a.created_at)}</td>
                 <td className="text-right">
                   <div className="inline-flex items-center gap-1">
-                    <a href={shareUrl(a.storage_path)} target="_blank" rel="noreferrer" download
+                    <button onClick={() => openFile(a.storage_path)}
                       className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Baixar">
                       <Download className="h-4 w-4" />
-                    </a>
-                    <button onClick={() => copy(shareUrl(a.storage_path))}
+                    </button>
+                    <button onClick={() => copyLink(a.storage_path)}
                       className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Copiar link">
                       <LinkIcon className="h-4 w-4" />
                     </button>
