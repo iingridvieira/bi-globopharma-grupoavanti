@@ -19,6 +19,7 @@ function NFsPage() {
   const [busca, setBusca] = useState("");
   const [valorMin, setValorMin] = useState("");
   const [valorMax, setValorMax] = useState("");
+  const [operacao, setOperacao] = useState<"todas" | "venda" | "bonificacao">("todas");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
@@ -83,9 +84,11 @@ function NFsPage() {
       const v = Number(n.valor);
       if (min && v < min) return false;
       if (max && v > max) return false;
+      if (operacao === "venda" && v <= 0) return false;
+      if (operacao === "bonificacao" && v > 0) return false;
       return true;
     });
-  }, [nfs, valorMin, valorMax]);
+  }, [nfs, valorMin, valorMax, operacao]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
@@ -96,7 +99,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClienteFiltro(""); setValorMin(""); setValorMax("");
+    setBusca(""); setClienteFiltro(""); setValorMin(""); setValorMax(""); setOperacao("todas");
   }
 
   return (
@@ -147,6 +150,12 @@ function NFsPage() {
             {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
 
+          <select value={operacao} onChange={(e) => setOperacao(e.target.value as typeof operacao)} className="bi-input-sm w-36">
+            <option value="todas">Todas as operações</option>
+            <option value="venda">Venda</option>
+            <option value="bonificacao">Bonificação</option>
+          </select>
+
           <input
             value={valorMin}
             onChange={(e) => setValorMin(e.target.value)}
@@ -160,7 +169,7 @@ function NFsPage() {
             className="bi-input-sm w-36"
           />
 
-          {(busca || clienteFiltro || valorMin || valorMax) && (
+          {(busca || clienteFiltro || valorMin || valorMax || operacao !== "todas") && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
