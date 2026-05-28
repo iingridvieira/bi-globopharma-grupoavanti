@@ -22,17 +22,23 @@ function SellInPage() {
         supabase.from("clientes").select("id,nome").order("nome"),
         supabase.from("sell_in").select("cliente_id,mes,valor").eq("ano", ano),
       ]);
-      const matrix = new Map<string, { nome: string; meses: number[]; total: number }>();
-      (clientes.data ?? []).forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0 }));
+      const matrix = new Map<string, { nome: string; meses: number[]; total: number; media: number; repr: number }>();
+      (clientes.data ?? []).forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
       (sellIn.data ?? []).forEach((s) => {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
       });
-      const rows = Array.from(matrix.values());
+      const mesAtual = new Date().getMonth() + 1; // 1-12
+      const rows = Array.from(matrix.values()).map((r) => ({
+        ...r,
+        media: mesAtual > 0 ? r.total / mesAtual : 0,
+        repr: 0, // calculado depois
+      }));
       const totaisMes = Array(12).fill(0);
       rows.forEach((r) => r.meses.forEach((v, i) => (totaisMes[i] += v)));
       const totalGeral = totaisMes.reduce((a, b) => a + b, 0);
-      return { rows, totaisMes, totalGeral };
+      rows.forEach((r) => (r.repr = totalGeral > 0 ? (r.total / totalGeral) * 100 : 0));
+      return { rows, totaisMes, totalGeral, mesAtual };
     },
   });
 
