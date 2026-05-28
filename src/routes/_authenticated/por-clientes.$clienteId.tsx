@@ -113,6 +113,7 @@ function ClienteDetalhe() {
 
       <MonthlyTable title={`Sell In · ${ano}`} agg={sellInAgg} colorVar="var(--color-chart-1)" />
       <MonthlyTable title={`Sell Out · ${ano}`} agg={sellOutAgg} colorVar="var(--color-chart-2)" />
+      <MonthlyTable title={`Pendências · ${ano}`} agg={pendAgg} colorVar="var(--color-chart-3)" />
 
       {/* Mapas de vendas */}
       <section className="bi-card overflow-hidden">
