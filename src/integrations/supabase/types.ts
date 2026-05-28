@@ -302,6 +302,36 @@ export type Database = {
           },
         ]
       }
+      pendencias_produtos: {
+        Row: {
+          cliente_id: string
+          codigo_produto: string | null
+          created_at: string
+          id: string
+          produto: string
+          quantidade: number
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          codigo_produto?: string | null
+          created_at?: string
+          id?: string
+          produto?: string
+          quantidade?: number
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          codigo_produto?: string | null
+          created_at?: string
+          id?: string
+          produto?: string
+          quantidade?: number
+          valor?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
