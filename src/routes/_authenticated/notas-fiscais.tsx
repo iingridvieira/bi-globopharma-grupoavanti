@@ -150,6 +150,12 @@ function NFsPage() {
             {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
           </select>
 
+          <select value={operacao} onChange={(e) => setOperacao(e.target.value as typeof operacao)} className="bi-input-sm w-36">
+            <option value="todas">Todas as operações</option>
+            <option value="venda">Venda</option>
+            <option value="bonificacao">Bonificação</option>
+          </select>
+
           <input
             value={valorMin}
             onChange={(e) => setValorMin(e.target.value)}
