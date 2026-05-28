@@ -19,6 +19,7 @@ import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSellOutIndexRouteImport } from './routes/_authenticated/sell-out.index'
 import { Route as AuthenticatedPorClientesIndexRouteImport } from './routes/_authenticated/por-clientes.index'
 import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_authenticated/sell-out.$clienteId'
+import { Route as AuthenticatedPorClientesClienteIdRouteImport } from './routes/_authenticated/por-clientes.$clienteId'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -73,6 +74,12 @@ const AuthenticatedSellOutClienteIdRoute =
     path: '/sell-out/$clienteId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedPorClientesClienteIdRoute =
+  AuthenticatedPorClientesClienteIdRouteImport.update({
+    id: '/por-clientes/$clienteId',
+    path: '/por-clientes/$clienteId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
+  '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
   '/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out/': typeof AuthenticatedSellOutIndexRoute
@@ -92,6 +100,7 @@ export interface FileRoutesByTo {
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
   '/': typeof AuthenticatedIndexRoute
+  '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
   '/por-clientes': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out': typeof AuthenticatedSellOutIndexRoute
@@ -105,6 +114,7 @@ export interface FileRoutesById {
   '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
   '/_authenticated/sell-in': typeof AuthenticatedSellInRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/_authenticated/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
   '/_authenticated/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/_authenticated/sell-out/': typeof AuthenticatedSellOutIndexRoute
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/notas-fiscais'
     | '/pedidos'
     | '/sell-in'
+    | '/por-clientes/$clienteId'
     | '/sell-out/$clienteId'
     | '/por-clientes/'
     | '/sell-out/'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/pedidos'
     | '/sell-in'
     | '/'
+    | '/por-clientes/$clienteId'
     | '/sell-out/$clienteId'
     | '/por-clientes'
     | '/sell-out'
@@ -141,6 +153,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pedidos'
     | '/_authenticated/sell-in'
     | '/_authenticated/'
+    | '/_authenticated/por-clientes/$clienteId'
     | '/_authenticated/sell-out/$clienteId'
     | '/_authenticated/por-clientes/'
     | '/_authenticated/sell-out/'
@@ -223,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellOutClienteIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/por-clientes/$clienteId': {
+      id: '/_authenticated/por-clientes/$clienteId'
+      path: '/por-clientes/$clienteId'
+      fullPath: '/por-clientes/$clienteId'
+      preLoaderRoute: typeof AuthenticatedPorClientesClienteIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -232,6 +252,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPedidosRoute: typeof AuthenticatedPedidosRoute
   AuthenticatedSellInRoute: typeof AuthenticatedSellInRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedPorClientesClienteIdRoute: typeof AuthenticatedPorClientesClienteIdRoute
   AuthenticatedSellOutClienteIdRoute: typeof AuthenticatedSellOutClienteIdRoute
   AuthenticatedPorClientesIndexRoute: typeof AuthenticatedPorClientesIndexRoute
   AuthenticatedSellOutIndexRoute: typeof AuthenticatedSellOutIndexRoute
@@ -243,6 +264,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPedidosRoute: AuthenticatedPedidosRoute,
   AuthenticatedSellInRoute: AuthenticatedSellInRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedPorClientesClienteIdRoute:
+    AuthenticatedPorClientesClienteIdRoute,
   AuthenticatedSellOutClienteIdRoute: AuthenticatedSellOutClienteIdRoute,
   AuthenticatedPorClientesIndexRoute: AuthenticatedPorClientesIndexRoute,
   AuthenticatedSellOutIndexRoute: AuthenticatedSellOutIndexRoute,
