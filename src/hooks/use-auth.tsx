@@ -45,8 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const user = session?.user ?? null;
-  const isAdmin = roles.includes("admin");
-  const canEdit = roles.includes("admin") || roles.includes("representante");
+  const AUTHORIZED_EDITOR_EMAIL = "avantipharma.comercial@gmail.com";
+  const isAuthorizedEditor = (user?.email ?? "").toLowerCase() === AUTHORIZED_EDITOR_EMAIL;
+  const isAdmin = isAuthorizedEditor;
+  const canEdit = isAuthorizedEditor;
 
   return (
     <AuthContext.Provider value={{
