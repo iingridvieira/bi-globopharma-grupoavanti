@@ -114,7 +114,7 @@ function NFsPage() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="          Pesquisar por número da NF, produto ou código..."
-            className="bi-input-sm w-full pl-10 pr-10"
+            className={`bi-input-sm w-full pr-10 ${busca ? 'pl-3' : 'pl-10'}`}
             style={{ height: 44 }}
           />
           {busca && (
