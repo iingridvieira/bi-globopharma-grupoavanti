@@ -59,46 +59,6 @@ function PedidosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const bulkInsert = useMutation({
-    mutationFn: async (rows: { data: string; cliente_id: string; valor: number }[]) => {
-      const { error, count } = await supabase.from("pedidos_enviados").upsert(rows as never, { onConflict: "data,cliente_id,valor", ignoreDuplicates: true, count: "exact" });
-      if (error) throw error;
-      return count ?? rows.length;
-    },
-    onSuccess: (n) => { toast.success(`${n} pedidos processados (duplicados ignorados)`); setPasteText(""); setPasteOpen(false); void qc.invalidateQueries(); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  function parsePastedText(): { data: string; cliente_id: string; valor: number }[] {
-    const idx = buildClienteIndex(clientes ?? []);
-    const lines = pasteText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    const rows: { data: string; cliente_id: string; valor: number }[] = [];
-    for (const line of lines) {
-      const parts = line.split(/[\t|;]|\s{2,}/).map((p) => p.trim()).filter(Boolean);
-      if (parts.length < 3) continue;
-      const dataISO = parseBRDate(parts[0]);
-      const cid = clienteIdFromRazao(parts[1], idx);
-      const v = parseBRNumber(parts.slice(2).join(" "));
-      if (dataISO && cid && v > 0) rows.push({ data: dataISO, cliente_id: cid, valor: v });
-    }
-    return rows;
-  }
-
-  async function processExcel(file: File) {
-    try {
-      const { sheets } = await readExcelFile(file);
-      const sheet = Object.values(sheets)[0];
-      const idx = buildClienteIndex(clientes ?? []);
-      const rows = sheet.map((r) => ({
-        data: rowToBRDate(pickCol(r, "Data", "DATA")),
-        cliente_id: clienteIdFromRazao(String(pickCol(r, "Cliente", "CLIENTE") ?? ""), idx),
-        valor: rowToBRNumber(pickCol(r, "Valor", "VALOR")),
-      })).filter((r): r is { data: string; cliente_id: string; valor: number } => !!r.data && !!r.cliente_id && r.valor > 0);
-      if (rows.length === 0) { toast.error("Nenhuma linha válida na planilha"); return; }
-      bulkInsert.mutate(rows);
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Erro"); }
-  }
-
   function handleExport() {
     const rows = filtrados.map((p) => ({
       Data: formatDateBR(p.data),
@@ -107,6 +67,7 @@ function PedidosPage() {
     }));
     exportToExcel(rows, `pedidos-${ano}-${String(mes).padStart(2, "0")}.xlsx`, "Pedidos");
   }
+
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
