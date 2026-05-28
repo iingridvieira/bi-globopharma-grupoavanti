@@ -10,12 +10,12 @@ const NAV = [
   { to: "/sell-in", label: "Sell in", icon: TrendingUp },
   { to: "/sell-out", label: "Sell Out", icon: ShoppingCart },
   { to: "/por-clientes", label: "Por Clientes", icon: Users },
-  { to: "/importar", label: "Importar Excel", icon: Upload },
+  { to: "/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { user, roles, signOut } = useAuth();
+  const { user, roles, signOut, canEdit } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
