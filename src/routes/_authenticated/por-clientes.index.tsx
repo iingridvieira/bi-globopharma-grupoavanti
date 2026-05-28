@@ -41,7 +41,9 @@ function PorClientesIndex() {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
       });
-      return Array.from(matrix.values());
+      return Array.from(matrix.values())
+        .filter((r) => isClientePermitido(r.nome))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     },
   });
 
