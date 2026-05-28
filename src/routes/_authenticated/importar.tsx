@@ -623,51 +623,36 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     if (error) throw new Error(`Itens lote ${i / BATCH + 1}: ${error.message}`);
   }
 
-  // Recalcula sell_in a partir de TODAS as NFs do banco nos períodos afetados
-  // (preserva dados já existentes que não estão no arquivo importado).
-  const periodos = new Map<string, { cliente_id: string; ano: number; mes: number }>();
-  for (const s of sellInAgg.values()) periodos.set(`${s.cliente_id}|${s.ano}|${s.mes}`, s);
+  // Sell In = soma de notas_fiscais. Reconstrói a base inteira a partir das NFs do banco
+  // para garantir paridade com "Faturado por cliente" em qualquer cliente/período.
+  void sellInAgg;
+  const { data: nfsBanco, error: qErr } = await supabase
+    .from("notas_fiscais")
+    .select("cliente_id,data,valor");
+  if (qErr) throw new Error(`Recalcular sell_in: ${qErr.message}`);
 
-  const clienteIdsAfetados = Array.from(
-    new Set(Array.from(periodos.values()).map((p) => p.cliente_id)),
-  );
-  const anosAfetados = Array.from(new Set(Array.from(periodos.values()).map((p) => p.ano)));
+  const totais = new Map<
+    string,
+    { cliente_id: string; ano: number; mes: number; valor: number }
+  >();
+  (nfsBanco ?? []).forEach((n) => {
+    const d = new Date(n.data as string);
+    const ano = d.getUTCFullYear();
+    const mes = d.getUTCMonth() + 1;
+    const k = `${n.cliente_id}|${ano}|${mes}`;
+    const cur = totais.get(k) ?? { cliente_id: n.cliente_id as string, ano, mes, valor: 0 };
+    cur.valor += Number(n.valor);
+    totais.set(k, cur);
+  });
+  const sellInRecalc = Array.from(totais.values());
 
-  const sellInRecalc: { cliente_id: string; ano: number; mes: number; valor: number }[] = [];
-  if (clienteIdsAfetados.length > 0 && anosAfetados.length > 0) {
-    const minAno = Math.min(...anosAfetados);
-    const maxAno = Math.max(...anosAfetados);
-    const start = `${minAno}-01-01`;
-    const end = `${maxAno}-12-31`;
-
-    const { data: nfsBanco, error: qErr } = await supabase
-      .from("notas_fiscais")
-      .select("cliente_id,data,valor")
-      .in("cliente_id", clienteIdsAfetados)
-      .gte("data", start)
-      .lte("data", end);
-    if (qErr) throw new Error(`Recalcular sell_in: ${qErr.message}`);
-
-    const totais = new Map<
-      string,
-      { cliente_id: string; ano: number; mes: number; valor: number }
-    >();
-    (nfsBanco ?? []).forEach((n) => {
-      const d = new Date(n.data as string);
-      const ano = d.getUTCFullYear();
-      const mes = d.getUTCMonth() + 1;
-      const k = `${n.cliente_id}|${ano}|${mes}`;
-      const cur = totais.get(k) ?? { cliente_id: n.cliente_id as string, ano, mes, valor: 0 };
-      cur.valor += Number(n.valor);
-      totais.set(k, cur);
-    });
-    sellInRecalc.push(...totais.values());
-  }
+  const { error: delErr } = await supabase.from("sell_in").delete().not("id", "is", null);
+  if (delErr) throw new Error(`Limpar sell_in: ${delErr.message}`);
 
   for (let i = 0; i < sellInRecalc.length; i += BATCH) {
     const { error } = await supabase
       .from("sell_in")
-      .upsert(sellInRecalc.slice(i, i + BATCH) as never, { onConflict: "cliente_id,ano,mes" });
+      .insert(sellInRecalc.slice(i, i + BATCH) as never);
     if (error) throw new Error(`Sell In lote ${i / BATCH + 1}: ${error.message}`);
   }
 
