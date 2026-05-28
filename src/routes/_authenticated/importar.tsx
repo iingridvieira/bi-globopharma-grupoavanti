@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { readExcelFile, pickCol, rowToBRDate, rowToBRNumber, type ExcelRow } from "@/lib/excel";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileSpreadsheet } from "lucide-react";
+import { Upload, FileSpreadsheet, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildClienteIndex, clienteIdFromRazao, normalizeKey } from "@/lib/cliente-mapping";
 import { useAuth } from "@/hooks/use-auth";
+import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
+
 
 type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias";
 
