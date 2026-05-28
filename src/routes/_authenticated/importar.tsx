@@ -259,22 +259,38 @@ function ImportarPage() {
         if (error) throw error;
         resumoTxt = `${rows.length} registros sell out atualizados (períodos não presentes no arquivo foram preservados).`;
       } else if (tipo === "pendencias") {
-        // Pendências por produto: Cliente, Código PN, Descrição, Pend em aberto (VOL), Pend em aberto (R$)
-        type PendProd = { cliente_id: string; codigo_produto: string; produto: string; quantidade: number; valor: number };
+        // Pendências por produto: Cliente, Data Lançamento, EAN, Código PN, Descrição, Preço unit., VOL, R$
+        type PendProd = {
+          cliente_id: string;
+          codigo_produto: string;
+          ean: string | null;
+          data_lancamento: string | null;
+          produto: string;
+          preco_unitario: number;
+          quantidade: number;
+          valor: number;
+        };
         const agg = new Map<string, PendProd>();
         for (const r of firstSheet) {
           const nome = String(pickCol(r, "Cliente", "Razão Social", "Razao Social") ?? "").trim();
           const cliente_id = clienteIdFromRazao(nome, idx);
           if (!cliente_id) continue;
-          const codigo = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN", "EAN", "Código", "Codigo") ?? "").trim();
+          const codigo = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN", "Código", "Codigo") ?? "").trim();
+          const ean = String(pickCol(r, "EAN", "Código de Barras", "Codigo de Barras", "Cód EAN", "Cod EAN") ?? "").trim() || null;
+          const dataLanc = rowToBRDate(pickCol(r, "Data de Lançamento", "Data Lançamento", "Data de Lancamento", "Data Lancamento", "Lançamento", "Lancamento", "Data"));
           const produto = String(pickCol(r, "Descrição", "Descricao", "Produto") ?? "").trim();
+          const preco = rowToBRNumber(pickCol(r, "Preço (R$/und)", "Preco (R$/und)", "Preço Unitário", "Preco Unitario", "Preço", "Preco", "Valor Unitário", "Valor Unitario"));
           const vol = rowToBRNumber(pickCol(r, "Pend em aberto (VOL)", "Pend em aberto VOL", "Pendencia VOL", "VOL", "Quantidade", "Qtd"));
           const valor = rowToBRNumber(pickCol(r, "Pend em aberto (R$)", "Pend em aberto R$", "Pendencia (R$)", "Pendencia", "Pendência", "Valor"));
           if (!vol && !valor) continue;
-          const k = `${cliente_id}|${codigo}|${produto}`;
-          const cur = agg.get(k) ?? { cliente_id, codigo_produto: codigo, produto, quantidade: 0, valor: 0 };
+          const k = `${cliente_id}|${ean ?? ""}|${codigo}|${produto}|${dataLanc ?? ""}`;
+          const cur = agg.get(k) ?? {
+            cliente_id, codigo_produto: codigo, ean, data_lancamento: dataLanc,
+            produto, preco_unitario: preco, quantidade: 0, valor: 0,
+          };
           cur.quantidade += vol;
           cur.valor += valor;
+          if (!cur.preco_unitario && preco) cur.preco_unitario = preco;
           agg.set(k, cur);
         }
         const rows = Array.from(agg.values());

@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR_SHORT } from "@/lib/format";
-import { ArrowLeft, Upload, Download, Trash2, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Upload, Download, Trash2, Link as LinkIcon, FileDown } from "lucide-react";
+import { exportToExcel } from "@/lib/excel";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -43,7 +44,7 @@ function ClienteDetalhe() {
     queryFn: async () =>
       (await supabase
         .from("pendencias_produtos")
-        .select("codigo_produto,produto,quantidade,valor")
+        .select("data_lancamento,ean,codigo_produto,produto,preco_unitario,quantidade,valor")
         .eq("cliente_id", clienteId)
         .order("valor", { ascending: false })).data ?? [],
   });
@@ -139,14 +140,33 @@ function ClienteDetalhe() {
               <div className="bi-stat-label">Total R$</div>
               <div className="font-display text-lg font-bold tabular-nums text-primary">{formatBRL(pendTotais.valor)}</div>
             </div>
+            <button
+              onClick={() => {
+                const rows = (pendProdutos ?? []).map((p) => ({
+                  "Data de Lançamento": p.data_lancamento ? formatDateBR(p.data_lancamento) : "",
+                  "EAN": p.ean ?? "",
+                  "Produto": p.produto ?? "",
+                  "Preço (R$/und)": Number(p.preco_unitario ?? 0),
+                  "Pend em aberto (VOL)": Number(p.quantidade ?? 0),
+                  "Pend em aberto (R$)": Number(p.valor ?? 0),
+                }));
+                if (rows.length === 0) { toast.error("Sem pendências para exportar."); return; }
+                exportToExcel(rows, `pendencias-${cliente?.nome ?? "cliente"}.xlsx`, "Pendências");
+              }}
+              className="h-9 px-3 rounded-md bg-secondary hover:bg-secondary/80 text-secondary-foreground font-semibold text-xs flex items-center gap-2"
+            >
+              <FileDown className="h-4 w-4" /> Exportar Excel
+            </button>
           </div>
         </header>
         <div className="overflow-x-auto">
           <table className="bi-table">
             <thead>
               <tr>
-                <th>Código</th>
+                <th>Data de Lançamento</th>
+                <th>EAN</th>
                 <th>Produto</th>
+                <th className="text-right">Preço (R$/und)</th>
                 <th className="text-right">Pend em aberto (VOL)</th>
                 <th className="text-right">Pend em aberto (R$)</th>
               </tr>
@@ -154,19 +174,22 @@ function ClienteDetalhe() {
             <tbody>
               {(pendProdutos ?? []).map((p, i) => (
                 <tr key={i}>
-                  <td className="text-xs text-muted-foreground tabular-nums">{p.codigo_produto || "—"}</td>
+                  <td className="text-xs tabular-nums">{p.data_lancamento ? formatDateBR(p.data_lancamento) : "—"}</td>
+                  <td className="text-xs text-muted-foreground tabular-nums">{p.ean || "—"}</td>
                   <td className="font-medium">{p.produto || "—"}</td>
+                  <td className="text-right tabular-nums">{p.preco_unitario ? formatBRL(Number(p.preco_unitario)) : "—"}</td>
                   <td className="text-right tabular-nums">{Number(p.quantidade).toLocaleString("pt-BR")}</td>
                   <td className="text-right tabular-nums font-semibold">{formatBRL(Number(p.valor))}</td>
                 </tr>
               ))}
               {(!pendProdutos || pendProdutos.length === 0) && (
-                <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma pendência registrada.</td></tr>
+                <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma pendência registrada.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </section>
+
 
       {/* Mapas de vendas */}
       <section className="bi-card overflow-hidden">
