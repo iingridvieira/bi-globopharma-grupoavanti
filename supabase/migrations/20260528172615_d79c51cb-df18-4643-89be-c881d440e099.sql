@@ -1,0 +1,11 @@
+DELETE FROM public.sell_in WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.sell_out WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.pedidos_enviados WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.metas_mensais WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.pendencias WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.pendencias_produtos WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.itens_nf WHERE nota_fiscal_id IN (SELECT id FROM public.notas_fiscais WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS'));
+DELETE FROM public.notas_fiscais WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.descricoes_sell_in WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.mapas_vendas_arquivos WHERE cliente_id IN (SELECT id FROM public.clientes WHERE nome = 'OUTROS');
+DELETE FROM public.clientes WHERE nome = 'OUTROS';
