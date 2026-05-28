@@ -2,13 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { readExcelFile, pickCol, rowToBRDate, rowToBRNumber, type ExcelRow } from "@/lib/excel";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, FileSpreadsheet } from "lucide-react";
+import { Upload, FileSpreadsheet, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildClienteIndex, clienteIdFromRazao, normalizeKey } from "@/lib/cliente-mapping";
 import { useAuth } from "@/hooks/use-auth";
+import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
+
 
 type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias";
 
@@ -149,6 +151,11 @@ function ImportarPage() {
   const [tipo, setTipo] = useState<TipoImport>("faturamento");
   const [loading, setLoading] = useState(false);
   const [resumo, setResumo] = useState<string | null>(null);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const now = new Date();
+  const [metaAno, setMetaAno] = useState(now.getFullYear());
+  const [metaMes, setMetaMes] = useState(now.getMonth() + 1);
   const qc = useQueryClient();
 
   const { data: clientes } = useQuery({
@@ -156,6 +163,7 @@ function ImportarPage() {
     queryFn: async () => (await supabase.from("clientes").select("id,nome")).data ?? [],
     enabled: canEdit,
   });
+
 
   if (!canEdit) {
     return (
@@ -313,6 +321,70 @@ function ImportarPage() {
     }
   }
 
+  async function processPasted() {
+    if (!pasteText.trim()) { toast.error("Cole os dados primeiro"); return; }
+    setLoading(true);
+    setResumo(null);
+    try {
+      const idx = buildClienteIndex(clientes ?? []);
+      const lines = pasteText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      let resumoTxt = "";
+
+      if (tipo === "pedidos") {
+        // Formato: DATA<sep>CLIENTE<sep>VALOR
+        const rows: { data: string; cliente_id: string; valor: number }[] = [];
+        const ignoradas: string[] = [];
+        for (const line of lines) {
+          const parts = line.split(/\t|;|\s{2,}/).map((p) => p.trim()).filter(Boolean);
+          if (parts.length < 3) { ignoradas.push(line); continue; }
+          const dataISO = parseBRDate(parts[0]);
+          const cid = clienteIdFromRazao(parts[1], idx);
+          const v = parseBRNumber(parts.slice(2).join(" "));
+          if (dataISO && cid && v > 0) rows.push({ data: dataISO, cliente_id: cid, valor: v });
+          else ignoradas.push(line);
+        }
+        if (rows.length === 0) throw new Error("Nenhuma linha válida (formato: DATA CLIENTE VALOR)");
+        const { error } = await supabase.from("pedidos_enviados").upsert(rows as never, {
+          onConflict: "data,cliente_id,valor", ignoreDuplicates: true,
+        });
+        if (error) throw error;
+        resumoTxt = `${rows.length} pedidos importados${ignoradas.length ? ` · ${ignoradas.length} linhas ignoradas` : ""}.`;
+      } else if (tipo === "metas") {
+        // Formato: CLIENTE  R$ VALOR  (uma linha por cliente, ano/mes do seletor)
+        const rows: { cliente_id: string; ano: number; mes: number; valor: number; pendencia_inicial: number }[] = [];
+        const ignoradas: string[] = [];
+        for (const line of lines) {
+          // separa cliente do valor: pega o último token monetário "R$ X" ou número
+          const m = line.match(/^(.+?)\s+(R\$\s*)?([\d.,]+)\s*$/i);
+          if (!m) { ignoradas.push(line); continue; }
+          const nome = m[1].trim();
+          const valor = parseBRNumber(m[3]);
+          const cid = clienteIdFromRazao(nome, idx);
+          if (cid && valor > 0) rows.push({ cliente_id: cid, ano: metaAno, mes: metaMes, valor, pendencia_inicial: 0 });
+          else ignoradas.push(line);
+        }
+        if (rows.length === 0) throw new Error("Nenhuma linha válida (formato: CLIENTE R$ VALOR)");
+        const { error } = await supabase.from("metas_mensais").upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
+        if (error) throw error;
+        resumoTxt = `${rows.length} metas importadas para ${String(metaMes).padStart(2, "0")}/${metaAno}${ignoradas.length ? ` · ${ignoradas.length} linhas ignoradas` : ""}.`;
+      } else {
+        throw new Error("Colar manualmente disponível apenas para Pedidos e Metas.");
+      }
+      setResumo(resumoTxt);
+      toast.success(resumoTxt);
+      setPasteText("");
+      setPasteOpen(false);
+      await qc.invalidateQueries();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Erro";
+      toast.error(msg);
+      setResumo(`Erro: ${msg}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
   return (
     <div className="p-8 max-w-[1100px] mx-auto">
       <header className="mb-6">
@@ -363,6 +435,51 @@ function ImportarPage() {
           onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
         />
       </label>
+
+      {(tipo === "pedidos" || tipo === "metas") && (
+        <div className="bi-card p-5 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="bi-stat-label">Colar manualmente</div>
+            <button onClick={() => setPasteOpen((v) => !v)} className="text-xs text-primary font-semibold flex items-center gap-1">
+              <Clipboard className="h-3 w-3" /> {pasteOpen ? "Fechar" : "Abrir"}
+            </button>
+          </div>
+          {pasteOpen && (
+            <div>
+              {tipo === "metas" && (
+                <div className="flex items-center gap-3 mb-3">
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">Período:</label>
+                  <select value={metaMes} onChange={(e) => setMetaMes(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-40">
+                    {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  </select>
+                  <select value={metaAno} onChange={(e) => setMetaAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-28">
+                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+              )}
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={tipo === "metas" ? 16 : 8}
+                placeholder={tipo === "pedidos"
+                  ? "12/01/2026\tANDORINHA\tR$ 18.787,62\n12/01/2026\tJK MEDICAMENTOS\tR$ 336.794,64"
+                  : "ANDORINHA R$ 70.000,00\nBANDEIRANTES R$ 45.000,00\nCAMPEÃ R$ 50.000,00\nCG MEDICAMENTOS R$ 50.000,00\nDF DISTRIBUIDORA R$ 50.000,00\nDISMAP R$ 40.000,00\nFARMA CONDE R$ 15.000,00\nIMPACTA MED R$ 35.000,00\nJK MEDICAMENTOS R$ 150.000,00\nMAXIFARMA R$ 10.000,00\nMEDSOL R$ 30.000,00\nMILFARMA R$ 130.000,00\nNAVARRO INTER R$ 130.000,00\nNAVARRO SP R$ 170.000,00\nNUCLEO R$ 80.000,00"}
+                className="w-full bg-input border border-border rounded-md p-3 text-sm font-mono"
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  disabled={loading}
+                  onClick={processPasted}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
+                  Importar {pasteText ? `(${pasteText.split(/\r?\n/).filter(Boolean).length} linhas)` : ""}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+
 
       {loading && <div className="mt-4 text-sm text-muted-foreground">Processando…</div>}
       {resumo && <div className="mt-4 bi-card p-4 text-sm">{resumo}</div>}

@@ -41,6 +41,7 @@ const KEYWORDS: Array<[string, string]> = [
   ["milfarma", "MILFARMA"],
   ["medsol", "MEDSOL"],
   ["nucleofarma", "NÚCLEO FARMA"],
+  ["nucleo", "NÚCLEO FARMA"],
   ["impactamed", "IMPACTA MED"],
   ["medvalle", "MED VALLE"],
   ["farmaconde", "FARMA CONDE"],
@@ -48,24 +49,33 @@ const KEYWORDS: Array<[string, string]> = [
   ["timeh", "TIMEH"],
   ["valecomercial", "VALE COMERCIAL"],
   ["drogariacampea", "CAMPEÃ"],
+  ["campea", "CAMPEÃ"],
   ["jkmedicamentos", "JK MEDICAMENTOS"],
+  ["jk", "JK MEDICAMENTOS"],
   ["ambrosioecorrea", "DISMAP"],
+  ["cgmedicamentos", "CG MEDICAMENTOS"],
+  ["cg", "CG MEDICAMENTOS"],
+  ["dfdistribuidora", "DF COMERCIAL"],
+  ["dfcomercial", "DF COMERCIAL"],
+  ["dfcomercio", "DF COMERCIAL"],
+  ["df", "DF COMERCIAL"],
+  ["navarrointer", "NAVARRO INTER"],
+  ["navarrosp", "NAVARRO SP"],
+  ["navarro", "NAVARRO SP"],
 ];
 
-/** Resolve uma razão social bruta da planilha para o nome padrão. Retorna "OUTROS" se não mapeado. */
-export function mapRazaoSocialToCliente(razaoSocial: string): string {
-  if (!razaoSocial) return "OUTROS";
+/** Resolve uma razão social bruta da planilha para o nome padrão. Retorna null se não mapeado. */
+export function mapRazaoSocialToCliente(razaoSocial: string): string | null {
+  if (!razaoSocial) return null;
   const key = normalizeKey(razaoSocial);
   if (NORMALIZED_MAP.has(key)) return NORMALIZED_MAP.get(key)!;
-  // Match por palavra-chave distintiva (mais confiável que prefixo).
   for (const [kw, std] of KEYWORDS) {
     if (key.includes(kw)) return std;
   }
-  // Fallback: correspondência por prefixo amplo.
   for (const [k, v] of NORMALIZED_MAP) {
     if (key.startsWith(k.slice(0, 12)) || k.startsWith(key.slice(0, 12))) return v;
   }
-  return "OUTROS";
+  return null;
 }
 
 /** Constrói um índice cliente padronizado → id a partir da tabela `clientes`. */
@@ -77,5 +87,7 @@ export function buildClienteIndex(clientes: { id: string; nome: string }[]): Map
 
 export function clienteIdFromRazao(razao: string, idx: Map<string, string>): string | null {
   const std = mapRazaoSocialToCliente(razao);
-  return idx.get(normalizeKey(std)) ?? idx.get(normalizeKey("OUTROS")) ?? null;
+  if (!std) return null;
+  return idx.get(normalizeKey(std)) ?? null;
 }
+
