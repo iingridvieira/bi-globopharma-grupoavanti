@@ -88,7 +88,8 @@ function NFsPage() {
   }, [nfs, valorMin, valorMax]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
-  const totalDesc = useMemo(() => filtradas.reduce((a, n) => a + Number(n.desconto || 0), 0), [filtradas]);
+  const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
+  const totalBonif = useMemo(() => filtradas.filter((n) => Number(n.valor) <= 0).length, [filtradas]);
 
   function toggle(id: string) {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -176,8 +177,13 @@ function NFsPage() {
           <div className="text-2xl font-bold tabular-nums mt-1 text-primary">{formatBRL(total)}</div>
         </div>
         <div className="bi-card p-4">
-          <div className="bi-stat-label">Total descontos</div>
-          <div className="text-2xl font-bold tabular-nums mt-1">{formatBRL(totalDesc)}</div>
+          <div className="bi-stat-label">Operações</div>
+          <div className="text-2xl font-bold tabular-nums mt-1">
+            <span className="text-success">{totalVendas}</span>
+            <span className="text-muted-foreground text-base mx-1">venda</span>
+            <span className="text-warning">{totalBonif}</span>
+            <span className="text-muted-foreground text-base ml-1">bonif.</span>
+          </div>
         </div>
       </div>
 
@@ -187,13 +193,14 @@ function NFsPage() {
             <tr>
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
-              <th className="text-right">Desconto</th><th className="text-right">Valor</th>
+              <th className="text-center">Operação</th><th className="text-right">Valor</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
+              const isVenda = Number(n.valor) > 0;
               return (
                 <>
                   <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
@@ -201,7 +208,11 @@ function NFsPage() {
                     <td>{formatDateBR(n.data)}</td>
                     <td className="font-medium text-primary">{n.numero}</td>
                     <td>{n.clientes?.nome ?? "—"}</td>
-                    <td className="text-right tabular-nums">{formatBRL(n.desconto)}</td>
+                    <td className="text-center">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                        isVenda ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                      }`}>{isVenda ? "Venda" : "Bonificação"}</span>
+                    </td>
                     <td className="text-right tabular-nums">{formatBRL(n.valor)}</td>
                   </tr>
                   {open && <ItensRow key={n.id + "-items"} nfId={n.id} highlight={buscaTrim} />}

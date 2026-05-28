@@ -38,8 +38,16 @@ function ClienteDetalhe() {
       (await supabase.from("sell_out").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
   });
 
+  const { data: pendencias } = useQuery({
+    queryKey: ["pendencias-cliente", clienteId, ano],
+    queryFn: async () =>
+      (await supabase.from("pendencias").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
+  });
+
   const sellInAgg = useMemo(() => buildAgg(sellIn ?? []), [sellIn]);
   const sellOutAgg = useMemo(() => buildAgg(sellOut ?? []), [sellOut]);
+  const pendAgg = useMemo(() => buildAgg(pendencias ?? []), [pendencias]);
+
 
   const { data: arquivos } = useQuery({
     queryKey: ["mapas", clienteId],
@@ -105,6 +113,7 @@ function ClienteDetalhe() {
 
       <MonthlyTable title={`Sell In · ${ano}`} agg={sellInAgg} colorVar="var(--color-chart-1)" />
       <MonthlyTable title={`Sell Out · ${ano}`} agg={sellOutAgg} colorVar="var(--color-chart-2)" />
+      <MonthlyTable title={`Pendências · ${ano}`} agg={pendAgg} colorVar="var(--color-chart-3)" />
 
       {/* Mapas de vendas */}
       <section className="bi-card overflow-hidden">
@@ -184,20 +193,8 @@ function buildAgg(rows: { mes: number; valor: number | string }[]): Agg {
 function MonthlyTable({ title, agg, colorVar }: { title: string; agg: Agg; colorVar: string }) {
   return (
     <section className="bi-card mb-6 overflow-hidden">
-      <header className="px-6 py-4 border-b border-border flex items-center justify-between gap-3">
+      <header className="px-6 py-4 border-b border-border">
         <h2 className="font-display text-lg font-semibold">{title}</h2>
-        <div className="h-14 w-48">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={agg.chart} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <XAxis dataKey="mes" hide />
-              <YAxis hide />
-              <Tooltip
-                contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 11 }}
-                formatter={(v: number) => formatBRL(v)} />
-              <Line type="monotone" dataKey="valor" stroke={colorVar} strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
       </header>
       <div className="overflow-x-auto">
         <table className="bi-table">
@@ -216,6 +213,19 @@ function MonthlyTable({ title, agg, colorVar }: { title: string; agg: Agg; color
             </tr>
           </tbody>
         </table>
+      </div>
+      <div className="px-6 py-4 border-t border-border" style={{ height: 240 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={agg.chart} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+            <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={60}
+              tickFormatter={(v: number) => formatBRL(v)} />
+            <Tooltip
+              contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }}
+              formatter={(v: number) => formatBRL(v)} />
+            <Line type="monotone" dataKey="valor" stroke={colorVar} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </section>
   );
