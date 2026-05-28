@@ -10,6 +10,16 @@ import { Download, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/por-clientes/")({ component: PorClientesIndex });
 
+const CLIENTES_PERMITIDOS = new Set([
+  "ANDORINHA", "CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "DISMAP",
+  "JK MEDICAMENTOS", "MAXIFARMA", "MEDSOL", "MILFARMA",
+  "NAVARRO INTER", "NAVARRO SP", "NÚCLEO FARMA",
+].map((s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()));
+
+function isClientePermitido(nome: string): boolean {
+  return CLIENTES_PERMITIDOS.has(nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase());
+}
+
 type CellKey = string; // `${cliente_id}|${mes}`
 
 function PorClientesIndex() {
