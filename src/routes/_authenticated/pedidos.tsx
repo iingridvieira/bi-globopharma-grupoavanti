@@ -129,21 +129,36 @@ function PedidosPage() {
           <table className="bi-table">
             <thead>
               <tr>
-                <th>Data</th><th>Cliente</th><th className="text-right">Valor</th>
+                <th>Data</th><th>Cliente</th><th className="text-right">Valor</th><th className="text-center">Status</th>
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((p) => (
-                <tr key={p.id}>
-                  <td>{formatDateBR(p.data)}</td>
-                  <td>{p.clientes?.nome ?? "—"}</td>
-                  <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
-                </tr>
-              ))}
-              {filtrados.length === 0 && <tr><td colSpan={3} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
+              {filtrados.map((p) => {
+                const aprovado = p.status === "aprovado";
+                return (
+                  <tr key={p.id}>
+                    <td>{formatDateBR(p.data)}</td>
+                    <td>{p.clientes?.nome ?? "—"}</td>
+                    <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
+                    <td className="text-center">
+                      <button
+                        type="button"
+                        disabled={!canEdit || updateStatus.isPending}
+                        onClick={() => updateStatus.mutate({ id: p.id, status: aprovado ? "aguardando" : "aprovado" })}
+                        title={canEdit ? "Clique para alternar status" : "Sem permissão para editar"}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-opacity ${canEdit ? "cursor-pointer hover:opacity-80" : "cursor-default"} ${aprovado ? "bg-green-500/15 text-green-500 border border-green-500/30" : "bg-yellow-500/15 text-yellow-500 border border-yellow-500/30"}`}
+                      >
+                        <span className={`h-2 w-2 rounded-full ${aprovado ? "bg-green-500" : "bg-yellow-500"}`} />
+                        {aprovado ? "APROVADO" : "AGUARDANDO"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtrados.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
             </tbody>
             <tfoot>
-              <tr><td colSpan={2}>TOTAL ({filtrados.length})</td><td className="text-right text-primary">{formatBRL(total)}</td></tr>
+              <tr><td colSpan={2}>TOTAL ({filtrados.length})</td><td className="text-right text-primary">{formatBRL(total)}</td><td /></tr>
             </tfoot>
           </table>
         </div>
