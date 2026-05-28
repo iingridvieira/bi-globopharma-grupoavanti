@@ -107,12 +107,14 @@ function NFsPage() {
       {/* Barra de busca */}
       <div className="bi-card mt-6 p-4 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {!busca && (
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          )}
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="          Pesquisar por número da NF, produto ou código..."
-            className="bi-input-sm w-full pl-10 pr-10"
+            className={`bi-input-sm w-full pr-10 ${busca ? 'pl-3' : 'pl-10'}`}
             style={{ height: 44 }}
           />
           {busca && (
