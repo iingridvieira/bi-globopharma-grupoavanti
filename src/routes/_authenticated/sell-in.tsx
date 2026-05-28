@@ -93,7 +93,7 @@ function SellInPage() {
       MESES_BR_SHORT.forEach((m, i) => (obj[m] = r.meses[i]));
       obj.Total = r.total;
       obj.Média = r.media;
-      obj.Representatividade = `${r.repr.toFixed(1).replace(".", ",")}%`;
+      obj["Rep."] = `${r.repr.toFixed(1).replace(".", ",")}%`;
       return obj;
     });
     exportToExcel(rows, `sell-in-${ano}.xlsx`, "Sell In");
@@ -124,7 +124,7 @@ function SellInPage() {
               {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
               <th className="text-right">Total</th>
               <th className="text-right">Média</th>
-              <th className="text-right">Representatividade</th>
+              <th className="text-right">Rep.</th>
             </tr>
           </thead>
           <tbody>
