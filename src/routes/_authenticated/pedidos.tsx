@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateBR, parseBRNumber, parseBRDate, MESES_BR } from "@/lib/format";
+import { formatBRL, formatDateBR, parseBRNumber, MESES_BR } from "@/lib/format";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { buildClienteIndex, clienteIdFromRazao } from "@/lib/cliente-mapping";
-import { readExcelFile, pickCol, rowToBRDate, rowToBRNumber, exportToExcel } from "@/lib/excel";
-import { Clipboard, Upload, Download } from "lucide-react";
+import { exportToExcel } from "@/lib/excel";
+import { Download } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
 
