@@ -130,6 +130,12 @@ function ImportarPage() {
   const [resumo, setResumo] = useState<string | null>(null);
   const qc = useQueryClient();
 
+  const { data: clientes } = useQuery({
+    queryKey: ["clientes-all"],
+    queryFn: async () => (await supabase.from("clientes").select("id,nome")).data ?? [],
+    enabled: canEdit,
+  });
+
   if (!canEdit) {
     return (
       <div className="p-8 max-w-xl mx-auto">
@@ -142,11 +148,6 @@ function ImportarPage() {
       </div>
     );
   }
-
-  const { data: clientes } = useQuery({
-    queryKey: ["clientes-all"],
-    queryFn: async () => (await supabase.from("clientes").select("id,nome")).data ?? [],
-  });
 
   async function processFile(file: File) {
     setLoading(true); setResumo(null);
