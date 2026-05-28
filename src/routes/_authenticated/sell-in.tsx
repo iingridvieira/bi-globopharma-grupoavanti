@@ -29,11 +29,13 @@ function SellInPage() {
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
       });
       const mesAtual = new Date().getMonth() + 1; // 1-12
-      const rows = Array.from(matrix.values()).map((r) => ({
-        ...r,
-        media: mesAtual > 0 ? r.total / mesAtual : 0,
-        repr: 0, // calculado depois
-      }));
+      const rows = Array.from(matrix.values())
+        .filter((r) => r.total > 0)
+        .map((r) => ({
+          ...r,
+          media: mesAtual > 0 ? r.total / mesAtual : 0,
+          repr: 0, // calculado depois
+        }));
       const totaisMes = Array(12).fill(0);
       rows.forEach((r) => r.meses.forEach((v, i) => (totaisMes[i] += v)));
       const totalGeral = totaisMes.reduce((a, b) => a + b, 0);
