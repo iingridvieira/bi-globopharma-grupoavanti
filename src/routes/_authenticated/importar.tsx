@@ -151,6 +151,11 @@ function ImportarPage() {
   const [tipo, setTipo] = useState<TipoImport>("faturamento");
   const [loading, setLoading] = useState(false);
   const [resumo, setResumo] = useState<string | null>(null);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const now = new Date();
+  const [metaAno, setMetaAno] = useState(now.getFullYear());
+  const [metaMes, setMetaMes] = useState(now.getMonth() + 1);
   const qc = useQueryClient();
 
   const { data: clientes } = useQuery({
@@ -158,6 +163,7 @@ function ImportarPage() {
     queryFn: async () => (await supabase.from("clientes").select("id,nome")).data ?? [],
     enabled: canEdit,
   });
+
 
   if (!canEdit) {
     return (
