@@ -15,8 +15,23 @@ const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
   { key: "faturamento", label: "Faturamento Sell In", desc: "Planilha com Data Lançamento, NF, Cliente, EAN, Faturado (R$). Cria NFs + itens + sell in automaticamente." },
   { key: "metas", label: "Metas Mensais", desc: "Colunas: Cliente, Ano, Mes, Valor, PendenciaInicial" },
   { key: "pedidos", label: "Pedidos Enviados", desc: "Colunas: DATA, CLIENTE, VALOR (também aceito colar manual)" },
-  { key: "sell_out", label: "Sell Out (manual)", desc: "Colunas: Cliente, Ano, Mes, Valor" },
+  { key: "sell_out", label: "Sell Out", desc: "Aceita formato largo (1ª coluna Cliente, demais como jan/25, fev/25, …) ou longo (Cliente, Ano, Mes, Valor). Apenas períodos presentes são atualizados." },
 ];
+
+const MESES_MAP: Record<string, number> = {
+  jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+  jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12,
+};
+
+function parseMesAno(header: string): { mes: number; ano: number } | null {
+  const s = header.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const m = s.match(/^(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[\s\/\-_.]*(\d{2,4})$/);
+  if (!m) return null;
+  const mes = MESES_MAP[m[1]];
+  let ano = Number(m[2]);
+  if (ano < 100) ano += 2000;
+  return { mes, ano };
+}
 
 function ImportarPage() {
   const [tipo, setTipo] = useState<TipoImport>("faturamento");
