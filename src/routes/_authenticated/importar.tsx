@@ -531,12 +531,12 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
         "Data",
       ),
     );
-    const rs = String(pickCol(r, "Cliente", "Razão Social", "Razao Social") ?? "").trim();
+    const rs = String(pickCol(r, "Cliente", "Cliente nome", "Cliente Nome", "Razão Social", "Razao Social") ?? "").trim();
     const valor = rowToBRNumber(
-      pickCol(r, "Faturado (R$)", "Faturado R$", "Faturado RS", "Faturado", "Valor"),
+      pickCol(r, "Faturado (R$)", "Soma de Faturado (R$)", "Faturado R$", "Soma de Faturado R$", "Faturado RS", "Faturado", "Valor"),
     );
     const qtd = rowToBRNumber(
-      pickCol(r, "Faturado (VOL)", "Faturado VOL", "Quantidade", "Qtd", "VOL"),
+      pickCol(r, "Faturado (VOL)", "Soma de Faturado (VOL)", "Faturado VOL", "Soma de Faturado VOL", "Quantidade", "Qtd", "VOL"),
     );
     const cod = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN", "EAN") ?? "").trim();
     const desc = String(pickCol(r, "Descrição", "Descricao", "Produto") ?? "").trim();
