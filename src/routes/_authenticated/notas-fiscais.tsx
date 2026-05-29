@@ -11,12 +11,22 @@ export const Route = createFileRoute("/_authenticated/notas-fiscais")({ componen
 
 type PeriodoMode = "mes" | "ano" | "tudo";
 
+const RESPONSAVEIS: Record<string, string[]> = {
+  Alexandre: ["ANDORINHA", "BANDEIRANTES", "DISMAP", "IMPACTA MED", "MAXIFARMA", "NÚCLEO FARMA", "DISMED", "MED VALLE", "GEMELI"],
+  Eduardo: ["CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "FARMA CONDE", "MEDLOG"],
+};
+
+function normNome(s: string): string {
+  return (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+
 function NFsPage() {
   const now = new Date();
   const [periodoMode, setPeriodoMode] = useState<PeriodoMode>("mes");
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
+  const [responsavel, setResponsavel] = useState<string>("");
   const [busca, setBusca] = useState("");
   const [operacoes, setOperacoes] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -85,16 +95,31 @@ function NFsPage() {
     },
   });
 
+  const clientesPorResponsavel = useMemo(() => {
+    const map: Record<string, Set<string>> = { Alexandre: new Set(), Eduardo: new Set(), Paulo: new Set() };
+    const alexNorm = RESPONSAVEIS.Alexandre.map(normNome);
+    const eduNorm = RESPONSAVEIS.Eduardo.map(normNome);
+    (clientes ?? []).forEach((c) => {
+      const n = normNome(c.nome);
+      if (alexNorm.includes(n)) map.Alexandre.add(c.id);
+      else if (eduNorm.includes(n)) map.Eduardo.add(c.id);
+      else map.Paulo.add(c.id);
+    });
+    return map;
+  }, [clientes]);
+
   const filtradas = useMemo(() => {
+    const respSet = responsavel ? clientesPorResponsavel[responsavel] : null;
     return (nfs ?? []).filter((n) => {
       const v = Number(n.valor);
       if (operacoes.length > 0) {
         const tipo = v > 0 ? "venda" : "bonificacao";
         if (!operacoes.includes(tipo)) return false;
       }
+      if (respSet && !respSet.has(n.cliente_id)) return false;
       return true;
     });
-  }, [nfs, operacoes]);
+  }, [nfs, operacoes, responsavel, clientesPorResponsavel]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
@@ -105,7 +130,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setOperacoes([]);
+    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel("");
   }
 
 
@@ -179,7 +204,14 @@ function NFsPage() {
             onChange={setOperacoes}
           />
 
-          {(busca || clientesSel.length > 0 || operacoes.length > 0) && (
+          <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
+            <option value="">Todos os responsáveis</option>
+            <option value="Alexandre">Alexandre</option>
+            <option value="Eduardo">Eduardo</option>
+            <option value="Paulo">Paulo</option>
+          </select>
+
+          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
