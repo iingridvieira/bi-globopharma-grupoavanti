@@ -467,6 +467,7 @@ function MultiYearSection({
             <Tooltip
               contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }}
               formatter={(v: number) => formatBRL(v)} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             {matrix.map((row, i) => (
               <Line
                 key={row.ano}
