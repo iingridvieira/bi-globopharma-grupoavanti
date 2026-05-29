@@ -412,28 +412,46 @@ function ImportarPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        {TIPOS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTipo(t.key)}
-            className={
-              "bi-card p-4 text-left transition-colors " +
-              (tipo === t.key ? "border-primary bi-orange-glow" : "hover:border-primary")
-            }
-          >
-            <div className="flex items-start gap-3">
-              <FileSpreadsheet
-                className={
-                  "h-5 w-5 mt-0.5 " + (tipo === t.key ? "text-primary" : "text-muted-foreground")
-                }
-              />
-              <div>
-                <div className="font-display font-bold">{t.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
+        {TIPOS.map((t) => {
+          const colorMap: Record<ColorKey, { text: string; border: string; glow: string }> = {
+            primary: { text: "text-primary", border: "border-primary", glow: "oklch(0.70 0.19 50 / 0.4)" },
+            accent: { text: "text-accent", border: "border-accent", glow: "oklch(0.42 0.08 145 / 0.5)" },
+            success: { text: "text-success", border: "border-success", glow: "oklch(0.55 0.15 150 / 0.5)" },
+            warning: { text: "text-warning", border: "border-warning", glow: "oklch(0.70 0.16 80 / 0.5)" },
+            destructive: { text: "text-destructive", border: "border-destructive", glow: "oklch(0.58 0.22 28 / 0.5)" },
+            blue: { text: "text-[#3b82f6]", border: "border-[#3b82f6]", glow: "rgba(59,130,246,0.5)" },
+          };
+          const c = colorMap[t.color];
+          const selected = tipo === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTipo(t.key)}
+              className={
+                "bi-card p-4 text-left transition-colors " +
+                (selected ? `${c.border}` : `hover:${c.border}`)
+              }
+              style={
+                selected
+                  ? {
+                      borderColor: "var(--color-" + t.color + ")",
+                      boxShadow: `0 0 0 1px ${c.glow}, 0 8px 32px -8px ${c.glow}`,
+                    }
+                  : undefined
+              }
+            >
+              <div className="flex items-start gap-3">
+                <FileSpreadsheet
+                  className={"h-5 w-5 mt-0.5 " + (selected ? c.text : "text-muted-foreground")}
+                />
+                <div>
+                  <div className={"font-display font-bold " + (selected ? c.text : "")}>{t.label}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       <label className="bi-card p-10 border-dashed border-2 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
