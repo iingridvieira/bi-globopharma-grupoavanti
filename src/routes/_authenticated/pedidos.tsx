@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, parseBRNumber, MESES_BR } from "@/lib/format";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
-import { Download } from "lucide-react";
+import { Download, Send } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 
 
