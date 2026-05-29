@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
