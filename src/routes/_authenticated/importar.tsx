@@ -626,24 +626,32 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
   // Sell In = soma de notas_fiscais. Reconstrói a base inteira a partir das NFs do banco
   // para garantir paridade com "Faturado por cliente" em qualquer cliente/período.
   void sellInAgg;
-  const { data: nfsBanco, error: qErr } = await supabase
-    .from("notas_fiscais")
-    .select("cliente_id,data,valor");
-  if (qErr) throw new Error(`Recalcular sell_in: ${qErr.message}`);
-
   const totais = new Map<
     string,
     { cliente_id: string; ano: number; mes: number; valor: number }
   >();
-  (nfsBanco ?? []).forEach((n) => {
-    const d = new Date(n.data as string);
-    const ano = d.getUTCFullYear();
-    const mes = d.getUTCMonth() + 1;
-    const k = `${n.cliente_id}|${ano}|${mes}`;
-    const cur = totais.get(k) ?? { cliente_id: n.cliente_id as string, ano, mes, valor: 0 };
-    cur.valor += Number(n.valor);
-    totais.set(k, cur);
-  });
+  // Pagina (limite padrão 1000) para não perder NFs em bases grandes.
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data: nfsBanco, error: qErr } = await supabase
+      .from("notas_fiscais")
+      .select("cliente_id,data,valor")
+      .range(from, from + PAGE - 1);
+    if (qErr) throw new Error(`Recalcular sell_in: ${qErr.message}`);
+    if (!nfsBanco || nfsBanco.length === 0) break;
+    nfsBanco.forEach((n) => {
+      const d = new Date(n.data as string);
+      const ano = d.getUTCFullYear();
+      const mes = d.getUTCMonth() + 1;
+      const k = `${n.cliente_id}|${ano}|${mes}`;
+      const cur = totais.get(k) ?? { cliente_id: n.cliente_id as string, ano, mes, valor: 0 };
+      cur.valor += Number(n.valor);
+      totais.set(k, cur);
+    });
+    if (nfsBanco.length < PAGE) break;
+    from += PAGE;
+  }
   const sellInRecalc = Array.from(totais.values());
 
   const { error: delErr } = await supabase.from("sell_in").delete().not("id", "is", null);
