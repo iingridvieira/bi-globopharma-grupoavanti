@@ -1,0 +1,1 @@
+CREATE POLICY "auth update clientes" ON public.clientes FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
