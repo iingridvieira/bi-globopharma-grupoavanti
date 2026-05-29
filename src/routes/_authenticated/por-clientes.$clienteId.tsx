@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR_SHORT } from "@/lib/format";
-import { ArrowLeft, Upload, Download, Trash2, Link as LinkIcon, FileDown } from "lucide-react";
+import { ArrowLeft, Upload, Download, Trash2, Link as LinkIcon, FileDown, Save } from "lucide-react";
 import { exportToExcel } from "@/lib/excel";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -16,18 +16,28 @@ export const Route = createFileRoute("/_authenticated/por-clientes/$clienteId")(
 
 function ClienteDetalhe() {
   const { clienteId } = Route.useParams();
-  const { user } = useAuth();
+  const { user, restrictedClientes } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [anoSel, setAnoSel] = useState<number | typeof ALL>(currentYear);
   const fileInput = useRef<HTMLInputElement>(null);
+  const ccInput = useRef<HTMLInputElement>(null);
 
   const canUploadMapas = (user?.email ?? "").toLowerCase() === MAPAS_UPLOAD_EMAIL;
 
   const { data: cliente } = useQuery({
     queryKey: ["cliente", clienteId],
-    queryFn: async () => (await supabase.from("clientes").select("nome").eq("id", clienteId).single()).data,
+    queryFn: async () => (await supabase.from("clientes").select("nome,observacao").eq("id", clienteId).single()).data,
   });
+
+  useEffect(() => {
+    if (!cliente?.nome || !restrictedClientes) return;
+    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const allowed = new Set(restrictedClientes.map(norm));
+    if (!allowed.has(norm(cliente.nome))) void navigate({ to: "/por-clientes" });
+  }, [cliente?.nome, restrictedClientes, navigate]);
+
 
   // Carrega TODOS os anos (necessário p/ visão compilada e p/ montar lista de anos)
   const { data: sellInAll } = useQuery({
