@@ -3,8 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, parseBRNumber } from "@/lib/format";
-import { Target, Send, FileCheck, TrendingDown, ArrowRight, Trophy, Sparkles, Pencil, Check, X } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
