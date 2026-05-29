@@ -5,21 +5,29 @@ import { formatBRL, MESES_BR_SHORT } from "@/lib/format";
 import { useState } from "react";
 import { exportToExcel } from "@/lib/excel";
 import { Download } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/sell-out/")({ component: SellOutPage });
 
+const normNomeSO = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
 function SellOutPage() {
   const [ano, setAno] = useState(new Date().getFullYear());
+  const { restrictedClientes } = useAuth();
+  const allowedSet = restrictedClientes ? new Set(restrictedClientes.map(normNomeSO)) : null;
 
   const { data } = useQuery({
-    queryKey: ["sell-out-consolidado", ano],
+    queryKey: ["sell-out-consolidado", ano, restrictedClientes?.join("|") ?? "all"],
     queryFn: async () => {
       const [clientes, sellOut] = await Promise.all([
         supabase.from("clientes").select("id,nome").order("nome"),
         supabase.from("sell_out").select("cliente_id,mes,valor").eq("ano", ano),
       ]);
       const matrix = new Map<string, { nome: string; meses: number[]; total: number; media: number; repr: number }>();
-      (clientes.data ?? []).forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
+      const clientesFiltrados = allowedSet
+        ? (clientes.data ?? []).filter((c) => allowedSet.has(normNomeSO(c.nome)))
+        : (clientes.data ?? []);
+      clientesFiltrados.forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
       (sellOut.data ?? []).forEach((s) => {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
