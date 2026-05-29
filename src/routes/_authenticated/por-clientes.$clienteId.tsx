@@ -34,7 +34,7 @@ function ClienteDetalhe() {
   useEffect(() => {
     if (!cliente?.nome || !restrictedClientes) return;
     const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    const allowed = new Set(restrictedClientes.map(norm));
+    const allowed = new Set(restrictedClientes.filter((n) => norm(n) !== "MEDLOG").map(norm));
     if (!allowed.has(norm(cliente.nome))) void navigate({ to: "/por-clientes" });
   }, [cliente?.nome, restrictedClientes, navigate]);
 
