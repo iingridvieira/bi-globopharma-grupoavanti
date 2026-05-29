@@ -22,7 +22,7 @@ const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
   },
   {
     key: "metas",
-    label: "Projeções de Sell in",
+    label: "Previsões de Sell in",
     desc: "Colunas: Cliente, Ano, Mes, Valor, PendenciaInicial",
   },
   {

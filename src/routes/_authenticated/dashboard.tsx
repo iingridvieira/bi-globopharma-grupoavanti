@@ -104,7 +104,7 @@ function Dashboard() {
           sub="Meta Globo + 20%"
         />
         <MetaCard
-          label="PROJEÇÃO DE SELL IN"
+          label="PREVISÃO DE SELL IN"
           value={t.meta}
           pct={pctProjecao}
           faturado={t.faturado}
@@ -114,15 +114,15 @@ function Dashboard() {
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <StatCard label="Pedidos enviados" value={formatBRL(t.enviado)} icon={Send} />
-        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} sub={`${pctFat.toFixed(1).replace(".", ",")}% da projeção`} />
-        <StatCard label="GAP (Projeção - Faturado)" value={formatBRL(gap)} icon={TrendingDown} negative={gap > 0} />
+        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} sub={`${pctFat.toFixed(1).replace(".", ",")}% da previsão`} />
+        <StatCard label="GAP (Previsão - Faturado)" value={formatBRL(gap)} icon={TrendingDown} negative={gap > 0} />
       </section>
 
       <section className="bi-card overflow-hidden mb-8">
         <header className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">Resumo por cliente</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Enviado · Projeção · Faturado · Pendência (importada)</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Enviado · Previsão · Faturado · Pendência (importada)</p>
           </div>
         </header>
         <div className="overflow-x-auto">
@@ -131,7 +131,7 @@ function Dashboard() {
               <tr>
                 <th>Cliente</th>
                 <th className="text-right">Enviado</th>
-                <th className="text-right">Projeção</th>
+                <th className="text-right">Previsão</th>
                 <th className="text-right">Faturado</th>
                 <th className="text-right">Pendência</th>
               </tr>
