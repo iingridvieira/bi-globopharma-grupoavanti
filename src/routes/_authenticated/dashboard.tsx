@@ -122,7 +122,7 @@ function Dashboard() {
         <header className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">Resumo por cliente</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Enviado · Projeção · Faturado · Pendência (importada)</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Enviado · Previsão · Faturado · Pendência (importada)</p>
           </div>
         </header>
         <div className="overflow-x-auto">
