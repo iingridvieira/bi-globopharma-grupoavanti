@@ -148,26 +148,42 @@ function NFsPage() {
           </select>
 
           {periodoMode === "mes" && (
-            <select value={mes} onChange={(e) => setMes(Number(e.target.value))} className="bi-input-sm w-40">
-              {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
+            <MultiSelect
+              width={200}
+              placeholder="Meses"
+              options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
+              selected={meses}
+              onChange={setMeses}
+            />
           )}
           {(periodoMode === "mes" || periodoMode === "ano") && (
-            <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="bi-input-sm w-28">
-              {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
+            <MultiSelect
+              width={160}
+              placeholder="Anos"
+              options={anosOpcoes.map((a) => ({ value: String(a), label: String(a) }))}
+              selected={anos}
+              onChange={setAnos}
+            />
           )}
 
-          <select value={clienteFiltro} onChange={(e) => setClienteFiltro(e.target.value)} className="bi-input-sm w-56">
-            <option value="">Todos os clientes</option>
-            {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
+          <MultiSelect
+            width={260}
+            placeholder="Todos os clientes"
+            options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+            selected={clientesSel}
+            onChange={setClientesSel}
+          />
 
-          <select value={operacao} onChange={(e) => setOperacao(e.target.value as typeof operacao)} className="bi-input-sm w-36">
-            <option value="todas">Todas as operações</option>
-            <option value="venda">Venda</option>
-            <option value="bonificacao">Bonificação</option>
-          </select>
+          <MultiSelect
+            width={180}
+            placeholder="Todas as operações"
+            options={[
+              { value: "venda", label: "Venda" },
+              { value: "bonificacao", label: "Bonificação" },
+            ]}
+            selected={operacoes}
+            onChange={setOperacoes}
+          />
 
           <input
             value={valorMin}
@@ -182,7 +198,7 @@ function NFsPage() {
             className="bi-input-sm w-36"
           />
 
-          {(busca || clienteFiltro || valorMin || valorMax || operacao !== "todas") && (
+          {(busca || clientesSel.length > 0 || valorMin || valorMax || operacoes.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
