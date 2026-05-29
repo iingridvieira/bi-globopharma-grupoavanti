@@ -394,11 +394,19 @@ function MultiYearSection({
     });
   }, [matrix]);
 
+  const maxPorMes = useMemo(() => {
+    return Array.from({ length: 12 }, (_, i) => {
+      let max = 0;
+      matrix.forEach((r) => { if (r.meses[i] > max) max = r.meses[i]; });
+      return max;
+    });
+  }, [matrix]);
+
   return (
     <section className="bi-card mb-6 overflow-hidden">
       <header className="px-6 py-4 border-b border-border">
         <h2 className="font-display text-lg font-semibold">{title} · Todos os anos</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">Compilado por ano com crescimento percentual</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Compilado por ano com crescimento percentual · maior valor de cada mês destacado em verde</p>
       </header>
       <div className="overflow-x-auto">
         <table className="bi-table">
@@ -415,9 +423,17 @@ function MultiYearSection({
             {matrix.map((row) => (
               <tr key={row.ano}>
                 <td className="font-semibold">{row.ano}</td>
-                {row.meses.map((v, i) => (
-                  <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>
-                ))}
+                {row.meses.map((v, i) => {
+                  const isMax = v > 0 && v === maxPorMes[i];
+                  return (
+                    <td
+                      key={i}
+                      className={`text-right tabular-nums text-xs ${isMax ? "bg-emerald-500/15 text-emerald-500 font-semibold rounded" : ""}`}
+                    >
+                      {v ? formatBRL(v) : "—"}
+                    </td>
+                  );
+                })}
                 <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(row.total)}</td>
                 <td className="text-right tabular-nums font-semibold">{formatBRL(row.media)}</td>
                 <td className={`text-right tabular-nums font-semibold ${pctClass(row.crescimento)}`}>
