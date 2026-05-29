@@ -136,9 +136,9 @@ function SellInPage() {
                 <td className="text-right tabular-nums text-xs text-muted-foreground">{formatBRL(r.media)}</td>
                 <td className="text-right">
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
-                    r.repr >= 15 ? "bg-emerald-500/20 text-emerald-400" :
-                    r.repr >= 5 ? "bg-yellow-500/20 text-yellow-400" :
-                    "bg-red-500/20 text-red-400"
+                    r.repr <= 5 ? "bg-red-500/20 text-red-400" :
+                    r.repr <= 10 ? "bg-yellow-500/20 text-yellow-400" :
+                    "bg-emerald-500/20 text-emerald-400"
                   }`}>
                     {r.repr.toFixed(1).replace(".", ",")}%
                   </span>
