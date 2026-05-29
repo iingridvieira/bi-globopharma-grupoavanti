@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 const MENU_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", desc: "Visão executiva do mês atual · metas · faturamento", icon: LayoutDashboard, color: "from-primary/20 to-primary/5" },
+  { to: "/dashboard", label: "Dashboard", desc: "Visão executiva do mês atual · projeções · faturamento", icon: LayoutDashboard, color: "from-primary/20 to-primary/5" },
   { to: "/pedidos", label: "Pedidos Enviados", desc: "Relatório completo de pedidos enviados por período", icon: Send, color: "from-emerald-500/20 to-emerald-500/5" },
   { to: "/notas-fiscais", label: "Notas Fiscais", desc: "Consulta e filtro de notas fiscais emitidas", icon: FileText, color: "from-sky-500/20 to-sky-500/5" },
   { to: "/sell-in", label: "Sell In", desc: "Consolidado mensal e anual de vendas Sell In", icon: TrendingUp, color: "from-amber-500/20 to-amber-500/5" },
