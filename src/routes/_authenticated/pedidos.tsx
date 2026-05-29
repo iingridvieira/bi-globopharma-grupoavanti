@@ -19,7 +19,7 @@ function PedidosPage() {
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
-  const [valorMin, setValorMin] = useState("");
+  
 
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [clienteId, setClienteId] = useState("");
