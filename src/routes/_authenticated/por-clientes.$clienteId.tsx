@@ -7,7 +7,7 @@ import { exportToExcel } from "@/lib/excel";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const MAPAS_UPLOAD_EMAIL = "avantipharma.comercial@gmail.com";
 const ALL = "ALL" as const;
