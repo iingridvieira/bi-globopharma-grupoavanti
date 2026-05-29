@@ -204,7 +204,14 @@ function NFsPage() {
             onChange={setOperacoes}
           />
 
-          {(busca || clientesSel.length > 0 || operacoes.length > 0) && (
+          <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
+            <option value="">Todos os responsáveis</option>
+            <option value="Alexandre">Alexandre</option>
+            <option value="Eduardo">Eduardo</option>
+            <option value="Paulo">Paulo</option>
+          </select>
+
+          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
