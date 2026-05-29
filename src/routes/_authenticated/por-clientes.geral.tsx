@@ -161,6 +161,7 @@ function MultiYearSection({ title, rows, anos, colorVar }: { title: string; rows
             <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
             <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={70} tickFormatter={(v: number) => formatBRL(v)} />
             <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }} formatter={(v: number) => formatBRL(v)} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             {matrix.map((row, i) => (
               <Line key={row.ano} type="monotone" dataKey={String(row.ano)}
                 stroke={i === matrix.length - 1 ? colorVar : `hsl(${(i * 67) % 360} 60% 55%)`}
