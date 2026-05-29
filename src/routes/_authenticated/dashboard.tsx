@@ -275,11 +275,6 @@ function MetaCard({
       {sub && (
         <div className={"text-[10px] mt-0.5 " + (accent ? "text-primary-foreground/70" : "text-muted-foreground")}>{sub}</div>
       )}
-      {value > 0 && (
-        <div className={"mt-2 text-[10px] " + (accent ? "text-primary-foreground/60" : "text-muted-foreground")}>
-          {"\u200B"}
-        </div>
-      )}
     </div>
   );
 }
