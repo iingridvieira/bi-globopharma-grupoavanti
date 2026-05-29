@@ -12,8 +12,11 @@ import { MultiSelect } from "@/components/MultiSelect";
 
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
 
+const normNome = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
 function PedidosPage() {
-  const { canEdit } = useAuth();
+  const { canEdit, restrictedClientes } = useAuth();
+  const allowedNameSet = restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null;
   const qc = useQueryClient();
   const now = new Date();
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
