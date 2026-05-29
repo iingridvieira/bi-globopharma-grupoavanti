@@ -294,16 +294,3 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
   );
 }
 
-function BigButton({ to, title, desc }: { to: string; title: string; desc: string }) {
-  return (
-    <Link to={to} className="bi-card p-6 group hover:border-primary transition-colors flex items-center justify-between">
-      <div>
-        <div className="font-display text-xl font-bold">{title}</div>
-        <div className="text-sm text-muted-foreground mt-1">{desc}</div>
-      </div>
-      <div className="h-12 w-12 rounded-md bg-primary/15 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-        <ArrowRight className="h-5 w-5" />
-      </div>
-    </Link>
-  );
-}
