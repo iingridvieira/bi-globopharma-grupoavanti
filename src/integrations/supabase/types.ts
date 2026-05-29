@@ -20,18 +20,54 @@ export type Database = {
           created_at: string
           id: string
           nome: string
+          observacao: string | null
         }
         Insert: {
           ativo?: boolean
           created_at?: string
           id?: string
           nome: string
+          observacao?: string | null
         }
         Update: {
           ativo?: boolean
           created_at?: string
           id?: string
           nome?: string
+          observacao?: string | null
+        }
+        Relationships: []
+      }
+      conta_corrente_arquivos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
         }
         Relationships: []
       }
