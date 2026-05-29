@@ -26,33 +26,35 @@ function Dashboard() {
       const start = `${ANO}-${String(MES).padStart(2, "0")}-01`;
       const endDate = new Date(ANO, MES, 0).toISOString().slice(0, 10);
 
-      const [clientes, metas, pedidos, nfs, pendencias, metaGlobo] = await Promise.all([
+      const [clientes, metas, pedidos, nfs, pendencias, pendAnt, metaGlobo] = await Promise.all([
         supabase.from("clientes").select("id,nome").order("nome"),
         supabase.from("metas_mensais").select("cliente_id,valor").eq("ano", ANO).eq("mes", MES),
         supabase.from("pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", endDate),
         supabase.from("notas_fiscais").select("cliente_id,valor").gte("data", start).lte("data", endDate),
         supabase.from("pendencias_produtos").select("cliente_id,valor"),
+        supabase.from("pendencias_anteriores_produtos").select("cliente_id,valor"),
         supabase.from("metas_globo").select("valor").eq("ano", ANO).eq("mes", MES).maybeSingle(),
       ]);
 
-      const map = new Map<string, { nome: string; pendencia: number; enviado: number; meta: number; faturado: number }>();
-      (clientes.data ?? []).forEach((c) => map.set(c.id, { nome: c.nome, pendencia: 0, enviado: 0, meta: 0, faturado: 0 }));
+      const map = new Map<string, { nome: string; pendencia: number; pendAnt: number; enviado: number; meta: number; faturado: number }>();
+      (clientes.data ?? []).forEach((c) => map.set(c.id, { nome: c.nome, pendencia: 0, pendAnt: 0, enviado: 0, meta: 0, faturado: 0 }));
       (metas.data ?? []).forEach((m) => { const r = map.get(m.cliente_id); if (r) r.meta = Number(m.valor); });
       (pedidos.data ?? []).forEach((p) => { const r = map.get(p.cliente_id); if (r) r.enviado += Number(p.valor); });
       (nfs.data ?? []).forEach((n) => { const r = map.get(n.cliente_id); if (r) r.faturado += Number(n.valor); });
       (pendencias.data ?? []).forEach((p) => { const r = map.get(p.cliente_id); if (r) r.pendencia += Number(p.valor); });
+      (pendAnt.data ?? []).forEach((p) => { const r = map.get(p.cliente_id); if (r) r.pendAnt += Number(p.valor); });
 
-      const rows = Array.from(map.values()).filter((r) => r.meta > 0 || r.faturado > 0 || r.enviado > 0 || r.pendencia > 0);
+      const rows = Array.from(map.values()).filter((r) => r.meta > 0 || r.faturado > 0 || r.enviado > 0 || r.pendencia > 0 || r.pendAnt > 0);
       const totals = rows.reduce((a, r) => ({
         meta: a.meta + r.meta, enviado: a.enviado + r.enviado, faturado: a.faturado + r.faturado,
-        pendencia: a.pendencia + r.pendencia,
-      }), { meta: 0, enviado: 0, faturado: 0, pendencia: 0 });
+        pendencia: a.pendencia + r.pendencia, pendAnt: a.pendAnt + r.pendAnt,
+      }), { meta: 0, enviado: 0, faturado: 0, pendencia: 0, pendAnt: 0 });
 
       return { rows, totals, metaGlobo: Number(metaGlobo.data?.valor ?? 0) };
     },
   });
 
-  const t = data?.totals ?? { meta: 0, enviado: 0, faturado: 0, pendencia: 0 };
+  const t = data?.totals ?? { meta: 0, enviado: 0, faturado: 0, pendencia: 0, pendAnt: 0 };
   const metaGlobo = data?.metaGlobo ?? 0;
   const metaAvanti = metaGlobo * 1.2;
   const gap = t.meta - t.faturado;
