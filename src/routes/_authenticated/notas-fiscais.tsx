@@ -114,6 +114,13 @@ function NFsPage() {
     return map;
   }, [clientes]);
 
+  const allowedIdSet = useMemo(() => {
+    if (!allowedNameSet) return null;
+    const s = new Set<string>();
+    (clientes ?? []).forEach((c) => { if (allowedNameSet.has(normNome(c.nome))) s.add(c.id); });
+    return s;
+  }, [allowedNameSet, clientes]);
+
   const filtradas = useMemo(() => {
     const respSet = responsavel ? clientesPorResponsavel[responsavel] : null;
     return (nfs ?? []).filter((n) => {
@@ -123,9 +130,10 @@ function NFsPage() {
         if (!operacoes.includes(tipo)) return false;
       }
       if (respSet && !respSet.has(n.cliente_id)) return false;
+      if (allowedIdSet && !allowedIdSet.has(n.cliente_id)) return false;
       return true;
     });
-  }, [nfs, operacoes, responsavel, clientesPorResponsavel]);
+  }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
