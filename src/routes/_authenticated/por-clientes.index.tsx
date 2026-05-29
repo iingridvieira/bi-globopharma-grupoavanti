@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
-import { Users } from "lucide-react";
+
+import { Users, Globe2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/por-clientes/")({ component: PorClientesIndex });
 
@@ -38,6 +38,21 @@ function PorClientesIndex() {
           Selecione um cliente para visualizar Sell In, Sell Out e Mapas de Vendas.
         </p>
       </header>
+
+      <div className="mb-6">
+        <Link
+          to="/por-clientes/geral"
+          className="bi-card p-6 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/10 to-card hover:border-primary hover:shadow-lg transition-all flex items-center gap-4"
+        >
+          <div className="h-12 w-12 rounded-lg bg-primary/15 flex items-center justify-center">
+            <Globe2 className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <div className="font-display text-xl font-bold">GERAL</div>
+            <div className="text-xs text-muted-foreground">Visão consolidada de todos os clientes (Sell In + Sell Out)</div>
+          </div>
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {(data ?? []).map((c) => (
