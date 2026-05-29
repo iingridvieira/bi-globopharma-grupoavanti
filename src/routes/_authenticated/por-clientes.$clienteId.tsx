@@ -111,19 +111,72 @@ function ClienteDetalhe() {
     onSuccess: () => { toast.success("Removido"); void qc.invalidateQueries({ queryKey: ["mapas", clienteId] }); },
   });
 
-  async function shareUrl(path: string): Promise<string> {
-    const { data, error } = await supabase.storage.from("mapas-vendas").createSignedUrl(path, 3600);
+  // Conta Corrente
+  const { data: arquivosCC } = useQuery({
+    queryKey: ["conta-corrente", clienteId],
+    queryFn: async () =>
+      (await supabase.from("conta_corrente_arquivos").select("*").eq("cliente_id", clienteId).order("created_at", { ascending: false })).data ?? [],
+  });
+
+  const uploadCC = useMutation({
+    mutationFn: async (files: FileList) => {
+      for (const f of Array.from(files)) {
+        const path = `${clienteId}/${Date.now()}-${f.name}`;
+        const { error: upErr } = await supabase.storage.from("conta-corrente").upload(path, f);
+        if (upErr) throw upErr;
+        const { data: userData } = await supabase.auth.getUser();
+        const { error } = await supabase.from("conta_corrente_arquivos").insert({
+          cliente_id: clienteId, nome_arquivo: f.name, storage_path: path,
+          mime_type: f.type, tamanho_bytes: f.size, uploaded_by: userData.user?.id,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { toast.success("Arquivos enviados"); void qc.invalidateQueries({ queryKey: ["conta-corrente", clienteId] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const delCC = useMutation({
+    mutationFn: async (a: { id: string; storage_path: string }) => {
+      await supabase.storage.from("conta-corrente").remove([a.storage_path]);
+      const { error } = await supabase.from("conta_corrente_arquivos").delete().eq("id", a.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removido"); void qc.invalidateQueries({ queryKey: ["conta-corrente", clienteId] }); },
+  });
+
+  // Observação
+  const [obsText, setObsText] = useState<string>("");
+  const [obsLoaded, setObsLoaded] = useState(false);
+  useEffect(() => {
+    if (!obsLoaded && cliente) {
+      setObsText(cliente.observacao ?? "");
+      setObsLoaded(true);
+    }
+  }, [cliente, obsLoaded]);
+  const saveObs = useMutation({
+    mutationFn: async (texto: string) => {
+      const { error } = await supabase.from("clientes").update({ observacao: texto }).eq("id", clienteId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Observação salva"); void qc.invalidateQueries({ queryKey: ["cliente", clienteId] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function shareUrl(bucket: string, path: string): Promise<string> {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
     if (error || !data) throw error ?? new Error("Falha ao gerar link");
     return data.signedUrl;
   }
-  async function openFile(path: string) {
-    try { window.open(await shareUrl(path), "_blank", "noreferrer"); }
+  async function openFile(bucket: string, path: string) {
+    try { window.open(await shareUrl(bucket, path), "_blank", "noreferrer"); }
     catch (e) { toast.error((e as Error).message); }
   }
-  async function copyLink(path: string) {
-    try { await navigator.clipboard.writeText(await shareUrl(path)); toast.success("Link copiado (válido por 1h)"); }
+  async function copyLink(bucket: string, path: string) {
+    try { await navigator.clipboard.writeText(await shareUrl(bucket, path)); toast.success("Link copiado (válido por 1h)"); }
     catch (e) { toast.error((e as Error).message); }
   }
+
 
   return (
     <div className="p-8 max-w-[1500px] mx-auto">
