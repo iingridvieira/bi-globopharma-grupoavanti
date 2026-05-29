@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/", label: "Início", icon: Activity, exact: true },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pedidos", label: "Pedidos Enviados", icon: Send },
   { to: "/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/sell-in", label: "Sell in", icon: TrendingUp },
