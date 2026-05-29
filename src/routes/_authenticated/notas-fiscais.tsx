@@ -11,12 +11,22 @@ export const Route = createFileRoute("/_authenticated/notas-fiscais")({ componen
 
 type PeriodoMode = "mes" | "ano" | "tudo";
 
+const RESPONSAVEIS: Record<string, string[]> = {
+  Alexandre: ["ANDORINHA", "BANDEIRANTES", "DISMAP", "IMPACTA MED", "MAXIFARMA", "NÚCLEO FARMA", "DISMED", "MED VALLE", "GEMELI"],
+  Eduardo: ["CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "FARMA CONDE", "MEDLOG"],
+};
+
+function normNome(s: string): string {
+  return (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+}
+
 function NFsPage() {
   const now = new Date();
   const [periodoMode, setPeriodoMode] = useState<PeriodoMode>("mes");
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
+  const [responsavel, setResponsavel] = useState<string>("");
   const [busca, setBusca] = useState("");
   const [operacoes, setOperacoes] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
