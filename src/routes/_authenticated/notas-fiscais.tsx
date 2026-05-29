@@ -195,7 +195,7 @@ function NFsPage() {
 
           <MultiSelect
             width={180}
-            placeholder="Todas as operações"
+            placeholder="Operações"
             options={[
               { value: "venda", label: "Venda" },
               { value: "bonificacao", label: "Bonificação" },
@@ -205,7 +205,7 @@ function NFsPage() {
           />
 
           <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
-            <option value="">Todos os responsáveis</option>
+            <option value="">Representantes</option>
             <option value="Alexandre">Alexandre</option>
             <option value="Eduardo">Eduardo</option>
             <option value="Paulo">Paulo</option>
