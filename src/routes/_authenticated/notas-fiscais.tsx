@@ -5,6 +5,7 @@ import { formatBRL, formatDateBR, parseBRNumber, MESES_BR } from "@/lib/format";
 import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { MultiSelect } from "@/components/MultiSelect";
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
