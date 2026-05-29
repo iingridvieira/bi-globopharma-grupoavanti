@@ -68,10 +68,7 @@ function PedidosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtrados = useMemo(() => {
-    const min = parseBRNumber(valorMin);
-    return (pedidos ?? []).filter((p) => (min ? Number(p.valor) >= min : true));
-  }, [pedidos, valorMin]);
+  const filtrados = pedidos ?? [];
   const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
