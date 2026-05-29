@@ -119,7 +119,7 @@ function PedidosPage() {
           selected={clientesSel}
           onChange={setClientesSel}
         />
-        <input placeholder="Valor mínimo" value={valorMin} onChange={(e) => setValorMin(e.target.value)} className="bi-input-sm w-36" />
+        
         <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
           <Download className="h-4 w-4" /> Exportar
         </button>
