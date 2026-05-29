@@ -101,11 +101,27 @@ function PedidosPage() {
       <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
 
       <div className="flex flex-wrap items-center gap-3 mt-6">
-        <PeriodoSelect mes={mes} ano={ano} onMes={setMes} onAno={setAno} />
-        <select value={clienteFiltro} onChange={(e) => setClienteFiltro(e.target.value)} className="bi-input-sm w-56">
-          <option value="">Todos os clientes</option>
-          {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-        </select>
+        <MultiSelect
+          width={220}
+          placeholder="Meses"
+          options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
+          selected={meses}
+          onChange={setMeses}
+        />
+        <MultiSelect
+          width={160}
+          placeholder="Anos"
+          options={[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => ({ value: String(a), label: String(a) }))}
+          selected={anos}
+          onChange={setAnos}
+        />
+        <MultiSelect
+          width={260}
+          placeholder="Todos os clientes"
+          options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+          selected={clientesSel}
+          onChange={setClientesSel}
+        />
         <input placeholder="Valor mínimo" value={valorMin} onChange={(e) => setValorMin(e.target.value)} className="bi-input-sm w-36" />
         <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
           <Download className="h-4 w-4" /> Exportar
