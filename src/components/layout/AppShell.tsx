@@ -1,4 +1,5 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Activity, LayoutDashboard, Send, FileText, TrendingUp, ShoppingCart, Users, Upload, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -14,10 +15,21 @@ const NAV = [
   { to: "/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
 ];
 
+const RESTRICTED_ALLOWED = ["/por-clientes"];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { user, roles, signOut, canEdit } = useAuth();
+  const navigate = useNavigate();
+  const { user, roles, signOut, canEdit, restrictedClientes } = useAuth();
   const { theme, toggleTheme } = useTheme();
+
+  const isRestricted = restrictedClientes !== null;
+
+  useEffect(() => {
+    if (!isRestricted) return;
+    const allowed = RESTRICTED_ALLOWED.some((p) => path === p || path.startsWith(p + "/"));
+    if (!allowed) void navigate({ to: "/por-clientes" });
+  }, [isRestricted, path, navigate]);
 
   return (
     <div className="min-h-screen flex">

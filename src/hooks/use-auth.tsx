@@ -11,10 +11,16 @@ interface AuthState {
   roles: Role[];
   isAdmin: boolean;
   canEdit: boolean;
+  restrictedClientes: string[] | null;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
+
+const EDUARDO_EMAIL = "avantipharma.comercial2@gmail.com";
+const EDUARDO_CLIENTES = [
+  "CAMPEÃ", "CG MEDICAMENTOS", "DF DISTRIBUIDORA", "FARMA CONDE", "MEDLOG",
+];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -25,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, s) => {
       setSession(s);
       if (s?.user) {
-        // defer role fetch to avoid deadlock
         setTimeout(() => { void fetchRoles(s.user.id); }, 0);
       } else {
         setRoles([]);
@@ -45,14 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const user = session?.user ?? null;
+  const email = (user?.email ?? "").toLowerCase();
   const AUTHORIZED_EDITOR_EMAIL = "avantipharma.comercial@gmail.com";
-  const isAuthorizedEditor = (user?.email ?? "").toLowerCase() === AUTHORIZED_EDITOR_EMAIL;
+  const isAuthorizedEditor = email === AUTHORIZED_EDITOR_EMAIL;
+  const isEduardoOnly = email === EDUARDO_EMAIL;
   const isAdmin = isAuthorizedEditor;
   const canEdit = isAuthorizedEditor;
+  const restrictedClientes = isEduardoOnly ? EDUARDO_CLIENTES : null;
 
   return (
     <AuthContext.Provider value={{
-      user, session, loading, roles, isAdmin, canEdit,
+      user, session, loading, roles, isAdmin, canEdit, restrictedClientes,
       signOut: async () => { await supabase.auth.signOut(); },
     }}>
       {children}
