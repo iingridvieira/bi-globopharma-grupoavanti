@@ -71,7 +71,12 @@ function PedidosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtrados = pedidos ?? [];
+  const clientesVisiveis = allowedNameSet
+    ? (clientes ?? []).filter((c) => allowedNameSet.has(normNome(c.nome)))
+    : (clientes ?? []);
+  const filtrados = allowedNameSet
+    ? (pedidos ?? []).filter((p) => p.clientes?.nome && allowedNameSet.has(normNome(p.clientes.nome)))
+    : (pedidos ?? []);
   const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
