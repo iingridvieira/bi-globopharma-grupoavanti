@@ -184,10 +184,6 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <BigButton to="/sell-in" title="Sell in" desc="Tabela dinâmica · mês a mês · acumulado" />
-        <BigButton to="/sell-out" title="Sell Out" desc="Detalhe por cliente · mapas de vendas" />
-      </section>
     </div>
   );
 }
