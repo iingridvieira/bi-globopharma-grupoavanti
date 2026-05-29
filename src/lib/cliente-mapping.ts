@@ -22,6 +22,13 @@ const RAW_MAP: Array<[string, string]> = [
   ["SLEIMAN COMERCIO DE MEDICAMENTOS LTDA", "SLEIMAN"],
   ["TIMEH PRODUTOS HOSPITALARES LTDA", "TIMEH"],
   ["VALE COMERCIAL LTDA", "VALE COMERCIAL"],
+  ["CIRURGICA LN SP LTDA", "CIRURGICA LN"],
+  ["STARTMED TRANSPORTES LTDA", "STARTMED"],
+  ["TREEMED MEDICAMENTOS LTDA", "TREEMED"],
+  ["ORIENTE FARMACEUTICA COMERCIO IMPORTACAO E EXPORTACAO LTDA", "ORIENTE"],
+  ["W.M.C COMERCIO E DISTRIBUICAO LTDA", "WMC"],
+  ["MEDIC-PHARM COMERCIAL LTDA", "MEDIC PHARM"],
+  ["FUNARE MACHADO PRODUTOS E SERVICOS HOSPITALARES LTDA", "FUNARE"],
 ];
 
 export function normalizeKey(s: string): string {
@@ -62,6 +69,16 @@ const KEYWORDS: Array<[string, string]> = [
   ["navarrointer", "NAVARRO INTER"],
   ["navarrosp", "NAVARRO SP"],
   ["navarro", "NAVARRO SP"],
+  ["cirurgicaln", "CIRURGICA LN"],
+  ["startmed", "STARTMED"],
+  ["treemed", "TREEMED"],
+  ["orientefarmaceutica", "ORIENTE"],
+  ["oriente", "ORIENTE"],
+  ["wmccomercio", "WMC"],
+  ["wmc", "WMC"],
+  ["medicpharm", "MEDIC PHARM"],
+  ["funaremachado", "FUNARE"],
+  ["funare", "FUNARE"],
 ];
 
 /** Resolve uma razão social bruta da planilha para o nome padrão. Retorna null se não mapeado. */
