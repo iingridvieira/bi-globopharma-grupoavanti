@@ -277,7 +277,7 @@ function MetaCard({
       )}
       {value > 0 && (
         <div className={"mt-2 text-[10px] " + (accent ? "text-primary-foreground/60" : "text-muted-foreground")}>
-          Faturado: {formatBRL(faturado)}
+          {"\u200B"}
         </div>
       )}
     </div>
