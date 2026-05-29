@@ -80,6 +80,7 @@ const KEYWORDS: Array<[string, string]> = [
   ["medicpharm", "MEDIC PHARM"],
   ["funaremachado", "FUNARE"],
   ["funare", "FUNARE"],
+  ["medlog", "MEDLOG"],
 ];
 
 /** Resolve uma razão social bruta da planilha para o nome padrão. Retorna null se não mapeado. */
