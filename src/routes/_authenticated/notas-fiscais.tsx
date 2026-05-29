@@ -105,7 +105,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setValorMin(""); setValorMax(""); setOperacoes([]);
+    setBusca(""); setClientesSel([]); setOperacoes([]);
   }
 
 
