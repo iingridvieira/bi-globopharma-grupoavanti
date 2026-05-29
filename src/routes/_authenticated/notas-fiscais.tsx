@@ -5,6 +5,7 @@ import { formatBRL, formatDateBR, parseBRNumber, MESES_BR } from "@/lib/format";
 import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { MultiSelect } from "@/components/MultiSelect";
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
@@ -13,18 +14,18 @@ type PeriodoMode = "mes" | "ano" | "tudo";
 function NFsPage() {
   const now = new Date();
   const [periodoMode, setPeriodoMode] = useState<PeriodoMode>("mes");
-  const [mes, setMes] = useState(now.getMonth() + 1);
-  const [ano, setAno] = useState(now.getFullYear());
-  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
+  const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
+  const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
   const [valorMin, setValorMin] = useState("");
   const [valorMax, setValorMax] = useState("");
-  const [operacao, setOperacao] = useState<"todas" | "venda" | "bonificacao">("todas");
+  const [operacoes, setOperacoes] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
   const anoAtual = now.getFullYear();
-  const anos = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
+  const anosOpcoes = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
 
   const { data: clientes } = useQuery({
     queryKey: ["clientes"],
@@ -47,22 +48,31 @@ function NFsPage() {
   });
 
   const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs", periodoMode, ano, mes, clienteFiltro, buscaTrim, nfIdsPorProduto],
+    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto],
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
         .select("id,data,numero,valor,desconto,cliente_id,clientes(nome)")
         .order("data", { ascending: false })
         .limit(5000);
 
-      if (periodoMode === "mes") {
-        const start = `${ano}-${String(mes).padStart(2, "0")}-01`;
-        const end = new Date(ano, mes, 0).toISOString().slice(0, 10);
-        q = q.gte("data", start).lte("data", end);
-      } else if (periodoMode === "ano") {
-        q = q.gte("data", `${ano}-01-01`).lte("data", `${ano}-12-31`);
+      // Período: gera lista de intervalos (ano/mês) e aplica via or
+      if (periodoMode === "mes" || periodoMode === "ano") {
+        const anosNum = anos.map(Number);
+        const mesesNum = periodoMode === "mes" ? meses.map(Number) : Array.from({ length: 12 }, (_, i) => i + 1);
+        if (anosNum.length > 0 && mesesNum.length > 0) {
+          const ranges: string[] = [];
+          anosNum.forEach((a) => {
+            mesesNum.forEach((m) => {
+              const start = `${a}-${String(m).padStart(2, "0")}-01`;
+              const end = new Date(a, m, 0).toISOString().slice(0, 10);
+              ranges.push(`and(data.gte.${start},data.lte.${end})`);
+            });
+          });
+          q = q.or(ranges.join(","));
+        }
       }
 
-      if (clienteFiltro) q = q.eq("cliente_id", clienteFiltro);
+      if (clientesSel.length > 0) q = q.in("cliente_id", clientesSel);
 
       if (buscaTrim.length >= 2) {
         const orParts: string[] = [`numero.ilike.%${buscaTrim}%`];
@@ -84,11 +94,13 @@ function NFsPage() {
       const v = Number(n.valor);
       if (min && v < min) return false;
       if (max && v > max) return false;
-      if (operacao === "venda" && v <= 0) return false;
-      if (operacao === "bonificacao" && v > 0) return false;
+      if (operacoes.length > 0) {
+        const tipo = v > 0 ? "venda" : "bonificacao";
+        if (!operacoes.includes(tipo)) return false;
+      }
       return true;
     });
-  }, [nfs, valorMin, valorMax, operacao]);
+  }, [nfs, valorMin, valorMax, operacoes]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
@@ -99,8 +111,9 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClienteFiltro(""); setValorMin(""); setValorMax(""); setOperacao("todas");
+    setBusca(""); setClientesSel([]); setValorMin(""); setValorMax(""); setOperacoes([]);
   }
+
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
@@ -135,26 +148,42 @@ function NFsPage() {
           </select>
 
           {periodoMode === "mes" && (
-            <select value={mes} onChange={(e) => setMes(Number(e.target.value))} className="bi-input-sm w-40">
-              {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
+            <MultiSelect
+              width={200}
+              placeholder="Meses"
+              options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
+              selected={meses}
+              onChange={setMeses}
+            />
           )}
           {(periodoMode === "mes" || periodoMode === "ano") && (
-            <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="bi-input-sm w-28">
-              {anos.map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
+            <MultiSelect
+              width={160}
+              placeholder="Anos"
+              options={anosOpcoes.map((a) => ({ value: String(a), label: String(a) }))}
+              selected={anos}
+              onChange={setAnos}
+            />
           )}
 
-          <select value={clienteFiltro} onChange={(e) => setClienteFiltro(e.target.value)} className="bi-input-sm w-56">
-            <option value="">Todos os clientes</option>
-            {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
+          <MultiSelect
+            width={260}
+            placeholder="Todos os clientes"
+            options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+            selected={clientesSel}
+            onChange={setClientesSel}
+          />
 
-          <select value={operacao} onChange={(e) => setOperacao(e.target.value as typeof operacao)} className="bi-input-sm w-36">
-            <option value="todas">Todas as operações</option>
-            <option value="venda">Venda</option>
-            <option value="bonificacao">Bonificação</option>
-          </select>
+          <MultiSelect
+            width={180}
+            placeholder="Todas as operações"
+            options={[
+              { value: "venda", label: "Venda" },
+              { value: "bonificacao", label: "Bonificação" },
+            ]}
+            selected={operacoes}
+            onChange={setOperacoes}
+          />
 
           <input
             value={valorMin}
@@ -169,7 +198,7 @@ function NFsPage() {
             className="bi-input-sm w-36"
           />
 
-          {(busca || clienteFiltro || valorMin || valorMax || operacao !== "todas") && (
+          {(busca || clientesSel.length > 0 || valorMin || valorMax || operacoes.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>

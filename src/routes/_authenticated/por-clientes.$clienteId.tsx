@@ -7,7 +7,7 @@ import { exportToExcel } from "@/lib/excel";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const MAPAS_UPLOAD_EMAIL = "avantipharma.comercial@gmail.com";
 const ALL = "ALL" as const;
@@ -329,7 +329,8 @@ function MonthlyTable({ title, agg, colorVar }: { title: string; agg: Agg; color
             <Tooltip
               contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }}
               formatter={(v: number) => formatBRL(v)} />
-            <Line type="monotone" dataKey="valor" stroke={colorVar} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Line type="monotone" dataKey="valor" name={title} stroke={colorVar} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -466,6 +467,7 @@ function MultiYearSection({
             <Tooltip
               contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }}
               formatter={(v: number) => formatBRL(v)} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             {matrix.map((row, i) => (
               <Line
                 key={row.ano}

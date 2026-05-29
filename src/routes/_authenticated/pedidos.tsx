@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
 import { Download } from "lucide-react";
+import { MultiSelect } from "@/components/MultiSelect";
 
 
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
@@ -15,9 +16,9 @@ function PedidosPage() {
   const { canEdit } = useAuth();
   const qc = useQueryClient();
   const now = new Date();
-  const [mes, setMes] = useState(now.getMonth() + 1);
-  const [ano, setAno] = useState(now.getFullYear());
-  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
+  const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
+  const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [valorMin, setValorMin] = useState("");
 
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
@@ -30,14 +31,29 @@ function PedidosPage() {
   });
 
   const { data: pedidos } = useQuery({
-    queryKey: ["pedidos", ano, mes, clienteFiltro],
+    queryKey: ["pedidos", anos, meses, clientesSel],
     queryFn: async () => {
-      const start = `${ano}-${String(mes).padStart(2, "0")}-01`;
-      const end = new Date(ano, mes, 0).toISOString().slice(0, 10);
       let q = supabase.from("pedidos_enviados")
         .select("id,data,valor,status,cliente_id,clientes(nome)")
-        .gte("data", start).lte("data", end).order("data", { ascending: false });
-      if (clienteFiltro) q = q.eq("cliente_id", clienteFiltro);
+        .order("data", { ascending: false });
+
+      const anosNum = anos.map(Number);
+      const mesesNum = meses.map(Number);
+      if (anosNum.length > 0 && mesesNum.length > 0) {
+        const ranges: string[] = [];
+        anosNum.forEach((a) => {
+          mesesNum.forEach((m) => {
+            const start = `${a}-${String(m).padStart(2, "0")}-01`;
+            const end = new Date(a, m, 0).toISOString().slice(0, 10);
+            ranges.push(`and(data.gte.${start},data.lte.${end})`);
+          });
+        });
+        q = q.or(ranges.join(","));
+      } else {
+        // sem período válido: retorna vazio
+        return [];
+      }
+      if (clientesSel.length > 0) q = q.in("cliente_id", clientesSel);
       const { data } = await q;
       return data ?? [];
     },
@@ -75,7 +91,7 @@ function PedidosPage() {
       Valor: Number(p.valor),
       Status: p.status === "aprovado" ? "APROVADO" : "AGUARDANDO",
     }));
-    exportToExcel(rows, `pedidos-${ano}-${String(mes).padStart(2, "0")}.xlsx`, "Pedidos");
+    exportToExcel(rows, `pedidos-${anos.join("_")}-${meses.join("_")}.xlsx`, "Pedidos");
   }
 
 
@@ -85,11 +101,27 @@ function PedidosPage() {
       <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
 
       <div className="flex flex-wrap items-center gap-3 mt-6">
-        <PeriodoSelect mes={mes} ano={ano} onMes={setMes} onAno={setAno} />
-        <select value={clienteFiltro} onChange={(e) => setClienteFiltro(e.target.value)} className="bi-input-sm w-56">
-          <option value="">Todos os clientes</option>
-          {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-        </select>
+        <MultiSelect
+          width={220}
+          placeholder="Meses"
+          options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
+          selected={meses}
+          onChange={setMeses}
+        />
+        <MultiSelect
+          width={160}
+          placeholder="Anos"
+          options={[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => ({ value: String(a), label: String(a) }))}
+          selected={anos}
+          onChange={setAnos}
+        />
+        <MultiSelect
+          width={260}
+          placeholder="Todos os clientes"
+          options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+          selected={clientesSel}
+          onChange={setClientesSel}
+        />
         <input placeholder="Valor mínimo" value={valorMin} onChange={(e) => setValorMin(e.target.value)} className="bi-input-sm w-36" />
         <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
           <Download className="h-4 w-4" /> Exportar
