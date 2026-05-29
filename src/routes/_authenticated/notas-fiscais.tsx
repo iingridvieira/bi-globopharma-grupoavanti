@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateBR, parseBRNumber, MESES_BR } from "@/lib/format";
+import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
 import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
