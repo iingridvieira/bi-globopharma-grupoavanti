@@ -14,36 +14,44 @@ export const Route = createFileRoute("/_authenticated/importar")({ component: Im
 
 type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores";
 
-const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
+type ColorKey = "primary" | "accent" | "success" | "warning" | "destructive" | "blue";
+
+const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[] = [
   {
     key: "faturamento",
     label: "Faturamento Sell In",
     desc: "Planilha com Data Lançamento, NF, Cliente, EAN, Faturado (R$). Cria NFs + itens + sell in automaticamente.",
+    color: "primary",
   },
   {
     key: "metas",
     label: "Previsões de Sell in",
     desc: "Colunas: Cliente, Ano, Mes, Valor, PendenciaInicial",
+    color: "accent",
   },
   {
     key: "pedidos",
     label: "Pedidos Enviados",
     desc: "Colunas: DATA, CLIENTE, VALOR (também aceito colar manual)",
+    color: "success",
   },
   {
     key: "sell_out",
     label: "Sell Out",
     desc: "Aceita formato largo (1ª coluna Cliente, demais como jan/25, fev/25, …) ou longo (Cliente, Ano, Mes, Valor). Apenas períodos presentes são atualizados.",
+    color: "warning",
   },
   {
     key: "pendencias",
     label: "Pendências",
     desc: "Planilha com Cliente, Código PN, Descrição, Pend em aberto (VOL) e Pend em aberto (R$). Substitui a base atual de pendências.",
+    color: "destructive",
   },
   {
     key: "pendencias_anteriores",
     label: "Pendência Anterior",
     desc: "Mesmo formato da Pendência. Substitui a base atual de pendência anterior.",
+    color: "blue",
   },
 ];
 
@@ -404,28 +412,46 @@ function ImportarPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-        {TIPOS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTipo(t.key)}
-            className={
-              "bi-card p-4 text-left transition-colors " +
-              (tipo === t.key ? "border-primary bi-orange-glow" : "hover:border-primary")
-            }
-          >
-            <div className="flex items-start gap-3">
-              <FileSpreadsheet
-                className={
-                  "h-5 w-5 mt-0.5 " + (tipo === t.key ? "text-primary" : "text-muted-foreground")
-                }
-              />
-              <div>
-                <div className="font-display font-bold">{t.label}</div>
-                <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
+        {TIPOS.map((t) => {
+          const colorMap: Record<ColorKey, { text: string; border: string; glow: string }> = {
+            primary: { text: "text-primary", border: "border-primary", glow: "oklch(0.70 0.19 50 / 0.4)" },
+            accent: { text: "text-accent", border: "border-accent", glow: "oklch(0.42 0.08 145 / 0.5)" },
+            success: { text: "text-success", border: "border-success", glow: "oklch(0.55 0.15 150 / 0.5)" },
+            warning: { text: "text-warning", border: "border-warning", glow: "oklch(0.70 0.16 80 / 0.5)" },
+            destructive: { text: "text-destructive", border: "border-destructive", glow: "oklch(0.58 0.22 28 / 0.5)" },
+            blue: { text: "text-[#3b82f6]", border: "border-[#3b82f6]", glow: "rgba(59,130,246,0.5)" },
+          };
+          const c = colorMap[t.color];
+          const selected = tipo === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTipo(t.key)}
+              className={
+                "bi-card p-4 text-left transition-colors " +
+                (selected ? `${c.border}` : `hover:${c.border}`)
+              }
+              style={
+                selected
+                  ? {
+                      borderColor: "var(--color-" + t.color + ")",
+                      boxShadow: `0 0 0 1px ${c.glow}, 0 8px 32px -8px ${c.glow}`,
+                    }
+                  : undefined
+              }
+            >
+              <div className="flex items-start gap-3">
+                <FileSpreadsheet
+                  className={"h-5 w-5 mt-0.5 " + (selected ? c.text : "text-muted-foreground")}
+                />
+                <div>
+                  <div className={"font-display font-bold " + (selected ? c.text : "")}>{t.label}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       <label className="bi-card p-10 border-dashed border-2 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
