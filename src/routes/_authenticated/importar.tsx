@@ -14,36 +14,44 @@ export const Route = createFileRoute("/_authenticated/importar")({ component: Im
 
 type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores";
 
-const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
+type ColorKey = "primary" | "accent" | "success" | "warning" | "destructive" | "blue";
+
+const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[] = [
   {
     key: "faturamento",
     label: "Faturamento Sell In",
     desc: "Planilha com Data Lançamento, NF, Cliente, EAN, Faturado (R$). Cria NFs + itens + sell in automaticamente.",
+    color: "primary",
   },
   {
     key: "metas",
     label: "Previsões de Sell in",
     desc: "Colunas: Cliente, Ano, Mes, Valor, PendenciaInicial",
+    color: "accent",
   },
   {
     key: "pedidos",
     label: "Pedidos Enviados",
     desc: "Colunas: DATA, CLIENTE, VALOR (também aceito colar manual)",
+    color: "success",
   },
   {
     key: "sell_out",
     label: "Sell Out",
     desc: "Aceita formato largo (1ª coluna Cliente, demais como jan/25, fev/25, …) ou longo (Cliente, Ano, Mes, Valor). Apenas períodos presentes são atualizados.",
+    color: "warning",
   },
   {
     key: "pendencias",
     label: "Pendências",
     desc: "Planilha com Cliente, Código PN, Descrição, Pend em aberto (VOL) e Pend em aberto (R$). Substitui a base atual de pendências.",
+    color: "destructive",
   },
   {
     key: "pendencias_anteriores",
     label: "Pendência Anterior",
     desc: "Mesmo formato da Pendência. Substitui a base atual de pendência anterior.",
+    color: "blue",
   },
 ];
 
