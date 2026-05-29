@@ -332,6 +332,45 @@ export type Database = {
           },
         ]
       }
+      pendencias_anteriores_produtos: {
+        Row: {
+          cliente_id: string
+          codigo_produto: string | null
+          created_at: string
+          data_lancamento: string | null
+          ean: string | null
+          id: string
+          preco_unitario: number
+          produto: string
+          quantidade: number
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          codigo_produto?: string | null
+          created_at?: string
+          data_lancamento?: string | null
+          ean?: string | null
+          id?: string
+          preco_unitario?: number
+          produto?: string
+          quantidade?: number
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          codigo_produto?: string | null
+          created_at?: string
+          data_lancamento?: string | null
+          ean?: string | null
+          id?: string
+          preco_unitario?: number
+          produto?: string
+          quantidade?: number
+          valor?: number
+        }
+        Relationships: []
+      }
       pendencias_produtos: {
         Row: {
           cliente_id: string
