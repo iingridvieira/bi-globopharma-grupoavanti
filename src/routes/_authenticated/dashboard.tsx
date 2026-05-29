@@ -104,7 +104,7 @@ function Dashboard() {
           sub="Meta Globo + 20%"
         />
         <MetaCard
-          label="PROJEÇÃO DE SELL IN"
+          label="PREVISÃO DE SELL IN"
           value={t.meta}
           pct={pctProjecao}
           faturado={t.faturado}
