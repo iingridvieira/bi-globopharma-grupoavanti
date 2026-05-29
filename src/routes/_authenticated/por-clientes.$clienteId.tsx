@@ -315,17 +315,17 @@ function ClienteDetalhe() {
             {(arquivos ?? []).map((a) => (
               <tr key={a.id}>
                 <td className="font-medium">
-                  <button onClick={() => openFile(a.storage_path)} className="hover:text-primary text-left">{a.nome_arquivo}</button>
+                  <button onClick={() => openFile("mapas-vendas", a.storage_path)} className="hover:text-primary text-left">{a.nome_arquivo}</button>
                 </td>
                 <td className="text-muted-foreground">{a.tamanho_bytes ? (Number(a.tamanho_bytes) / 1024).toFixed(0) + " KB" : "—"}</td>
                 <td>{formatDateBR(a.created_at)}</td>
                 <td className="text-right">
                   <div className="inline-flex items-center gap-1">
-                    <button onClick={() => openFile(a.storage_path)}
+                    <button onClick={() => openFile("mapas-vendas", a.storage_path)}
                       className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Baixar">
                       <Download className="h-4 w-4" />
                     </button>
-                    <button onClick={() => copyLink(a.storage_path)}
+                    <button onClick={() => copyLink("mapas-vendas", a.storage_path)}
                       className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Copiar link">
                       <LinkIcon className="h-4 w-4" />
                     </button>
@@ -342,6 +342,94 @@ function ClienteDetalhe() {
             {arquivos?.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhum arquivo enviado.</td></tr>}
           </tbody>
         </table>
+      </section>
+
+      {/* Conta Corrente */}
+      <section className="bi-card overflow-hidden mt-6">
+        <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Conta Corrente</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {canUploadMapas
+                ? "Você pode enviar arquivos. Todos os usuários autenticados podem baixar."
+                : "Somente o usuário autorizado pode enviar. Você pode baixar os arquivos disponíveis."}
+            </p>
+          </div>
+          {canUploadMapas && (
+            <div className="flex items-center gap-2">
+              <input ref={ccInput} type="file" multiple className="hidden"
+                onChange={(e) => e.target.files && uploadCC.mutate(e.target.files)} />
+              <button onClick={() => ccInput.current?.click()}
+                className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2">
+                <Upload className="h-4 w-4" /> Enviar arquivo
+              </button>
+            </div>
+          )}
+        </header>
+        <table className="bi-table">
+          <thead>
+            <tr><th>Arquivo</th><th>Tamanho</th><th>Data</th><th className="text-right">Ações</th></tr>
+          </thead>
+          <tbody>
+            {(arquivosCC ?? []).map((a) => (
+              <tr key={a.id}>
+                <td className="font-medium">
+                  <button onClick={() => openFile("conta-corrente", a.storage_path)} className="hover:text-primary text-left">{a.nome_arquivo}</button>
+                </td>
+                <td className="text-muted-foreground">{a.tamanho_bytes ? (Number(a.tamanho_bytes) / 1024).toFixed(0) + " KB" : "—"}</td>
+                <td>{formatDateBR(a.created_at)}</td>
+                <td className="text-right">
+                  <div className="inline-flex items-center gap-1">
+                    <button onClick={() => openFile("conta-corrente", a.storage_path)}
+                      className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Baixar">
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => copyLink("conta-corrente", a.storage_path)}
+                      className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Copiar link">
+                      <LinkIcon className="h-4 w-4" />
+                    </button>
+                    {canUploadMapas && (
+                      <button onClick={() => delCC.mutate({ id: a.id, storage_path: a.storage_path })}
+                        className="h-8 w-8 rounded hover:bg-destructive/20 text-destructive inline-flex items-center justify-center" title="Excluir">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {arquivosCC?.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhum arquivo enviado.</td></tr>}
+          </tbody>
+        </table>
+      </section>
+
+      {/* Observação */}
+      <section className="bi-card overflow-hidden mt-6">
+        <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Observação</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Anotações sobre este cliente.</p>
+          </div>
+          {canUploadMapas && (
+            <button
+              onClick={() => saveObs.mutate(obsText)}
+              disabled={saveObs.isPending}
+              className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" /> {saveObs.isPending ? "Salvando..." : "Salvar"}
+            </button>
+          )}
+        </header>
+        <div className="p-6">
+          <textarea
+            value={obsText}
+            onChange={(e) => setObsText(e.target.value)}
+            readOnly={!canUploadMapas}
+            rows={6}
+            placeholder={canUploadMapas ? "Escreva uma observação sobre este cliente..." : "Sem observações."}
+            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+          />
+        </div>
       </section>
     </div>
   );
