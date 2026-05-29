@@ -16,9 +16,9 @@ function PedidosPage() {
   const { canEdit } = useAuth();
   const qc = useQueryClient();
   const now = new Date();
-  const [mes, setMes] = useState(now.getMonth() + 1);
-  const [ano, setAno] = useState(now.getFullYear());
-  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
+  const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
+  const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [valorMin, setValorMin] = useState("");
 
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
@@ -31,14 +31,29 @@ function PedidosPage() {
   });
 
   const { data: pedidos } = useQuery({
-    queryKey: ["pedidos", ano, mes, clienteFiltro],
+    queryKey: ["pedidos", anos, meses, clientesSel],
     queryFn: async () => {
-      const start = `${ano}-${String(mes).padStart(2, "0")}-01`;
-      const end = new Date(ano, mes, 0).toISOString().slice(0, 10);
       let q = supabase.from("pedidos_enviados")
         .select("id,data,valor,status,cliente_id,clientes(nome)")
-        .gte("data", start).lte("data", end).order("data", { ascending: false });
-      if (clienteFiltro) q = q.eq("cliente_id", clienteFiltro);
+        .order("data", { ascending: false });
+
+      const anosNum = anos.map(Number);
+      const mesesNum = meses.map(Number);
+      if (anosNum.length > 0 && mesesNum.length > 0) {
+        const ranges: string[] = [];
+        anosNum.forEach((a) => {
+          mesesNum.forEach((m) => {
+            const start = `${a}-${String(m).padStart(2, "0")}-01`;
+            const end = new Date(a, m, 0).toISOString().slice(0, 10);
+            ranges.push(`and(data.gte.${start},data.lte.${end})`);
+          });
+        });
+        q = q.or(ranges.join(","));
+      } else {
+        // sem período válido: retorna vazio
+        return [];
+      }
+      if (clientesSel.length > 0) q = q.in("cliente_id", clientesSel);
       const { data } = await q;
       return data ?? [];
     },
