@@ -97,6 +97,18 @@ function PedidosPage() {
       <h1 className="font-display text-3xl font-bold">Pedidos Enviados</h1>
       <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div className="bi-card-accent p-5">
+          <div className="flex items-start justify-between">
+            <div className="text-primary-foreground/80 bi-stat-label">Total de pedidos enviados</div>
+            <Send className="h-5 w-5 text-primary-foreground/80" strokeWidth={2} />
+          </div>
+          <div className="bi-stat-value mt-3 text-3xl">{formatBRL(total)}</div>
+          <div className="text-xs mt-1 text-primary-foreground/75">{filtrados.length} pedido{filtrados.length === 1 ? "" : "s"} no período</div>
+        </div>
+      </div>
+
+
       <div className="flex flex-wrap items-center gap-3 mt-6">
         <MultiSelect
           width={220}
