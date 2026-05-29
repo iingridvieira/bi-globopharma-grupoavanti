@@ -202,7 +202,7 @@ function NFsPage() {
           <MultiSelect
             width={260}
             placeholder="Todos os clientes"
-            options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+            options={(clientes ?? []).filter((c) => !allowedNameSet || allowedNameSet.has(normNome(c.nome))).map((c) => ({ value: c.id, label: c.nome }))}
             selected={clientesSel}
             onChange={setClientesSel}
           />
