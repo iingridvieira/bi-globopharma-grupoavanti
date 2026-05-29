@@ -39,6 +39,21 @@ function PorClientesIndex() {
         </p>
       </header>
 
+      <div className="mb-6">
+        <Link
+          to="/por-clientes/geral"
+          className="bi-card p-6 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/10 to-card hover:border-primary hover:shadow-lg transition-all flex items-center gap-4"
+        >
+          <div className="h-12 w-12 rounded-lg bg-primary/15 flex items-center justify-center">
+            <Globe2 className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <div className="font-display text-xl font-bold">GERAL</div>
+            <div className="text-xs text-muted-foreground">Visão consolidada de todos os clientes (Sell In + Sell Out)</div>
+          </div>
+        </Link>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {(data ?? []).map((c) => (
           <Link
