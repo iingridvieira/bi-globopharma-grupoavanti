@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
 import { Download } from "lucide-react";
+import { MultiSelect } from "@/components/MultiSelect";
 
 
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
