@@ -114,8 +114,8 @@ function Dashboard() {
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <StatCard label="Pedidos enviados" value={formatBRL(t.enviado)} icon={Send} />
-        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} sub={`${pctFat.toFixed(1).replace(".", ",")}% da projeção`} />
-        <StatCard label="GAP (Projeção - Faturado)" value={formatBRL(gap)} icon={TrendingDown} negative={gap > 0} />
+        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} sub={`${pctFat.toFixed(1).replace(".", ",")}% da previsão`} />
+        <StatCard label="GAP (Previsão - Faturado)" value={formatBRL(gap)} icon={TrendingDown} negative={gap > 0} />
       </section>
 
       <section className="bi-card overflow-hidden mb-8">
