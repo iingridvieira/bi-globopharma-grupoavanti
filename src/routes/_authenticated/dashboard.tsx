@@ -124,7 +124,7 @@ function Dashboard() {
         <header className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">Resumo por cliente</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Enviado · Previsão · Faturado · Pendência (importada)</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Pend. Anterior · Enviado · Pend Ant. + Enviado · Previsão · Faturado (% meta) · Pendência</p>
           </div>
         </header>
         <div className="overflow-x-auto">
@@ -132,7 +132,9 @@ function Dashboard() {
             <thead>
               <tr>
                 <th>Cliente</th>
+                <th className="text-right">Pendência Anterior</th>
                 <th className="text-right">Enviado</th>
+                <th className="text-right">Pend Ant. + Enviado</th>
                 <th className="text-right">Previsão</th>
                 <th className="text-right">Faturado</th>
                 <th className="text-right">Pendência</th>
@@ -140,24 +142,39 @@ function Dashboard() {
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={5} className="text-center text-muted-foreground py-10">Carregando…</td></tr>
+                <tr><td colSpan={7} className="text-center text-muted-foreground py-10">Carregando…</td></tr>
               )}
-              {data?.rows.map((r) => (
-                <tr key={r.nome}>
-                  <td className="font-medium">{r.nome}</td>
-                  <td className="text-right tabular-nums">{formatBRL(r.enviado)}</td>
-                  <td className="text-right tabular-nums">{formatBRL(r.meta)}</td>
-                  <td className="text-right tabular-nums">{formatBRL(r.faturado)}</td>
-                  <td className={"text-right tabular-nums font-semibold " + (r.pendencia > 0 ? "text-warning" : "text-muted-foreground")}>
-                    {r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}
-                  </td>
-                </tr>
-              ))}
+              {data?.rows.map((r) => {
+                const pctCliente = r.meta > 0 ? (r.faturado / r.meta) * 100 : 0;
+                const pctColor = pctCliente >= 100 ? "text-emerald-500" : pctCliente >= 70 ? "text-primary" : "text-warning";
+                return (
+                  <tr key={r.nome}>
+                    <td className="font-medium">{r.nome}</td>
+                    <td className="text-right tabular-nums">{r.pendAnt > 0 ? formatBRL(r.pendAnt) : "—"}</td>
+                    <td className="text-right tabular-nums">{formatBRL(r.enviado)}</td>
+                    <td className="text-right tabular-nums font-medium">{formatBRL(r.pendAnt + r.enviado)}</td>
+                    <td className="text-right tabular-nums">{formatBRL(r.meta)}</td>
+                    <td className="text-right tabular-nums">
+                      <div>{formatBRL(r.faturado)}</div>
+                      {r.meta > 0 && (
+                        <div className={"text-[10px] font-semibold mt-0.5 " + pctColor}>
+                          {pctCliente.toFixed(1).replace(".", ",")}%
+                        </div>
+                      )}
+                    </td>
+                    <td className={"text-right tabular-nums font-semibold " + (r.pendencia > 0 ? "text-warning" : "text-muted-foreground")}>
+                      {r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
                 <td>TOTAL GERAL</td>
+                <td className="text-right tabular-nums">{formatBRL(t.pendAnt)}</td>
                 <td className="text-right tabular-nums">{formatBRL(t.enviado)}</td>
+                <td className="text-right tabular-nums">{formatBRL(t.pendAnt + t.enviado)}</td>
                 <td className="text-right tabular-nums">{formatBRL(t.meta)}</td>
                 <td className="text-right tabular-nums">{formatBRL(t.faturado)}</td>
                 <td className="text-right tabular-nums text-primary">{formatBRL(t.pendencia)}</td>
