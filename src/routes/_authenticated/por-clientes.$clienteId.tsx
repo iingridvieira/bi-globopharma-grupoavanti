@@ -410,23 +410,20 @@ function ClienteDetalhe() {
             <h2 className="font-display text-lg font-semibold">Observação</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Anotações sobre este cliente.</p>
           </div>
-          {canUploadMapas && (
-            <button
-              onClick={() => saveObs.mutate(obsText)}
-              disabled={saveObs.isPending}
-              className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 disabled:opacity-60"
-            >
-              <Save className="h-4 w-4" /> {saveObs.isPending ? "Salvando..." : "Salvar"}
-            </button>
-          )}
+          <button
+            onClick={() => saveObs.mutate(obsText)}
+            disabled={saveObs.isPending}
+            className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" /> {saveObs.isPending ? "Salvando..." : "Salvar"}
+          </button>
         </header>
         <div className="p-6">
           <textarea
             value={obsText}
             onChange={(e) => setObsText(e.target.value)}
-            readOnly={!canUploadMapas}
             rows={6}
-            placeholder={canUploadMapas ? "Escreva uma observação sobre este cliente..." : "Sem observações."}
+            placeholder="Escreva uma observação sobre este cliente..."
             className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
           />
         </div>

@@ -3,8 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, parseBRNumber } from "@/lib/format";
-import { Target, Send, FileCheck, TrendingDown, ArrowRight, Trophy, Sparkles, Pencil, Check, X } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -115,7 +114,7 @@ function Dashboard() {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Pedidos enviados" value={formatBRL(t.enviado)} icon={Send} />
+        <StatCard label="Pedidos enviados" value={formatBRL(t.enviado)} icon={Send} sub={t.meta > 0 ? `${((t.enviado / t.meta) * 100).toFixed(1).replace(".", ",")}% da previsão` : undefined} />
         <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} sub={`${pctFat.toFixed(1).replace(".", ",")}% da previsão`} accent />
         <StatCard label="GAP (Previsão - Faturado)" value={formatBRL(gap)} icon={TrendingDown} negative={gap > 0} />
       </section>
@@ -184,10 +183,6 @@ function Dashboard() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <BigButton to="/sell-in" title="Sell in" desc="Tabela dinâmica · mês a mês · acumulado" />
-        <BigButton to="/sell-out" title="Sell Out" desc="Detalhe por cliente · mapas de vendas" />
-      </section>
     </div>
   );
 }
@@ -299,16 +294,3 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
   );
 }
 
-function BigButton({ to, title, desc }: { to: string; title: string; desc: string }) {
-  return (
-    <Link to={to} className="bi-card p-6 group hover:border-primary transition-colors flex items-center justify-between">
-      <div>
-        <div className="font-display text-xl font-bold">{title}</div>
-        <div className="text-sm text-muted-foreground mt-1">{desc}</div>
-      </div>
-      <div className="h-12 w-12 rounded-md bg-primary/15 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-        <ArrowRight className="h-5 w-5" />
-      </div>
-    </Link>
-  );
-}

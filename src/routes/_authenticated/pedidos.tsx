@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, parseBRNumber, MESES_BR } from "@/lib/format";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
-import { Download } from "lucide-react";
+import { Download, Send } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 
 
@@ -19,7 +19,7 @@ function PedidosPage() {
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
-  const [valorMin, setValorMin] = useState("");
+  
 
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [clienteId, setClienteId] = useState("");
@@ -68,10 +68,7 @@ function PedidosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtrados = useMemo(() => {
-    const min = parseBRNumber(valorMin);
-    return (pedidos ?? []).filter((p) => (min ? Number(p.valor) >= min : true));
-  }, [pedidos, valorMin]);
+  const filtrados = pedidos ?? [];
   const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
@@ -100,6 +97,18 @@ function PedidosPage() {
       <h1 className="font-display text-3xl font-bold">Pedidos Enviados</h1>
       <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div className="bi-card-accent p-5">
+          <div className="flex items-start justify-between">
+            <div className="text-primary-foreground/80 bi-stat-label">Total de pedidos enviados</div>
+            <Send className="h-5 w-5 text-primary-foreground/80" strokeWidth={2} />
+          </div>
+          <div className="bi-stat-value mt-3 text-3xl">{formatBRL(total)}</div>
+          <div className="text-xs mt-1 text-primary-foreground/75">{filtrados.length} pedido{filtrados.length === 1 ? "" : "s"} no período</div>
+        </div>
+      </div>
+
+
       <div className="flex flex-wrap items-center gap-3 mt-6">
         <MultiSelect
           width={220}
@@ -122,7 +131,7 @@ function PedidosPage() {
           selected={clientesSel}
           onChange={setClientesSel}
         />
-        <input placeholder="Valor mínimo" value={valorMin} onChange={(e) => setValorMin(e.target.value)} className="bi-input-sm w-36" />
+        
         <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
           <Download className="h-4 w-4" /> Exportar
         </button>
