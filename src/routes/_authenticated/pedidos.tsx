@@ -12,8 +12,11 @@ import { MultiSelect } from "@/components/MultiSelect";
 
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
 
+const normNome = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
 function PedidosPage() {
-  const { canEdit } = useAuth();
+  const { canEdit, restrictedClientes } = useAuth();
+  const allowedNameSet = restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null;
   const qc = useQueryClient();
   const now = new Date();
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
@@ -68,7 +71,12 @@ function PedidosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const filtrados = pedidos ?? [];
+  const clientesVisiveis = allowedNameSet
+    ? (clientes ?? []).filter((c) => allowedNameSet.has(normNome(c.nome)))
+    : (clientes ?? []);
+  const filtrados = allowedNameSet
+    ? (pedidos ?? []).filter((p) => p.clientes?.nome && allowedNameSet.has(normNome(p.clientes.nome)))
+    : (pedidos ?? []);
   const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
@@ -127,7 +135,7 @@ function PedidosPage() {
         <MultiSelect
           width={260}
           placeholder="Todos os clientes"
-          options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+          options={clientesVisiveis.map((c) => ({ value: c.id, label: c.nome }))}
           selected={clientesSel}
           onChange={setClientesSel}
         />

@@ -17,10 +17,14 @@ const CLIENTES_PERMITIDOS = new Set([
 
 function PorClientesIndex() {
   const { restrictedClientes } = useAuth();
-  const restrictedSet = restrictedClientes ? new Set(restrictedClientes.map(norm)) : null;
+  // Remove MEDLOG do "Por Clientes" para usuários restritos.
+  const restrictedFiltrado = restrictedClientes
+    ? restrictedClientes.filter((n) => norm(n) !== "MEDLOG")
+    : null;
+  const restrictedSet = restrictedFiltrado ? new Set(restrictedFiltrado.map(norm)) : null;
 
   const { data } = useQuery({
-    queryKey: ["por-clientes-lista", restrictedClientes?.join("|") ?? "all"],
+    queryKey: ["por-clientes-lista", restrictedFiltrado?.join("|") ?? "all"],
     queryFn: async () => {
       const { data: clientes } = await supabase.from("clientes").select("id,nome").order("nome");
       const permitidos = restrictedSet ?? CLIENTES_PERMITIDOS;

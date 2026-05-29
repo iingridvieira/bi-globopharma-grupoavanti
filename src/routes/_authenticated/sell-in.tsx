@@ -10,20 +10,26 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
 
+const normNomeSI = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+
 function SellInPage() {
   const [ano, setAno] = useState(new Date().getFullYear());
-  const { canEdit } = useAuth();
+  const { canEdit, restrictedClientes } = useAuth();
   const qc = useQueryClient();
+  const allowedSet = restrictedClientes ? new Set(restrictedClientes.map(normNomeSI)) : null;
 
   const { data } = useQuery({
-    queryKey: ["sell-in-consolidado", ano],
+    queryKey: ["sell-in-consolidado", ano, restrictedClientes?.join("|") ?? "all"],
     queryFn: async () => {
       const [clientes, sellIn] = await Promise.all([
         supabase.from("clientes").select("id,nome").order("nome"),
         supabase.from("sell_in").select("cliente_id,mes,valor").eq("ano", ano),
       ]);
       const matrix = new Map<string, { nome: string; meses: number[]; total: number; media: number; repr: number }>();
-      (clientes.data ?? []).forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
+      const clientesFiltrados = allowedSet
+        ? (clientes.data ?? []).filter((c) => allowedSet.has(normNomeSI(c.nome)))
+        : (clientes.data ?? []);
+      clientesFiltrados.forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
       (sellIn.data ?? []).forEach((s) => {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);

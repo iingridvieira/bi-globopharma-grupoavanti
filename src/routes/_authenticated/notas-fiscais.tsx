@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
@@ -21,6 +22,11 @@ function normNome(s: string): string {
 }
 
 function NFsPage() {
+  const { restrictedClientes } = useAuth();
+  const allowedNameSet = useMemo(
+    () => (restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null),
+    [restrictedClientes],
+  );
   const now = new Date();
   const [periodoMode, setPeriodoMode] = useState<PeriodoMode>("mes");
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
@@ -108,6 +114,13 @@ function NFsPage() {
     return map;
   }, [clientes]);
 
+  const allowedIdSet = useMemo(() => {
+    if (!allowedNameSet) return null;
+    const s = new Set<string>();
+    (clientes ?? []).forEach((c) => { if (allowedNameSet.has(normNome(c.nome))) s.add(c.id); });
+    return s;
+  }, [allowedNameSet, clientes]);
+
   const filtradas = useMemo(() => {
     const respSet = responsavel ? clientesPorResponsavel[responsavel] : null;
     return (nfs ?? []).filter((n) => {
@@ -117,9 +130,10 @@ function NFsPage() {
         if (!operacoes.includes(tipo)) return false;
       }
       if (respSet && !respSet.has(n.cliente_id)) return false;
+      if (allowedIdSet && !allowedIdSet.has(n.cliente_id)) return false;
       return true;
     });
-  }, [nfs, operacoes, responsavel, clientesPorResponsavel]);
+  }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
@@ -188,7 +202,7 @@ function NFsPage() {
           <MultiSelect
             width={260}
             placeholder="Todos os clientes"
-            options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+            options={(clientes ?? []).filter((c) => !allowedNameSet || allowedNameSet.has(normNome(c.nome))).map((c) => ({ value: c.id, label: c.nome }))}
             selected={clientesSel}
             onChange={setClientesSel}
           />

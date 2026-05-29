@@ -16,11 +16,13 @@ const ANO = now.getFullYear();
 const MES = now.getMonth() + 1;
 
 function Dashboard() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, restrictedClientes } = useAuth();
   const queryClient = useQueryClient();
+  const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+  const allowedSet = restrictedClientes ? new Set(restrictedClientes.map(norm)) : null;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", ANO, MES],
+    queryKey: ["dashboard", ANO, MES, restrictedClientes?.join("|") ?? "all"],
     queryFn: async () => {
       const start = `${ANO}-${String(MES).padStart(2, "0")}-01`;
       const endDate = new Date(ANO, MES, 0).toISOString().slice(0, 10);
@@ -35,8 +37,12 @@ function Dashboard() {
         supabase.from("metas_globo").select("valor").eq("ano", ANO).eq("mes", MES).maybeSingle(),
       ]);
 
+      const clientesFiltrados = allowedSet
+        ? (clientes.data ?? []).filter((c) => allowedSet.has(norm(c.nome)))
+        : (clientes.data ?? []);
+
       const map = new Map<string, { nome: string; pendencia: number; pendAnt: number; enviado: number; meta: number; faturado: number }>();
-      (clientes.data ?? []).forEach((c) => map.set(c.id, { nome: c.nome, pendencia: 0, pendAnt: 0, enviado: 0, meta: 0, faturado: 0 }));
+      clientesFiltrados.forEach((c) => map.set(c.id, { nome: c.nome, pendencia: 0, pendAnt: 0, enviado: 0, meta: 0, faturado: 0 }));
       (metas.data ?? []).forEach((m) => { const r = map.get(m.cliente_id); if (r) r.meta = Number(m.valor); });
       (pedidos.data ?? []).forEach((p) => { const r = map.get(p.cliente_id); if (r) r.enviado += Number(p.valor); });
       (nfs.data ?? []).forEach((n) => { const r = map.get(n.cliente_id); if (r) r.faturado += Number(n.valor); });
