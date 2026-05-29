@@ -12,7 +12,7 @@ import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
 
 
-type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias";
+type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores";
 
 const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
   {
@@ -39,6 +39,11 @@ const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
     key: "pendencias",
     label: "Pendências",
     desc: "Planilha com Cliente, Código PN, Descrição, Pend em aberto (VOL) e Pend em aberto (R$). Substitui a base atual de pendências.",
+  },
+  {
+    key: "pendencias_anteriores",
+    label: "Pendência Anterior",
+    desc: "Mesmo formato da Pendência. Substitui a base atual de pendência anterior.",
   },
 ];
 
@@ -266,7 +271,9 @@ function ImportarPage() {
           .upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
         if (error) throw error;
         resumoTxt = `${rows.length} registros sell out atualizados (períodos não presentes no arquivo foram preservados).`;
-      } else if (tipo === "pendencias") {
+      } else if (tipo === "pendencias" || tipo === "pendencias_anteriores") {
+        const tabela = tipo === "pendencias" ? "pendencias_produtos" : "pendencias_anteriores_produtos";
+        const label = tipo === "pendencias" ? "produtos pendentes" : "produtos de pendência anterior";
         // Pendências por produto: Cliente, Data Lançamento, EAN, Código PN, Descrição, Preço unit., VOL, R$
         type PendProd = {
           cliente_id: string;
@@ -303,11 +310,11 @@ function ImportarPage() {
         }
         const rows = Array.from(agg.values());
         if (rows.length === 0) throw new Error("Nenhuma pendência válida encontrada.");
-        const { error: delErr } = await supabase.from("pendencias_produtos").delete().not("id", "is", null);
+        const { error: delErr } = await supabase.from(tabela).delete().not("id", "is", null);
         if (delErr) throw delErr;
-        const { error } = await supabase.from("pendencias_produtos").insert(rows as never);
+        const { error } = await supabase.from(tabela).insert(rows as never);
         if (error) throw error;
-        resumoTxt = `${rows.length} produtos pendentes importados (base substituída).`;
+        resumoTxt = `${rows.length} ${label} importados (base substituída).`;
       }
       setResumo(resumoTxt);
       toast.success(resumoTxt);
