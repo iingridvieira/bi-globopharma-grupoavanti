@@ -112,7 +112,7 @@ function NFsPage() {
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
       <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
-      <p className="text-muted-foreground mt-1">Pesquise por NF ou produto. Filtre por período, cliente e faixa de valor. Clique em uma linha para ver os itens.</p>
+      <p className="text-muted-foreground mt-1">Pesquise por NF ou produto. Filtre por período, cliente e operação. Clique em uma linha para ver os itens.</p>
 
       {/* Barra de busca */}
       <div className="bi-card mt-6 p-4 space-y-3">
@@ -179,20 +179,7 @@ function NFsPage() {
             onChange={setOperacoes}
           />
 
-          <input
-            value={valorMin}
-            onChange={(e) => setValorMin(e.target.value)}
-            placeholder="Valor mín. (R$)"
-            className="bi-input-sm w-36"
-          />
-          <input
-            value={valorMax}
-            onChange={(e) => setValorMax(e.target.value)}
-            placeholder="Valor máx. (R$)"
-            className="bi-input-sm w-36"
-          />
-
-          {(busca || clientesSel.length > 0 || valorMin || valorMax || operacoes.length > 0) && (
+          {(busca || clientesSel.length > 0 || operacoes.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
