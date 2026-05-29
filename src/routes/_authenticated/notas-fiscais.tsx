@@ -95,16 +95,31 @@ function NFsPage() {
     },
   });
 
+  const clientesPorResponsavel = useMemo(() => {
+    const map: Record<string, Set<string>> = { Alexandre: new Set(), Eduardo: new Set(), Paulo: new Set() };
+    const alexNorm = RESPONSAVEIS.Alexandre.map(normNome);
+    const eduNorm = RESPONSAVEIS.Eduardo.map(normNome);
+    (clientes ?? []).forEach((c) => {
+      const n = normNome(c.nome);
+      if (alexNorm.includes(n)) map.Alexandre.add(c.id);
+      else if (eduNorm.includes(n)) map.Eduardo.add(c.id);
+      else map.Paulo.add(c.id);
+    });
+    return map;
+  }, [clientes]);
+
   const filtradas = useMemo(() => {
+    const respSet = responsavel ? clientesPorResponsavel[responsavel] : null;
     return (nfs ?? []).filter((n) => {
       const v = Number(n.valor);
       if (operacoes.length > 0) {
         const tipo = v > 0 ? "venda" : "bonificacao";
         if (!operacoes.includes(tipo)) return false;
       }
+      if (respSet && !respSet.has(n.cliente_id)) return false;
       return true;
     });
-  }, [nfs, operacoes]);
+  }, [nfs, operacoes, responsavel, clientesPorResponsavel]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
@@ -115,7 +130,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setOperacoes([]);
+    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel("");
   }
 
 
