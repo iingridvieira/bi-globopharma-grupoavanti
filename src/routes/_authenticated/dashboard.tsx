@@ -131,7 +131,7 @@ function Dashboard() {
               <tr>
                 <th>Cliente</th>
                 <th className="text-right">Enviado</th>
-                <th className="text-right">Projeção</th>
+                <th className="text-right">Previsão</th>
                 <th className="text-right">Faturado</th>
                 <th className="text-right">Pendência</th>
               </tr>
