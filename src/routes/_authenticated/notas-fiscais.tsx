@@ -18,8 +18,6 @@ function NFsPage() {
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
-  const [valorMin, setValorMin] = useState("");
-  const [valorMax, setValorMax] = useState("");
   const [operacoes, setOperacoes] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
