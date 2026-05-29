@@ -147,6 +147,33 @@ export type Database = {
           },
         ]
       }
+      metas_globo: {
+        Row: {
+          ano: number
+          id: string
+          mes: number
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          ano: number
+          id?: string
+          mes: number
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          id?: string
+          mes?: number
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       metas_mensais: {
         Row: {
           ano: number
