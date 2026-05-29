@@ -14,13 +14,13 @@ type PeriodoMode = "mes" | "ano" | "tudo";
 function NFsPage() {
   const now = new Date();
   const [periodoMode, setPeriodoMode] = useState<PeriodoMode>("mes");
-  const [mes, setMes] = useState(now.getMonth() + 1);
-  const [ano, setAno] = useState(now.getFullYear());
-  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
+  const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
+  const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
   const [valorMin, setValorMin] = useState("");
   const [valorMax, setValorMax] = useState("");
-  const [operacao, setOperacao] = useState<"todas" | "venda" | "bonificacao">("todas");
+  const [operacoes, setOperacoes] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
