@@ -135,7 +135,7 @@ function PedidosPage() {
         <MultiSelect
           width={260}
           placeholder="Todos os clientes"
-          options={(clientes ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+          options={clientesVisiveis.map((c) => ({ value: c.id, label: c.nome }))}
           selected={clientesSel}
           onChange={setClientesSel}
         />
