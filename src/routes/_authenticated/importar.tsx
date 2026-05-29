@@ -12,7 +12,7 @@ import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
 
 
-type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias";
+type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores";
 
 const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
   {
@@ -39,6 +39,11 @@ const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
     key: "pendencias",
     label: "Pendências",
     desc: "Planilha com Cliente, Código PN, Descrição, Pend em aberto (VOL) e Pend em aberto (R$). Substitui a base atual de pendências.",
+  },
+  {
+    key: "pendencias_anteriores",
+    label: "Pendência Anterior",
+    desc: "Mesmo formato da Pendência. Substitui a base atual de pendência anterior.",
   },
 ];
 
