@@ -86,19 +86,15 @@ function NFsPage() {
   });
 
   const filtradas = useMemo(() => {
-    const min = parseBRNumber(valorMin);
-    const max = parseBRNumber(valorMax);
     return (nfs ?? []).filter((n) => {
       const v = Number(n.valor);
-      if (min && v < min) return false;
-      if (max && v > max) return false;
       if (operacoes.length > 0) {
         const tipo = v > 0 ? "venda" : "bonificacao";
         if (!operacoes.includes(tipo)) return false;
       }
       return true;
     });
-  }, [nfs, valorMin, valorMax, operacoes]);
+  }, [nfs, operacoes]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
