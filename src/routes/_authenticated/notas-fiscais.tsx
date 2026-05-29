@@ -25,7 +25,7 @@ function NFsPage() {
 
   const buscaTrim = busca.trim();
   const anoAtual = now.getFullYear();
-  const anos = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
+  const anosOpcoes = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
 
   const { data: clientes } = useQuery({
     queryKey: ["clientes"],
@@ -48,22 +48,31 @@ function NFsPage() {
   });
 
   const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs", periodoMode, ano, mes, clienteFiltro, buscaTrim, nfIdsPorProduto],
+    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto],
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
         .select("id,data,numero,valor,desconto,cliente_id,clientes(nome)")
         .order("data", { ascending: false })
         .limit(5000);
 
-      if (periodoMode === "mes") {
-        const start = `${ano}-${String(mes).padStart(2, "0")}-01`;
-        const end = new Date(ano, mes, 0).toISOString().slice(0, 10);
-        q = q.gte("data", start).lte("data", end);
-      } else if (periodoMode === "ano") {
-        q = q.gte("data", `${ano}-01-01`).lte("data", `${ano}-12-31`);
+      // Período: gera lista de intervalos (ano/mês) e aplica via or
+      if (periodoMode === "mes" || periodoMode === "ano") {
+        const anosNum = anos.map(Number);
+        const mesesNum = periodoMode === "mes" ? meses.map(Number) : Array.from({ length: 12 }, (_, i) => i + 1);
+        if (anosNum.length > 0 && mesesNum.length > 0) {
+          const ranges: string[] = [];
+          anosNum.forEach((a) => {
+            mesesNum.forEach((m) => {
+              const start = `${a}-${String(m).padStart(2, "0")}-01`;
+              const end = new Date(a, m, 0).toISOString().slice(0, 10);
+              ranges.push(`and(data.gte.${start},data.lte.${end})`);
+            });
+          });
+          q = q.or(ranges.join(","));
+        }
       }
 
-      if (clienteFiltro) q = q.eq("cliente_id", clienteFiltro);
+      if (clientesSel.length > 0) q = q.in("cliente_id", clientesSel);
 
       if (buscaTrim.length >= 2) {
         const orParts: string[] = [`numero.ilike.%${buscaTrim}%`];
@@ -85,11 +94,13 @@ function NFsPage() {
       const v = Number(n.valor);
       if (min && v < min) return false;
       if (max && v > max) return false;
-      if (operacao === "venda" && v <= 0) return false;
-      if (operacao === "bonificacao" && v > 0) return false;
+      if (operacoes.length > 0) {
+        const tipo = v > 0 ? "venda" : "bonificacao";
+        if (!operacoes.includes(tipo)) return false;
+      }
       return true;
     });
-  }, [nfs, valorMin, valorMax, operacao]);
+  }, [nfs, valorMin, valorMax, operacoes]);
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
@@ -100,8 +111,9 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClienteFiltro(""); setValorMin(""); setValorMax(""); setOperacao("todas");
+    setBusca(""); setClientesSel([]); setValorMin(""); setValorMax(""); setOperacoes([]);
   }
+
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
