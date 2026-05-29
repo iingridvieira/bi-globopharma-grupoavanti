@@ -48,7 +48,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           <div className="px-2 py-2 bi-stat-label text-sidebar-foreground/60">Operação</div>
-          {NAV.filter((i) => !i.editorOnly || canEdit).map((item) => {
+          {NAV
+            .filter((i) => !i.editorOnly || canEdit)
+            .filter((i) => !isRestricted || RESTRICTED_ALLOWED.includes(i.to))
+            .map((item) => {
             const active = item.exact ? path === item.to : path === item.to || path.startsWith(item.to + "/");
             const Icon = item.icon;
             return (
