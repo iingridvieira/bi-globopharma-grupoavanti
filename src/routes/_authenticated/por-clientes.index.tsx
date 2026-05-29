@@ -1,28 +1,31 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 import { Users, Globe2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/por-clientes/")({ component: PorClientesIndex });
 
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
 const CLIENTES_PERMITIDOS = new Set([
   "ANDORINHA", "CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "DISMAP",
   "JK MEDICAMENTOS", "MAXIFARMA", "MEDSOL", "MILFARMA",
   "NAVARRO INTER", "NAVARRO SP", "NÚCLEO FARMA",
-].map((s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()));
-
-function isClientePermitido(nome: string): boolean {
-  return CLIENTES_PERMITIDOS.has(nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase());
-}
+].map(norm));
 
 function PorClientesIndex() {
+  const { restrictedClientes } = useAuth();
+  const restrictedSet = restrictedClientes ? new Set(restrictedClientes.map(norm)) : null;
+
   const { data } = useQuery({
-    queryKey: ["por-clientes-lista"],
+    queryKey: ["por-clientes-lista", restrictedClientes?.join("|") ?? "all"],
     queryFn: async () => {
       const { data: clientes } = await supabase.from("clientes").select("id,nome").order("nome");
+      const permitidos = restrictedSet ?? CLIENTES_PERMITIDOS;
       return (clientes ?? [])
-        .filter((c) => isClientePermitido(c.nome))
+        .filter((c) => permitidos.has(norm(c.nome)))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     },
   });
@@ -39,20 +42,22 @@ function PorClientesIndex() {
         </p>
       </header>
 
-      <div className="mb-6">
-        <Link
-          to="/por-clientes/geral"
-          className="bi-card p-6 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/10 to-card hover:border-primary hover:shadow-lg transition-all flex items-center gap-4"
-        >
-          <div className="h-12 w-12 rounded-lg bg-primary/15 flex items-center justify-center">
-            <Globe2 className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <div className="font-display text-xl font-bold">GERAL</div>
-            <div className="text-xs text-muted-foreground">Visão consolidada de todos os clientes (Sell In + Sell Out)</div>
-          </div>
-        </Link>
-      </div>
+      {!restrictedSet && (
+        <div className="mb-6">
+          <Link
+            to="/por-clientes/geral"
+            className="bi-card p-6 rounded-xl border border-primary/40 bg-gradient-to-br from-primary/10 to-card hover:border-primary hover:shadow-lg transition-all flex items-center gap-4"
+          >
+            <div className="h-12 w-12 rounded-lg bg-primary/15 flex items-center justify-center">
+              <Globe2 className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <div className="font-display text-xl font-bold">GERAL</div>
+              <div className="text-xs text-muted-foreground">Visão consolidada de todos os clientes (Sell In + Sell Out)</div>
+            </div>
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {(data ?? []).map((c) => (

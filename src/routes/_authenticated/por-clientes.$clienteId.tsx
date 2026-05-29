@@ -1,10 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR_SHORT } from "@/lib/format";
-import { ArrowLeft, Upload, Download, Trash2, Link as LinkIcon, FileDown } from "lucide-react";
+import { ArrowLeft, Upload, Download, Trash2, Link as LinkIcon, FileDown, Save } from "lucide-react";
 import { exportToExcel } from "@/lib/excel";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -16,18 +16,28 @@ export const Route = createFileRoute("/_authenticated/por-clientes/$clienteId")(
 
 function ClienteDetalhe() {
   const { clienteId } = Route.useParams();
-  const { user } = useAuth();
+  const { user, restrictedClientes } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [anoSel, setAnoSel] = useState<number | typeof ALL>(currentYear);
   const fileInput = useRef<HTMLInputElement>(null);
+  const ccInput = useRef<HTMLInputElement>(null);
 
   const canUploadMapas = (user?.email ?? "").toLowerCase() === MAPAS_UPLOAD_EMAIL;
 
   const { data: cliente } = useQuery({
     queryKey: ["cliente", clienteId],
-    queryFn: async () => (await supabase.from("clientes").select("nome").eq("id", clienteId).single()).data,
+    queryFn: async () => (await supabase.from("clientes").select("nome,observacao").eq("id", clienteId).single()).data,
   });
+
+  useEffect(() => {
+    if (!cliente?.nome || !restrictedClientes) return;
+    const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    const allowed = new Set(restrictedClientes.map(norm));
+    if (!allowed.has(norm(cliente.nome))) void navigate({ to: "/por-clientes" });
+  }, [cliente?.nome, restrictedClientes, navigate]);
+
 
   // Carrega TODOS os anos (necessário p/ visão compilada e p/ montar lista de anos)
   const { data: sellInAll } = useQuery({
@@ -101,19 +111,72 @@ function ClienteDetalhe() {
     onSuccess: () => { toast.success("Removido"); void qc.invalidateQueries({ queryKey: ["mapas", clienteId] }); },
   });
 
-  async function shareUrl(path: string): Promise<string> {
-    const { data, error } = await supabase.storage.from("mapas-vendas").createSignedUrl(path, 3600);
+  // Conta Corrente
+  const { data: arquivosCC } = useQuery({
+    queryKey: ["conta-corrente", clienteId],
+    queryFn: async () =>
+      (await supabase.from("conta_corrente_arquivos").select("*").eq("cliente_id", clienteId).order("created_at", { ascending: false })).data ?? [],
+  });
+
+  const uploadCC = useMutation({
+    mutationFn: async (files: FileList) => {
+      for (const f of Array.from(files)) {
+        const path = `${clienteId}/${Date.now()}-${f.name}`;
+        const { error: upErr } = await supabase.storage.from("conta-corrente").upload(path, f);
+        if (upErr) throw upErr;
+        const { data: userData } = await supabase.auth.getUser();
+        const { error } = await supabase.from("conta_corrente_arquivos").insert({
+          cliente_id: clienteId, nome_arquivo: f.name, storage_path: path,
+          mime_type: f.type, tamanho_bytes: f.size, uploaded_by: userData.user?.id,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { toast.success("Arquivos enviados"); void qc.invalidateQueries({ queryKey: ["conta-corrente", clienteId] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const delCC = useMutation({
+    mutationFn: async (a: { id: string; storage_path: string }) => {
+      await supabase.storage.from("conta-corrente").remove([a.storage_path]);
+      const { error } = await supabase.from("conta_corrente_arquivos").delete().eq("id", a.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Removido"); void qc.invalidateQueries({ queryKey: ["conta-corrente", clienteId] }); },
+  });
+
+  // Observação
+  const [obsText, setObsText] = useState<string>("");
+  const [obsLoaded, setObsLoaded] = useState(false);
+  useEffect(() => {
+    if (!obsLoaded && cliente) {
+      setObsText(cliente.observacao ?? "");
+      setObsLoaded(true);
+    }
+  }, [cliente, obsLoaded]);
+  const saveObs = useMutation({
+    mutationFn: async (texto: string) => {
+      const { error } = await supabase.from("clientes").update({ observacao: texto }).eq("id", clienteId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Observação salva"); void qc.invalidateQueries({ queryKey: ["cliente", clienteId] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  async function shareUrl(bucket: string, path: string): Promise<string> {
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
     if (error || !data) throw error ?? new Error("Falha ao gerar link");
     return data.signedUrl;
   }
-  async function openFile(path: string) {
-    try { window.open(await shareUrl(path), "_blank", "noreferrer"); }
+  async function openFile(bucket: string, path: string) {
+    try { window.open(await shareUrl(bucket, path), "_blank", "noreferrer"); }
     catch (e) { toast.error((e as Error).message); }
   }
-  async function copyLink(path: string) {
-    try { await navigator.clipboard.writeText(await shareUrl(path)); toast.success("Link copiado (válido por 1h)"); }
+  async function copyLink(bucket: string, path: string) {
+    try { await navigator.clipboard.writeText(await shareUrl(bucket, path)); toast.success("Link copiado (válido por 1h)"); }
     catch (e) { toast.error((e as Error).message); }
   }
+
 
   return (
     <div className="p-8 max-w-[1500px] mx-auto">
@@ -252,17 +315,17 @@ function ClienteDetalhe() {
             {(arquivos ?? []).map((a) => (
               <tr key={a.id}>
                 <td className="font-medium">
-                  <button onClick={() => openFile(a.storage_path)} className="hover:text-primary text-left">{a.nome_arquivo}</button>
+                  <button onClick={() => openFile("mapas-vendas", a.storage_path)} className="hover:text-primary text-left">{a.nome_arquivo}</button>
                 </td>
                 <td className="text-muted-foreground">{a.tamanho_bytes ? (Number(a.tamanho_bytes) / 1024).toFixed(0) + " KB" : "—"}</td>
                 <td>{formatDateBR(a.created_at)}</td>
                 <td className="text-right">
                   <div className="inline-flex items-center gap-1">
-                    <button onClick={() => openFile(a.storage_path)}
+                    <button onClick={() => openFile("mapas-vendas", a.storage_path)}
                       className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Baixar">
                       <Download className="h-4 w-4" />
                     </button>
-                    <button onClick={() => copyLink(a.storage_path)}
+                    <button onClick={() => copyLink("mapas-vendas", a.storage_path)}
                       className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Copiar link">
                       <LinkIcon className="h-4 w-4" />
                     </button>
@@ -279,6 +342,94 @@ function ClienteDetalhe() {
             {arquivos?.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhum arquivo enviado.</td></tr>}
           </tbody>
         </table>
+      </section>
+
+      {/* Conta Corrente */}
+      <section className="bi-card overflow-hidden mt-6">
+        <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Conta Corrente</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {canUploadMapas
+                ? "Você pode enviar arquivos. Todos os usuários autenticados podem baixar."
+                : "Somente o usuário autorizado pode enviar. Você pode baixar os arquivos disponíveis."}
+            </p>
+          </div>
+          {canUploadMapas && (
+            <div className="flex items-center gap-2">
+              <input ref={ccInput} type="file" multiple className="hidden"
+                onChange={(e) => e.target.files && uploadCC.mutate(e.target.files)} />
+              <button onClick={() => ccInput.current?.click()}
+                className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2">
+                <Upload className="h-4 w-4" /> Enviar arquivo
+              </button>
+            </div>
+          )}
+        </header>
+        <table className="bi-table">
+          <thead>
+            <tr><th>Arquivo</th><th>Tamanho</th><th>Data</th><th className="text-right">Ações</th></tr>
+          </thead>
+          <tbody>
+            {(arquivosCC ?? []).map((a) => (
+              <tr key={a.id}>
+                <td className="font-medium">
+                  <button onClick={() => openFile("conta-corrente", a.storage_path)} className="hover:text-primary text-left">{a.nome_arquivo}</button>
+                </td>
+                <td className="text-muted-foreground">{a.tamanho_bytes ? (Number(a.tamanho_bytes) / 1024).toFixed(0) + " KB" : "—"}</td>
+                <td>{formatDateBR(a.created_at)}</td>
+                <td className="text-right">
+                  <div className="inline-flex items-center gap-1">
+                    <button onClick={() => openFile("conta-corrente", a.storage_path)}
+                      className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Baixar">
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => copyLink("conta-corrente", a.storage_path)}
+                      className="h-8 w-8 rounded hover:bg-secondary inline-flex items-center justify-center" title="Copiar link">
+                      <LinkIcon className="h-4 w-4" />
+                    </button>
+                    {canUploadMapas && (
+                      <button onClick={() => delCC.mutate({ id: a.id, storage_path: a.storage_path })}
+                        className="h-8 w-8 rounded hover:bg-destructive/20 text-destructive inline-flex items-center justify-center" title="Excluir">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {arquivosCC?.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhum arquivo enviado.</td></tr>}
+          </tbody>
+        </table>
+      </section>
+
+      {/* Observação */}
+      <section className="bi-card overflow-hidden mt-6">
+        <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Observação</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Anotações sobre este cliente.</p>
+          </div>
+          {canUploadMapas && (
+            <button
+              onClick={() => saveObs.mutate(obsText)}
+              disabled={saveObs.isPending}
+              className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" /> {saveObs.isPending ? "Salvando..." : "Salvar"}
+            </button>
+          )}
+        </header>
+        <div className="p-6">
+          <textarea
+            value={obsText}
+            onChange={(e) => setObsText(e.target.value)}
+            readOnly={!canUploadMapas}
+            rows={6}
+            placeholder={canUploadMapas ? "Escreva uma observação sobre este cliente..." : "Sem observações."}
+            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+          />
+        </div>
       </section>
     </div>
   );
