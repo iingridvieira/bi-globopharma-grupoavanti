@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+
 import { Users, Globe2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/por-clientes/")({ component: PorClientesIndex });
