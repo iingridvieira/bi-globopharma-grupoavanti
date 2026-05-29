@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, MESES_BR_SHORT } from "@/lib/format";
 import { ArrowLeft, Globe2 } from "lucide-react";
 import { useMemo } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/por-clientes/geral")({ component: GeralPage });
 
