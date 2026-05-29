@@ -22,7 +22,7 @@ const TIPOS: { key: TipoImport; label: string; desc: string }[] = [
   },
   {
     key: "metas",
-    label: "Metas Mensais",
+    label: "Projeções de Sell in",
     desc: "Colunas: Cliente, Ano, Mes, Valor, PendenciaInicial",
   },
   {
@@ -368,7 +368,7 @@ function ImportarPage() {
         if (error) throw error;
         resumoTxt = `${rows.length} metas importadas para ${String(metaMes).padStart(2, "0")}/${metaAno}${ignoradas.length ? ` · ${ignoradas.length} linhas ignoradas` : ""}.`;
       } else {
-        throw new Error("Colar manualmente disponível apenas para Pedidos e Metas.");
+        throw new Error("Colar manualmente disponível apenas para Pedidos e Projeções.");
       }
       setResumo(resumoTxt);
       toast.success(resumoTxt);
