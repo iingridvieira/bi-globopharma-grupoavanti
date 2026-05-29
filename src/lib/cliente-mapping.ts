@@ -29,6 +29,7 @@ const RAW_MAP: Array<[string, string]> = [
   ["W.M.C COMERCIO E DISTRIBUICAO LTDA", "WMC"],
   ["MEDIC-PHARM COMERCIAL LTDA", "MEDIC PHARM"],
   ["FUNARE MACHADO PRODUTOS E SERVICOS HOSPITALARES LTDA", "FUNARE"],
+  ["MEDLOG DISTRIBUIDORA DE MEDICAMENTOS LTDA", "MEDLOG"],
 ];
 
 export function normalizeKey(s: string): string {
