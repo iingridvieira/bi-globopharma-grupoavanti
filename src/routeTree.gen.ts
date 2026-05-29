@@ -19,6 +19,7 @@ import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSellOutIndexRouteImport } from './routes/_authenticated/sell-out.index'
 import { Route as AuthenticatedPorClientesIndexRouteImport } from './routes/_authenticated/por-clientes.index'
 import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_authenticated/sell-out.$clienteId'
+import { Route as AuthenticatedPorClientesGeralRouteImport } from './routes/_authenticated/por-clientes.geral'
 import { Route as AuthenticatedPorClientesClienteIdRouteImport } from './routes/_authenticated/por-clientes.$clienteId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -74,6 +75,12 @@ const AuthenticatedSellOutClienteIdRoute =
     path: '/sell-out/$clienteId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedPorClientesGeralRoute =
+  AuthenticatedPorClientesGeralRouteImport.update({
+    id: '/por-clientes/geral',
+    path: '/por-clientes/geral',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedPorClientesClienteIdRoute =
   AuthenticatedPorClientesClienteIdRouteImport.update({
     id: '/por-clientes/$clienteId',
@@ -89,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
+  '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
   '/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out/': typeof AuthenticatedSellOutIndexRoute
@@ -101,6 +109,7 @@ export interface FileRoutesByTo {
   '/sell-in': typeof AuthenticatedSellInRoute
   '/': typeof AuthenticatedIndexRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
+  '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
   '/por-clientes': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out': typeof AuthenticatedSellOutIndexRoute
@@ -115,6 +124,7 @@ export interface FileRoutesById {
   '/_authenticated/sell-in': typeof AuthenticatedSellInRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
+  '/_authenticated/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/_authenticated/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
   '/_authenticated/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/_authenticated/sell-out/': typeof AuthenticatedSellOutIndexRoute
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/pedidos'
     | '/sell-in'
     | '/por-clientes/$clienteId'
+    | '/por-clientes/geral'
     | '/sell-out/$clienteId'
     | '/por-clientes/'
     | '/sell-out/'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/sell-in'
     | '/'
     | '/por-clientes/$clienteId'
+    | '/por-clientes/geral'
     | '/sell-out/$clienteId'
     | '/por-clientes'
     | '/sell-out'
@@ -154,6 +166,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sell-in'
     | '/_authenticated/'
     | '/_authenticated/por-clientes/$clienteId'
+    | '/_authenticated/por-clientes/geral'
     | '/_authenticated/sell-out/$clienteId'
     | '/_authenticated/por-clientes/'
     | '/_authenticated/sell-out/'
@@ -236,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellOutClienteIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/por-clientes/geral': {
+      id: '/_authenticated/por-clientes/geral'
+      path: '/por-clientes/geral'
+      fullPath: '/por-clientes/geral'
+      preLoaderRoute: typeof AuthenticatedPorClientesGeralRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/por-clientes/$clienteId': {
       id: '/_authenticated/por-clientes/$clienteId'
       path: '/por-clientes/$clienteId'
@@ -253,6 +273,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSellInRoute: typeof AuthenticatedSellInRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedPorClientesClienteIdRoute: typeof AuthenticatedPorClientesClienteIdRoute
+  AuthenticatedPorClientesGeralRoute: typeof AuthenticatedPorClientesGeralRoute
   AuthenticatedSellOutClienteIdRoute: typeof AuthenticatedSellOutClienteIdRoute
   AuthenticatedPorClientesIndexRoute: typeof AuthenticatedPorClientesIndexRoute
   AuthenticatedSellOutIndexRoute: typeof AuthenticatedSellOutIndexRoute
@@ -266,6 +287,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedPorClientesClienteIdRoute:
     AuthenticatedPorClientesClienteIdRoute,
+  AuthenticatedPorClientesGeralRoute: AuthenticatedPorClientesGeralRoute,
   AuthenticatedSellOutClienteIdRoute: AuthenticatedSellOutClienteIdRoute,
   AuthenticatedPorClientesIndexRoute: AuthenticatedPorClientesIndexRoute,
   AuthenticatedSellOutIndexRoute: AuthenticatedSellOutIndexRoute,
@@ -282,3 +304,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
