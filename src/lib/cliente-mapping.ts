@@ -69,6 +69,16 @@ const KEYWORDS: Array<[string, string]> = [
   ["navarrointer", "NAVARRO INTER"],
   ["navarrosp", "NAVARRO SP"],
   ["navarro", "NAVARRO SP"],
+  ["cirurgicaln", "CIRURGICA LN"],
+  ["startmed", "STARTMED"],
+  ["treemed", "TREEMED"],
+  ["orientefarmaceutica", "ORIENTE"],
+  ["oriente", "ORIENTE"],
+  ["wmccomercio", "WMC"],
+  ["wmc", "WMC"],
+  ["medicpharm", "MEDIC PHARM"],
+  ["funaremachado", "FUNARE"],
+  ["funare", "FUNARE"],
 ];
 
 /** Resolve uma razão social bruta da planilha para o nome padrão. Retorna null se não mapeado. */
