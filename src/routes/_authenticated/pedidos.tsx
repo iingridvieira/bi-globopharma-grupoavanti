@@ -91,7 +91,7 @@ function PedidosPage() {
       Valor: Number(p.valor),
       Status: p.status === "aprovado" ? "APROVADO" : "AGUARDANDO",
     }));
-    exportToExcel(rows, `pedidos-${ano}-${String(mes).padStart(2, "0")}.xlsx`, "Pedidos");
+    exportToExcel(rows, `pedidos-${anos.join("_")}-${meses.join("_")}.xlsx`, "Pedidos");
   }
 
 
