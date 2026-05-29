@@ -22,6 +22,11 @@ function normNome(s: string): string {
 }
 
 function NFsPage() {
+  const { restrictedClientes } = useAuth();
+  const allowedNameSet = useMemo(
+    () => (restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null),
+    [restrictedClientes],
+  );
   const now = new Date();
   const [periodoMode, setPeriodoMode] = useState<PeriodoMode>("mes");
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
