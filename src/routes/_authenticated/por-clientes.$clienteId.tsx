@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const MAPAS_UPLOAD_EMAIL = "avantipharma.comercial@gmail.com";
+const ALL = "ALL" as const;
 
 export const Route = createFileRoute("/_authenticated/por-clientes/$clienteId")({ component: ClienteDetalhe });
 
@@ -17,7 +18,8 @@ function ClienteDetalhe() {
   const { clienteId } = Route.useParams();
   const { user } = useAuth();
   const qc = useQueryClient();
-  const [ano, setAno] = useState(new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const [anoSel, setAnoSel] = useState<number | typeof ALL>(currentYear);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const canUploadMapas = (user?.email ?? "").toLowerCase() === MAPAS_UPLOAD_EMAIL;
@@ -27,16 +29,17 @@ function ClienteDetalhe() {
     queryFn: async () => (await supabase.from("clientes").select("nome").eq("id", clienteId).single()).data,
   });
 
-  const { data: sellIn } = useQuery({
-    queryKey: ["sell-in-cliente", clienteId, ano],
+  // Carrega TODOS os anos (necessário p/ visão compilada e p/ montar lista de anos)
+  const { data: sellInAll } = useQuery({
+    queryKey: ["sell-in-cliente-all", clienteId],
     queryFn: async () =>
-      (await supabase.from("sell_in").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
+      (await supabase.from("sell_in").select("ano,mes,valor").eq("cliente_id", clienteId)).data ?? [],
   });
 
-  const { data: sellOut } = useQuery({
-    queryKey: ["sell-out-cliente", clienteId, ano],
+  const { data: sellOutAll } = useQuery({
+    queryKey: ["sell-out-cliente-all", clienteId],
     queryFn: async () =>
-      (await supabase.from("sell_out").select("mes,valor").eq("cliente_id", clienteId).eq("ano", ano)).data ?? [],
+      (await supabase.from("sell_out").select("ano,mes,valor").eq("cliente_id", clienteId)).data ?? [],
   });
 
   const { data: pendProdutos } = useQuery({
@@ -49,8 +52,14 @@ function ClienteDetalhe() {
         .order("valor", { ascending: false })).data ?? [],
   });
 
-  const sellInAgg = useMemo(() => buildAgg(sellIn ?? []), [sellIn]);
-  const sellOutAgg = useMemo(() => buildAgg(sellOut ?? []), [sellOut]);
+  const anosDisponiveis = useMemo(() => {
+    const set = new Set<number>();
+    (sellInAll ?? []).forEach((r) => set.add(Number(r.ano)));
+    (sellOutAll ?? []).forEach((r) => set.add(Number(r.ano)));
+    set.add(currentYear);
+    return Array.from(set).sort((a, b) => a - b);
+  }, [sellInAll, sellOutAll, currentYear]);
+
   const pendTotais = useMemo(() => {
     const list = pendProdutos ?? [];
     return {
@@ -58,7 +67,6 @@ function ClienteDetalhe() {
       valor: list.reduce((a, b) => a + Number(b.valor), 0),
     };
   }, [pendProdutos]);
-
 
   const { data: arquivos } = useQuery({
     queryKey: ["mapas", clienteId],
@@ -117,13 +125,35 @@ function ClienteDetalhe() {
           <div className="bi-stat-label">Cliente</div>
           <h1 className="font-display text-3xl font-bold mt-1">{cliente?.nome}</h1>
         </div>
-        <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md">
-          {[ano - 1, ano, ano + 1].map((a) => <option key={a} value={a}>{a}</option>)}
+        <select
+          value={String(anoSel)}
+          onChange={(e) => setAnoSel(e.target.value === ALL ? ALL : Number(e.target.value))}
+          className="h-10 px-3 bg-input border border-border rounded-md"
+        >
+          <option value={ALL}>Todos os anos</option>
+          {anosDisponiveis.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
       </header>
 
-      <MonthlyTable title={`Sell In · ${ano}`} agg={sellInAgg} colorVar="var(--color-chart-1)" />
-      <MonthlyTable title={`Sell Out · ${ano}`} agg={sellOutAgg} colorVar="var(--color-chart-2)" />
+      {anoSel === ALL ? (
+        <>
+          <MultiYearSection title="Sell In" rows={sellInAll ?? []} anos={anosDisponiveis} colorVar="var(--color-chart-1)" />
+          <MultiYearSection title="Sell Out" rows={sellOutAll ?? []} anos={anosDisponiveis} colorVar="var(--color-chart-2)" />
+        </>
+      ) : (
+        <>
+          <MonthlyTable
+            title={`Sell In · ${anoSel}`}
+            agg={buildAgg((sellInAll ?? []).filter((r) => Number(r.ano) === anoSel))}
+            colorVar="var(--color-chart-1)"
+          />
+          <MonthlyTable
+            title={`Sell Out · ${anoSel}`}
+            agg={buildAgg((sellOutAll ?? []).filter((r) => Number(r.ano) === anoSel))}
+            colorVar="var(--color-chart-2)"
+          />
+        </>
+      )}
 
       <section className="bi-card mb-6 overflow-hidden">
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
@@ -300,6 +330,152 @@ function MonthlyTable({ title, agg, colorVar }: { title: string; agg: Agg; color
               contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }}
               formatter={(v: number) => formatBRL(v)} />
             <Line type="monotone" dataKey="valor" stroke={colorVar} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
+  );
+}
+
+type YearRow = { ano: number; meses: number[]; total: number; media: number; crescimento: number | null };
+
+function buildYearMatrix(
+  rows: { ano: number; mes: number; valor: number | string }[],
+  anos: number[],
+): YearRow[] {
+  const byYear = new Map<number, number[]>();
+  anos.forEach((a) => byYear.set(a, Array(12).fill(0)));
+  rows.forEach((r) => {
+    const arr = byYear.get(Number(r.ano));
+    if (arr) arr[Number(r.mes) - 1] += Number(r.valor);
+  });
+  const ordered = anos.slice().sort((a, b) => a - b);
+  const result: YearRow[] = [];
+  ordered.forEach((ano, idx) => {
+    const meses = byYear.get(ano)!;
+    const total = meses.reduce((a, b) => a + b, 0);
+    const ativos = meses.filter((v) => v > 0).length;
+    const media = ativos ? total / ativos : 0;
+    const prev = idx > 0 ? result[idx - 1].total : null;
+    const crescimento = prev && prev > 0 ? ((total - prev) / prev) * 100 : null;
+    result.push({ ano, meses, total, media, crescimento });
+  });
+  return result;
+}
+
+function pctClass(v: number | null): string {
+  if (v == null) return "text-muted-foreground";
+  if (v >= 0) return "text-emerald-500";
+  return "text-red-500";
+}
+function fmtPct(v: number | null): string {
+  if (v == null) return "—";
+  const sign = v > 0 ? "+" : "";
+  return `${sign}${v.toFixed(2).replace(".", ",")}%`;
+}
+
+function MultiYearSection({
+  title, rows, anos, colorVar,
+}: {
+  title: string;
+  rows: { ano: number; mes: number; valor: number | string }[];
+  anos: number[];
+  colorVar: string;
+}) {
+  const matrix = useMemo(() => buildYearMatrix(rows, anos), [rows, anos]);
+
+  // Dados do gráfico: linha por ano, eixo X = meses
+  const chartData = useMemo(() => {
+    return MESES_BR_SHORT.map((m, i) => {
+      const obj: Record<string, number | string> = { mes: m };
+      matrix.forEach((row) => { obj[String(row.ano)] = row.meses[i]; });
+      return obj;
+    });
+  }, [matrix]);
+
+  return (
+    <section className="bi-card mb-6 overflow-hidden">
+      <header className="px-6 py-4 border-b border-border">
+        <h2 className="font-display text-lg font-semibold">{title} · Todos os anos</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">Compilado por ano com crescimento percentual</p>
+      </header>
+      <div className="overflow-x-auto">
+        <table className="bi-table">
+          <thead>
+            <tr>
+              <th className="text-left">Ano</th>
+              {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
+              <th className="text-right">Total</th>
+              <th className="text-right">Média</th>
+              <th className="text-right">Crescimento</th>
+            </tr>
+          </thead>
+          <tbody>
+            {matrix.map((row) => (
+              <tr key={row.ano}>
+                <td className="font-semibold">{row.ano}</td>
+                {row.meses.map((v, i) => (
+                  <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>
+                ))}
+                <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(row.total)}</td>
+                <td className="text-right tabular-nums font-semibold">{formatBRL(row.media)}</td>
+                <td className={`text-right tabular-nums font-semibold ${pctClass(row.crescimento)}`}>
+                  {fmtPct(row.crescimento)}
+                </td>
+              </tr>
+            ))}
+            {matrix.length === 0 && (
+              <tr><td colSpan={16} className="text-center text-muted-foreground py-8">Sem dados.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Comparativo entre anos */}
+      {matrix.length >= 2 && (
+        <div className="px-6 py-4 border-t border-border">
+          <div className="bi-stat-label mb-3">Comparativo entre anos</div>
+          <div className="flex flex-wrap gap-3">
+            {matrix.slice(1).map((row, i) => {
+              const prev = matrix[i];
+              const yyA = String(prev.ano).slice(-2);
+              const yyB = String(row.ano).slice(-2);
+              return (
+                <div key={row.ano} className="rounded-md border border-border bg-card px-4 py-3 min-w-[160px]">
+                  <div className="text-xs text-muted-foreground">{yyA} x {yyB}</div>
+                  <div className={`font-display text-xl font-bold tabular-nums ${pctClass(row.crescimento)}`}>
+                    {fmtPct(row.crescimento)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground tabular-nums mt-1">
+                    {formatBRL(prev.total)} → {formatBRL(row.total)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Gráfico multi-ano */}
+      <div className="px-6 py-4 border-t border-border" style={{ height: 280 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+            <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={70}
+              tickFormatter={(v: number) => formatBRL(v)} />
+            <Tooltip
+              contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }}
+              formatter={(v: number) => formatBRL(v)} />
+            {matrix.map((row, i) => (
+              <Line
+                key={row.ano}
+                type="monotone"
+                dataKey={String(row.ano)}
+                stroke={i === matrix.length - 1 ? colorVar : `hsl(${(i * 67) % 360} 60% 55%)`}
+                strokeWidth={i === matrix.length - 1 ? 2.5 : 1.8}
+                dot={{ r: 2 }}
+              />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
