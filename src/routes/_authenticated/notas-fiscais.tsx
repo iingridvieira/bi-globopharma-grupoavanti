@@ -262,11 +262,13 @@ function NFsPage() {
             <tr>
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
-              <th className="text-center">Operação</th><th className="text-right">Valor</th>
+              <th className="text-center">Operação</th>
+              <th className="text-right">Valor</th>
+              <th style={{ width: 60 }}></th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
+            {isLoading && <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
@@ -283,15 +285,37 @@ function NFsPage() {
                       }`}>{isVenda ? "Venda" : "Bonificação"}</span>
                     </td>
                     <td className="text-right tabular-nums">{formatBRL(n.valor)}</td>
+                    <td className="text-right">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const { data: itens } = await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", n.id);
+                          if (!itens || itens.length === 0) { toast.error("Sem itens para exportar."); return; }
+                          const rows = itens.map((i) => ({
+                            "Data de Faturamento": formatDateBR(n.data),
+                            "EAN": i.codigo_produto ?? "",
+                            "Descrição do Produto": i.produto ?? "",
+                            "Quantidade": Number(i.quantidade ?? 0),
+                            "Valor": Number(i.valor_unitario ?? 0),
+                            "Total": Number(i.valor_total ?? 0),
+                          }));
+                          exportToExcel(rows, `nf-${n.numero}-${n.clientes?.nome ?? "cliente"}.xlsx`, "Itens");
+                        }}
+                        className="h-7 px-2 rounded bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-xs"
+                        title="Exportar itens em Excel"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
-                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} highlight={buscaTrim} />}
+                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} clienteId={n.cliente_id} highlight={buscaTrim} />}
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && filtradas.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
-            <tr><td colSpan={5}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td></tr>
+            <tr><td colSpan={5}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
           </tfoot>
         </table>
       </div>
