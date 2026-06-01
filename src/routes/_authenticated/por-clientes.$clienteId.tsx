@@ -218,6 +218,9 @@ function ClienteDetalhe() {
         </>
       )}
 
+      <PositivacaoSection clienteId={clienteId} ano={anoSel === ALL ? currentYear : anoSel} />
+
+
       <section className="bi-card mb-6 overflow-hidden">
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
           <div>
