@@ -86,12 +86,35 @@ function Dashboard() {
 
   return (
     <div className="p-8 max-w-[1600px] mx-auto">
-      <header className="flex items-end justify-between mb-8">
+      <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
           <div className="bi-stat-label">Mês de referência · {String(MES).padStart(2, "0")}/{ANO}</div>
           <h1 className="font-display text-3xl font-bold mt-1">Dashboard Executivo</h1>
         </div>
+        <div className="flex items-center gap-2">
+          <select
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+            value={MES}
+            onChange={(e) => setMes(Number(e.target.value))}
+            aria-label="Mês"
+          >
+            {MESES_BR.map((nome, i) => (
+              <option key={i + 1} value={i + 1}>{nome}</option>
+            ))}
+          </select>
+          <select
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary"
+            value={ANO}
+            onChange={(e) => setAno(Number(e.target.value))}
+            aria-label="Ano"
+          >
+            {Array.from({ length: 5 }, (_, i) => ANO_ATUAL - 2 + i).map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
       </header>
+
 
       {/* Metas executivas */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
