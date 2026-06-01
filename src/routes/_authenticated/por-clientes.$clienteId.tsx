@@ -71,13 +71,30 @@ function ClienteDetalhe() {
     return Array.from(set).sort((a, b) => a - b);
   }, [sellInAll, sellOutAll, currentYear]);
 
-  const pendTotais = useMemo(() => {
-    const list = pendProdutos ?? [];
-    return {
-      vol: list.reduce((a, b) => a + Number(b.quantidade), 0),
-      valor: list.reduce((a, b) => a + Number(b.valor), 0),
-    };
+  const [pendFiltro, setPendFiltro] = useState<string[]>([]);
+
+  const pendOpcoes = useMemo(() => {
+    const set = new Map<string, string>();
+    (pendProdutos ?? []).forEach((p) => {
+      const nome = (p.produto ?? "").trim() || "—";
+      set.set(nome, nome);
+    });
+    return Array.from(set.values()).sort((a, b) => a.localeCompare(b, "pt-BR")).map((v) => ({ value: v, label: v }));
   }, [pendProdutos]);
+
+  const pendFiltradas = useMemo(() => {
+    const list = (pendProdutos ?? []).slice().sort((a, b) => (a.produto ?? "").localeCompare(b.produto ?? "", "pt-BR"));
+    if (pendFiltro.length === 0) return list;
+    const set = new Set(pendFiltro);
+    return list.filter((p) => set.has((p.produto ?? "").trim() || "—"));
+  }, [pendProdutos, pendFiltro]);
+
+  const pendTotais = useMemo(() => {
+    return {
+      vol: pendFiltradas.reduce((a, b) => a + Number(b.quantidade), 0),
+      valor: pendFiltradas.reduce((a, b) => a + Number(b.valor), 0),
+    };
+  }, [pendFiltradas]);
 
   const { data: arquivos } = useQuery({
     queryKey: ["mapas", clienteId],
