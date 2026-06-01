@@ -446,6 +446,47 @@ export type Database = {
         }
         Relationships: []
       }
+      positivacao: {
+        Row: {
+          ano: number
+          cliente_id: string
+          created_at: string
+          id: string
+          mes: number
+          positivacao_globo: number
+          positivacao_total: number
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          positivacao_globo?: number
+          positivacao_total?: number
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          positivacao_globo?: number
+          positivacao_total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positivacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

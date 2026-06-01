@@ -218,6 +218,9 @@ function ClienteDetalhe() {
         </>
       )}
 
+      <PositivacaoSection clienteId={clienteId} ano={anoSel === ALL ? currentYear : anoSel} />
+
+
       <section className="bi-card mb-6 overflow-hidden">
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -285,7 +288,10 @@ function ClienteDetalhe() {
 
 
       {/* Mapas de vendas */}
+      {/* Mapas de Vendas + Conta Corrente lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <section className="bi-card overflow-hidden">
+
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">Mapas de Vendas</h2>
@@ -345,7 +351,8 @@ function ClienteDetalhe() {
       </section>
 
       {/* Conta Corrente */}
-      <section className="bi-card overflow-hidden mt-6">
+      <section className="bi-card overflow-hidden">
+
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">Conta Corrente</h2>
@@ -402,6 +409,8 @@ function ClienteDetalhe() {
           </tbody>
         </table>
       </section>
+      </div>
+
 
       {/* Observação */}
       <section className="bi-card overflow-hidden mt-6">
@@ -648,3 +657,154 @@ function MultiYearSection({
     </section>
   );
 }
+
+function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number }) {
+  const qc = useQueryClient();
+  const { data: rows } = useQuery({
+    queryKey: ["positivacao", clienteId, ano],
+    queryFn: async () =>
+      (await supabase
+        .from("positivacao")
+        .select("mes,positivacao_total,positivacao_globo")
+        .eq("cliente_id", clienteId)
+        .eq("ano", ano)).data ?? [],
+  });
+
+  const byMes = useMemo(() => {
+    const total = Array(12).fill(0);
+    const globo = Array(12).fill(0);
+    (rows ?? []).forEach((r) => {
+      total[Number(r.mes) - 1] = Number(r.positivacao_total ?? 0);
+      globo[Number(r.mes) - 1] = Number(r.positivacao_globo ?? 0);
+    });
+    return { total, globo };
+  }, [rows]);
+
+  const [totalEdit, setTotalEdit] = useState<string[]>(Array(12).fill(""));
+  const [globoEdit, setGloboEdit] = useState<string[]>(Array(12).fill(""));
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    setTotalEdit(byMes.total.map((v) => (v ? String(v) : "")));
+    setGloboEdit(byMes.globo.map((v) => (v ? String(v) : "")));
+    setLoaded(true);
+  }, [byMes]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = Array.from({ length: 12 }, (_, i) => ({
+        cliente_id: clienteId,
+        ano,
+        mes: i + 1,
+        positivacao_total: Number(totalEdit[i] || 0),
+        positivacao_globo: Number(globoEdit[i] || 0),
+      }));
+      const { error } = await supabase
+        .from("positivacao")
+        .upsert(payload, { onConflict: "cliente_id,ano,mes" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Positivação salva");
+      void qc.invalidateQueries({ queryKey: ["positivacao", clienteId, ano] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const chartData = MESES_BR_SHORT.map((m, i) => ({
+    mes: m,
+    "Positivação Total": Number(totalEdit[i] || 0),
+    "Positivação Globo": Number(globoEdit[i] || 0),
+  }));
+
+  if (!loaded) return null;
+
+  return (
+    <section className="bi-card mb-6 overflow-hidden">
+      <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="font-display text-lg font-semibold">Positivação · {ano}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Atualize manualmente os valores mensais.</p>
+        </div>
+        <button
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 disabled:opacity-60"
+        >
+          <Save className="h-4 w-4" /> {save.isPending ? "Salvando..." : "Salvar"}
+        </button>
+      </header>
+      <div className="overflow-x-auto">
+        <table className="bi-table">
+          <thead>
+            <tr>
+              <th className="text-left">Indicador</th>
+              {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
+              <th className="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="font-semibold">Positivação Total</td>
+              {totalEdit.map((v, i) => (
+                <td key={i} className="text-right">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={v}
+                    onChange={(e) => {
+                      const next = totalEdit.slice();
+                      next[i] = e.target.value;
+                      setTotalEdit(next);
+                    }}
+                    className="w-20 bg-input border border-border rounded px-2 py-1 text-xs text-right tabular-nums"
+                  />
+                </td>
+              ))}
+              <td className="text-right tabular-nums font-semibold text-primary">
+                {totalEdit.reduce((a, b) => a + Number(b || 0), 0).toLocaleString("pt-BR")}
+              </td>
+            </tr>
+            <tr>
+              <td className="font-semibold">Positivação Globo</td>
+              {globoEdit.map((v, i) => (
+                <td key={i} className="text-right">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={v}
+                    onChange={(e) => {
+                      const next = globoEdit.slice();
+                      next[i] = e.target.value;
+                      setGloboEdit(next);
+                    }}
+                    className="w-20 bg-input border border-border rounded px-2 py-1 text-xs text-right tabular-nums"
+                  />
+                </td>
+              ))}
+              <td className="text-right tabular-nums font-semibold text-primary">
+                {globoEdit.reduce((a, b) => a + Number(b || 0), 0).toLocaleString("pt-BR")}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="px-6 py-4 border-t border-border" style={{ height: 280 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+            <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+            <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={60}
+              tickFormatter={(v: number) => v.toLocaleString("pt-BR")} />
+            <Tooltip
+              contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }}
+              formatter={(v: number) => v.toLocaleString("pt-BR")} />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Line type="monotone" dataKey="Positivação Total" stroke="var(--color-chart-1)" strokeWidth={2.5} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="Positivação Globo" stroke="var(--color-chart-2)" strokeWidth={2.5} dot={{ r: 3 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
+  );
+}
+
