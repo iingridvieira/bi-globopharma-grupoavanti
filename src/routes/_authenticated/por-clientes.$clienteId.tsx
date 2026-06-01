@@ -409,6 +409,8 @@ function ClienteDetalhe() {
           </tbody>
         </table>
       </section>
+      </div>
+
 
       {/* Observação */}
       <section className="bi-card overflow-hidden mt-6">
