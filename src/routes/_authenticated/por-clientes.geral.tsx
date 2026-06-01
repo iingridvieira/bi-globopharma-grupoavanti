@@ -115,11 +115,11 @@ function PositivacaoConsolidada({ rows }: { rows: PositRow[] }) {
         <div className="flex gap-6">
           <div>
             <div className="bi-stat-label">Positivação Total</div>
-            <div className="font-display text-2xl font-bold tabular-nums text-primary">{formatBRL(totalGeral)}</div>
+            <div className="font-display text-2xl font-bold tabular-nums text-primary">{formatIntBR(totalGeral)}</div>
           </div>
           <div>
             <div className="bi-stat-label">Positivação Globo</div>
-            <div className="font-display text-2xl font-bold tabular-nums" style={{ color: "var(--color-chart-2)" }}>{formatBRL(totalGlobo)}</div>
+            <div className="font-display text-2xl font-bold tabular-nums" style={{ color: "var(--color-chart-2)" }}>{formatIntBR(totalGlobo)}</div>
           </div>
         </div>
       </header>
@@ -145,13 +145,13 @@ function PositivacaoConsolidada({ rows }: { rows: PositRow[] }) {
                     <tr>
                       <td className="font-semibold" rowSpan={2}>{ano}</td>
                       <td className="text-xs text-muted-foreground">Total</td>
-                      {y.total.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
-                      <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(totT)}</td>
+                      {y.total.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatIntBR(v) : "—"}</td>)}
+                      <td className="text-right tabular-nums font-semibold text-primary">{formatIntBR(totT)}</td>
                     </tr>
                     <tr>
                       <td className="text-xs text-muted-foreground">Globo</td>
-                      {y.globo.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
-                      <td className="text-right tabular-nums font-semibold" style={{ color: "var(--color-chart-2)" }}>{formatBRL(totG)}</td>
+                      {y.globo.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatIntBR(v) : "—"}</td>)}
+                      <td className="text-right tabular-nums font-semibold" style={{ color: "var(--color-chart-2)" }}>{formatIntBR(totG)}</td>
                     </tr>
                   </React.Fragment>
                 );
@@ -167,8 +167,8 @@ function PositivacaoConsolidada({ rows }: { rows: PositRow[] }) {
           <ResponsiveContainer width="100%" height="90%">
             <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
               <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
-              <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={70} tickFormatter={(v: number) => formatBRL(v)} />
-              <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }} formatter={(v: number) => formatBRL(v)} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={70} tickFormatter={(v: number) => formatIntBR(v)} />
+              <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }} formatter={(v: number) => formatIntBR(v)} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line type="monotone" dataKey="Total" stroke="var(--color-chart-1)" strokeWidth={2.5} dot={{ r: 2 }} />
               <Line type="monotone" dataKey="Globo" stroke="var(--color-chart-2)" strokeWidth={2.5} dot={{ r: 2 }} />
