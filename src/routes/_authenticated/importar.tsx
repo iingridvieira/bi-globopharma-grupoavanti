@@ -280,9 +280,9 @@ function ImportarPage() {
         if (error) throw error;
         resumoTxt = `${rows.length} registros sell out atualizados (períodos não presentes no arquivo foram preservados).`;
       } else if (tipo === "pendencias" || tipo === "pendencias_anteriores") {
-        const tabela = tipo === "pendencias" ? "pendencias_produtos" : "pendencias_anteriores_produtos";
-        const label = tipo === "pendencias" ? "produtos pendentes" : "produtos de pendência anterior";
-        // Pendências por produto: Cliente, Data Lançamento, EAN, Código PN, Descrição, Preço unit., VOL, R$
+        const isAnterior = tipo === "pendencias_anteriores";
+        const tabela = isAnterior ? "pendencias_anteriores_produtos" : "pendencias_produtos";
+        const label = isAnterior ? "produtos de pendência anterior" : "produtos pendentes";
         type PendProd = {
           cliente_id: string;
           codigo_produto: string;
@@ -292,6 +292,8 @@ function ImportarPage() {
           preco_unitario: number;
           quantidade: number;
           valor: number;
+          ano?: number;
+          mes?: number;
         };
         const agg = new Map<string, PendProd>();
         for (const r of firstSheet) {
@@ -310,6 +312,7 @@ function ImportarPage() {
           const cur = agg.get(k) ?? {
             cliente_id, codigo_produto: codigo, ean, data_lancamento: dataLanc,
             produto, preco_unitario: preco, quantidade: 0, valor: 0,
+            ...(isAnterior ? { ano: metaAno, mes: metaMes } : {}),
           };
           cur.quantidade += vol;
           cur.valor += valor;
@@ -318,11 +321,18 @@ function ImportarPage() {
         }
         const rows = Array.from(agg.values());
         if (rows.length === 0) throw new Error("Nenhuma pendência válida encontrada.");
-        const { error: delErr } = await supabase.from(tabela).delete().not("id", "is", null);
-        if (delErr) throw delErr;
+        if (isAnterior) {
+          const { error: delErr } = await supabase.from(tabela).delete().eq("ano", metaAno).eq("mes", metaMes);
+          if (delErr) throw delErr;
+        } else {
+          const { error: delErr } = await supabase.from(tabela).delete().not("id", "is", null);
+          if (delErr) throw delErr;
+        }
         const { error } = await supabase.from(tabela).insert(rows as never);
         if (error) throw error;
-        resumoTxt = `${rows.length} ${label} importados (base substituída).`;
+        resumoTxt = isAnterior
+          ? `${rows.length} ${label} importados para ${String(metaMes).padStart(2, "0")}/${metaAno}.`
+          : `${rows.length} ${label} importados (base substituída).`;
       }
       setResumo(resumoTxt);
       toast.success(resumoTxt);
