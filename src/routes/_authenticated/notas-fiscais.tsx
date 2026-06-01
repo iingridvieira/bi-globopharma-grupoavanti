@@ -344,6 +344,24 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
   });
 
   const codigos = useMemo(() => Array.from(new Set((itens ?? []).map((i) => i.codigo_produto).filter(Boolean))) as string[], [itens]);
+  const produtosItens = useMemo(() => Array.from(new Set((itens ?? []).map((i) => (i.produto ?? "").trim()).filter(Boolean))), [itens]);
+
+  const { data: eanMap } = useQuery({
+    queryKey: ["ean-by-produto", produtosItens.slice().sort().join("|")],
+    enabled: produtosItens.length > 0,
+    queryFn: async () => {
+      const out: Record<string, string> = {};
+      const [a, b] = await Promise.all([
+        supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtosItens).not("ean", "is", null),
+        supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtosItens).not("ean", "is", null),
+      ]);
+      [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
+        const p = (r.produto ?? "").trim();
+        if (p && r.ean && !out[p]) out[p] = r.ean;
+      });
+      return out;
+    },
+  });
 
   const { data: ticketMap } = useQuery({
     queryKey: ["ticket-medio", clienteId, codigos.slice().sort().join(",")],
