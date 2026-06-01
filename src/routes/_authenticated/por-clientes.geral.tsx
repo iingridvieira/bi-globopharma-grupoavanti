@@ -9,6 +9,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } f
 export const Route = createFileRoute("/_authenticated/por-clientes/geral")({ component: GeralPage });
 
 type Row = { ano: number; mes: number; valor: number | string };
+type PositRow = { ano: number; mes: number; positivacao_total: number | string; positivacao_globo: number | string };
 
 async function fetchAll(table: "sell_in" | "sell_out"): Promise<Row[]> {
   const PAGE = 1000;
@@ -28,9 +29,28 @@ async function fetchAll(table: "sell_in" | "sell_out"): Promise<Row[]> {
   return out;
 }
 
+async function fetchAllPositivacao(): Promise<PositRow[]> {
+  const PAGE = 1000;
+  const out: PositRow[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("positivacao")
+      .select("ano,mes,positivacao_total,positivacao_globo")
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const chunk = (data ?? []) as PositRow[];
+    out.push(...chunk);
+    if (chunk.length < PAGE) break;
+    from += PAGE;
+  }
+  return out;
+}
+
 function GeralPage() {
   const { data: sellIn } = useQuery({ queryKey: ["geral-sell-in"], queryFn: () => fetchAll("sell_in") });
   const { data: sellOut } = useQuery({ queryKey: ["geral-sell-out"], queryFn: () => fetchAll("sell_out") });
+  const { data: positivacao } = useQuery({ queryKey: ["geral-positivacao"], queryFn: fetchAllPositivacao });
 
   const anos = useMemo(() => {
     const s = new Set<number>();
@@ -52,9 +72,115 @@ function GeralPage() {
         <p className="text-sm text-muted-foreground mt-1">Compilado anual de Sell In e Sell Out de todos os clientes.</p>
       </header>
 
+      <PositivacaoConsolidada rows={positivacao ?? []} />
       <MultiYearSection title="Sell In" rows={sellIn ?? []} anos={anos} colorVar="var(--color-chart-1)" />
       <MultiYearSection title="Sell Out" rows={sellOut ?? []} anos={anos} colorVar="var(--color-chart-2)" />
     </div>
+  );
+}
+
+function PositivacaoConsolidada({ rows }: { rows: PositRow[] }) {
+  const anos = useMemo(() => Array.from(new Set(rows.map((r) => Number(r.ano)))).sort((a, b) => a - b), [rows]);
+
+  const byYear = useMemo(() => {
+    const map = new Map<number, { total: number[]; globo: number[] }>();
+    anos.forEach((a) => map.set(a, { total: Array(12).fill(0), globo: Array(12).fill(0) }));
+    rows.forEach((r) => {
+      const y = map.get(Number(r.ano));
+      if (!y) return;
+      const i = Number(r.mes) - 1;
+      y.total[i] += Number(r.positivacao_total) || 0;
+      y.globo[i] += Number(r.positivacao_globo) || 0;
+    });
+    return map;
+  }, [rows, anos]);
+
+  const totalGeral = useMemo(() => rows.reduce((a, r) => a + (Number(r.positivacao_total) || 0), 0), [rows]);
+  const totalGlobo = useMemo(() => rows.reduce((a, r) => a + (Number(r.positivacao_globo) || 0), 0), [rows]);
+
+  const ultimoAno = anos[anos.length - 1];
+  const chartData = useMemo(() => {
+    if (!ultimoAno) return [];
+    const y = byYear.get(ultimoAno)!;
+    return MESES_BR_SHORT.map((m, i) => ({ mes: m, Total: y.total[i], Globo: y.globo[i] }));
+  }, [byYear, ultimoAno]);
+
+  return (
+    <section className="bi-card mb-6 overflow-hidden">
+      <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="font-display text-lg font-semibold">Positivação · Todos os clientes</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Soma consolidada de positivação total e Globo</p>
+        </div>
+        <div className="flex gap-6">
+          <div>
+            <div className="bi-stat-label">Positivação Total</div>
+            <div className="font-display text-2xl font-bold tabular-nums text-primary">{formatBRL(totalGeral)}</div>
+          </div>
+          <div>
+            <div className="bi-stat-label">Positivação Globo</div>
+            <div className="font-display text-2xl font-bold tabular-nums" style={{ color: "var(--color-chart-2)" }}>{formatBRL(totalGlobo)}</div>
+          </div>
+        </div>
+      </header>
+
+      {anos.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="bi-table">
+            <thead>
+              <tr>
+                <th className="text-left">Ano</th>
+                <th className="text-left">Métrica</th>
+                {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
+                <th className="text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {anos.map((ano) => {
+                const y = byYear.get(ano)!;
+                const totT = y.total.reduce((a, b) => a + b, 0);
+                const totG = y.globo.reduce((a, b) => a + b, 0);
+                return (
+                  <React.Fragment key={ano}>
+                    <tr>
+                      <td className="font-semibold" rowSpan={2}>{ano}</td>
+                      <td className="text-xs text-muted-foreground">Total</td>
+                      {y.total.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
+                      <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(totT)}</td>
+                    </tr>
+                    <tr>
+                      <td className="text-xs text-muted-foreground">Globo</td>
+                      {y.globo.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
+                      <td className="text-right tabular-nums font-semibold" style={{ color: "var(--color-chart-2)" }}>{formatBRL(totG)}</td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {chartData.length > 0 && (
+        <div className="px-6 py-4 border-t border-border" style={{ height: 280 }}>
+          <div className="bi-stat-label mb-2">Evolução mensal · {ultimoAno}</div>
+          <ResponsiveContainer width="100%" height="90%">
+            <LineChart data={chartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              <XAxis dataKey="mes" tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
+              <YAxis tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} width={70} tickFormatter={(v: number) => formatBRL(v)} />
+              <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6, fontSize: 12 }} formatter={(v: number) => formatBRL(v)} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Line type="monotone" dataKey="Total" stroke="var(--color-chart-1)" strokeWidth={2.5} dot={{ r: 2 }} />
+              <Line type="monotone" dataKey="Globo" stroke="var(--color-chart-2)" strokeWidth={2.5} dot={{ r: 2 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {rows.length === 0 && (
+        <div className="px-6 py-8 text-center text-muted-foreground text-sm">Sem dados de positivação cadastrados.</div>
+      )}
+    </section>
   );
 }
 
