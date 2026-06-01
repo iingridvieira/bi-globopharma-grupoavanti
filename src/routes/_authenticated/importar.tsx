@@ -454,6 +454,19 @@ function ImportarPage() {
         })}
       </div>
 
+      {tipo === "pendencias_anteriores" && (
+        <div className="bi-card p-4 mb-4 flex items-center gap-3 flex-wrap">
+          <label className="text-xs font-semibold uppercase text-muted-foreground">Período da Pendência Anterior:</label>
+          <select value={metaMes} onChange={(e) => setMetaMes(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-40">
+            {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+          </select>
+          <select value={metaAno} onChange={(e) => setMetaAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-28">
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <p className="text-xs text-muted-foreground">Apenas este período será substituído; os demais meses ficam preservados.</p>
+        </div>
+      )}
+
       <label className="bi-card p-10 border-dashed border-2 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
         <Upload className="h-10 w-10 text-primary mb-3" />
         <div className="font-display font-semibold">Clique para selecionar o arquivo .xlsx</div>
