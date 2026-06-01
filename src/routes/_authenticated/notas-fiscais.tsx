@@ -325,10 +325,37 @@ function NFsPage() {
   );
 }
 
-function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
+function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: string; highlight?: string }) {
   const { data: itens, isLoading } = useQuery({
     queryKey: ["nf-itens", nfId],
     queryFn: async () => (await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", nfId)).data ?? [],
+  });
+
+  const codigos = useMemo(() => Array.from(new Set((itens ?? []).map((i) => i.codigo_produto).filter(Boolean))) as string[], [itens]);
+
+  const { data: ticketMap } = useQuery({
+    queryKey: ["ticket-medio", clienteId, codigos.slice().sort().join(",")],
+    enabled: codigos.length > 0 && !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("itens_nf")
+        .select("codigo_produto,valor_unitario,notas_fiscais!inner(cliente_id)")
+        .eq("notas_fiscais.cliente_id", clienteId)
+        .in("codigo_produto", codigos)
+        .limit(10000);
+      const acc = new Map<string, { soma: number; n: number }>();
+      (data ?? []).forEach((r: { codigo_produto: string | null; valor_unitario: number | string }) => {
+        const k = r.codigo_produto ?? "";
+        if (!k) return;
+        const v = Number(r.valor_unitario);
+        if (!Number.isFinite(v) || v <= 0) return;
+        const cur = acc.get(k) ?? { soma: 0, n: 0 };
+        cur.soma += v; cur.n += 1; acc.set(k, cur);
+      });
+      const out: Record<string, number> = {};
+      acc.forEach((v, k) => { out[k] = v.soma / v.n; });
+      return out;
+    },
   });
 
   const h = (highlight ?? "").trim().toLowerCase();
@@ -336,7 +363,7 @@ function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
 
   return (
     <tr>
-      <td colSpan={6} className="bg-muted/30 p-0">
+      <td colSpan={7} className="bg-muted/30 p-0">
         <div className="px-6 py-4">
           <div className="bi-stat-label mb-2">Itens da NF</div>
           {isLoading && <div className="text-sm text-muted-foreground py-2">Carregando…</div>}
@@ -345,9 +372,10 @@ function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
             <table className="bi-table">
               <thead>
                 <tr>
-                  <th>Código</th><th>Produto</th>
+                  <th>EAN</th><th>Produto</th>
                   <th className="text-right">Qtd</th>
                   <th className="text-right">V. Unit</th>
+                  <th className="text-right">Ticket Médio</th>
                   <th className="text-right">Desc.</th>
                   <th className="text-right">Total</th>
                 </tr>
@@ -355,12 +383,14 @@ function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
               <tbody>
                 {itens.map((i) => {
                   const hit = match(i.produto ?? "") || match(i.codigo_produto ?? "");
+                  const tm = ticketMap?.[i.codigo_produto ?? ""];
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
                       <td className="text-xs text-muted-foreground">{i.codigo_produto}</td>
                       <td>{i.produto}</td>
                       <td className="text-right tabular-nums">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.valor_unitario)}</td>
+                      <td className="text-right tabular-nums text-muted-foreground">{tm != null ? formatBRL(tm) : "—"}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.desconto)}</td>
                       <td className="text-right tabular-nums font-semibold">{formatBRL(i.valor_total)}</td>
                     </tr>
