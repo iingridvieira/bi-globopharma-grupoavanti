@@ -787,7 +787,7 @@ function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number
                       next[i] = e.target.value;
                       setTotalEdit(next);
                     }}
-                    className="w-20 bg-input border border-border rounded px-2 py-1 text-xs text-right tabular-nums"
+                    readOnly={!canEdit} disabled={!canEdit} className={"w-20 border border-border rounded px-2 py-1 text-xs text-right tabular-nums " + (canEdit ? "bg-input" : "bg-muted/30 cursor-not-allowed")}
                   />
                 </td>
               ))}
@@ -808,7 +808,7 @@ function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number
                       next[i] = e.target.value;
                       setGloboEdit(next);
                     }}
-                    className="w-20 bg-input border border-border rounded px-2 py-1 text-xs text-right tabular-nums"
+                    readOnly={!canEdit} disabled={!canEdit} className={"w-20 border border-border rounded px-2 py-1 text-xs text-right tabular-nums " + (canEdit ? "bg-input" : "bg-muted/30 cursor-not-allowed")}
                   />
                 </td>
               ))}
