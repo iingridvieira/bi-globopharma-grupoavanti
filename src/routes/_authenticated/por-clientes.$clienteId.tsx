@@ -351,7 +351,8 @@ function ClienteDetalhe() {
       </section>
 
       {/* Conta Corrente */}
-      <section className="bi-card overflow-hidden mt-6">
+      <section className="bi-card overflow-hidden">
+
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">Conta Corrente</h2>
