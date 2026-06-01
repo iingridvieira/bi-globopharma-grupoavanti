@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
 import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
-import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, FileDown } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import { useAuth } from "@/hooks/use-auth";
+import { exportToExcel } from "@/lib/excel";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
@@ -260,11 +262,13 @@ function NFsPage() {
             <tr>
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
-              <th className="text-center">Operação</th><th className="text-right">Valor</th>
+              <th className="text-center">Operação</th>
+              <th className="text-right">Valor</th>
+              <th style={{ width: 60 }}></th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
+            {isLoading && <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
@@ -281,15 +285,37 @@ function NFsPage() {
                       }`}>{isVenda ? "Venda" : "Bonificação"}</span>
                     </td>
                     <td className="text-right tabular-nums">{formatBRL(n.valor)}</td>
+                    <td className="text-right">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const { data: itens } = await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", n.id);
+                          if (!itens || itens.length === 0) { toast.error("Sem itens para exportar."); return; }
+                          const rows = itens.map((i) => ({
+                            "Data de Faturamento": formatDateBR(n.data),
+                            "EAN": i.codigo_produto ?? "",
+                            "Descrição do Produto": i.produto ?? "",
+                            "Quantidade": Number(i.quantidade ?? 0),
+                            "Valor": Number(i.valor_unitario ?? 0),
+                            "Total": Number(i.valor_total ?? 0),
+                          }));
+                          exportToExcel(rows, `nf-${n.numero}-${n.clientes?.nome ?? "cliente"}.xlsx`, "Itens");
+                        }}
+                        className="h-7 px-2 rounded bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-xs"
+                        title="Exportar itens em Excel"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
-                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} highlight={buscaTrim} />}
+                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} clienteId={n.cliente_id} highlight={buscaTrim} />}
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && filtradas.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
-            <tr><td colSpan={5}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td></tr>
+            <tr><td colSpan={5}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
           </tfoot>
         </table>
       </div>
@@ -299,10 +325,37 @@ function NFsPage() {
   );
 }
 
-function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
+function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: string; highlight?: string }) {
   const { data: itens, isLoading } = useQuery({
     queryKey: ["nf-itens", nfId],
     queryFn: async () => (await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", nfId)).data ?? [],
+  });
+
+  const codigos = useMemo(() => Array.from(new Set((itens ?? []).map((i) => i.codigo_produto).filter(Boolean))) as string[], [itens]);
+
+  const { data: ticketMap } = useQuery({
+    queryKey: ["ticket-medio", clienteId, codigos.slice().sort().join(",")],
+    enabled: codigos.length > 0 && !!clienteId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("itens_nf")
+        .select("codigo_produto,valor_unitario,notas_fiscais!inner(cliente_id)")
+        .eq("notas_fiscais.cliente_id", clienteId)
+        .in("codigo_produto", codigos)
+        .limit(10000);
+      const acc = new Map<string, { soma: number; n: number }>();
+      (data ?? []).forEach((r: { codigo_produto: string | null; valor_unitario: number | string }) => {
+        const k = r.codigo_produto ?? "";
+        if (!k) return;
+        const v = Number(r.valor_unitario);
+        if (!Number.isFinite(v) || v <= 0) return;
+        const cur = acc.get(k) ?? { soma: 0, n: 0 };
+        cur.soma += v; cur.n += 1; acc.set(k, cur);
+      });
+      const out: Record<string, number> = {};
+      acc.forEach((v, k) => { out[k] = v.soma / v.n; });
+      return out;
+    },
   });
 
   const h = (highlight ?? "").trim().toLowerCase();
@@ -310,7 +363,7 @@ function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
 
   return (
     <tr>
-      <td colSpan={6} className="bg-muted/30 p-0">
+      <td colSpan={7} className="bg-muted/30 p-0">
         <div className="px-6 py-4">
           <div className="bi-stat-label mb-2">Itens da NF</div>
           {isLoading && <div className="text-sm text-muted-foreground py-2">Carregando…</div>}
@@ -319,9 +372,10 @@ function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
             <table className="bi-table">
               <thead>
                 <tr>
-                  <th>Código</th><th>Produto</th>
+                  <th>EAN</th><th>Produto</th>
                   <th className="text-right">Qtd</th>
                   <th className="text-right">V. Unit</th>
+                  <th className="text-right">Ticket Médio</th>
                   <th className="text-right">Desc.</th>
                   <th className="text-right">Total</th>
                 </tr>
@@ -329,12 +383,14 @@ function ItensRow({ nfId, highlight }: { nfId: string; highlight?: string }) {
               <tbody>
                 {itens.map((i) => {
                   const hit = match(i.produto ?? "") || match(i.codigo_produto ?? "");
+                  const tm = ticketMap?.[i.codigo_produto ?? ""];
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
                       <td className="text-xs text-muted-foreground">{i.codigo_produto}</td>
                       <td>{i.produto}</td>
                       <td className="text-right tabular-nums">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.valor_unitario)}</td>
+                      <td className="text-right tabular-nums text-muted-foreground">{tm != null ? formatBRL(tm) : "—"}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.desconto)}</td>
                       <td className="text-right tabular-nums font-semibold">{formatBRL(i.valor_total)}</td>
                     </tr>

@@ -7,6 +7,7 @@ import { exportToExcel } from "@/lib/excel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { MultiSelect } from "@/components/MultiSelect";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const MAPAS_UPLOAD_EMAIL = "avantipharma.comercial@gmail.com";
@@ -70,13 +71,30 @@ function ClienteDetalhe() {
     return Array.from(set).sort((a, b) => a - b);
   }, [sellInAll, sellOutAll, currentYear]);
 
-  const pendTotais = useMemo(() => {
-    const list = pendProdutos ?? [];
-    return {
-      vol: list.reduce((a, b) => a + Number(b.quantidade), 0),
-      valor: list.reduce((a, b) => a + Number(b.valor), 0),
-    };
+  const [pendFiltro, setPendFiltro] = useState<string[]>([]);
+
+  const pendOpcoes = useMemo(() => {
+    const set = new Map<string, string>();
+    (pendProdutos ?? []).forEach((p) => {
+      const nome = (p.produto ?? "").trim() || "—";
+      set.set(nome, nome);
+    });
+    return Array.from(set.values()).sort((a, b) => a.localeCompare(b, "pt-BR")).map((v) => ({ value: v, label: v }));
   }, [pendProdutos]);
+
+  const pendFiltradas = useMemo(() => {
+    const list = (pendProdutos ?? []).slice().sort((a, b) => (a.produto ?? "").localeCompare(b.produto ?? "", "pt-BR"));
+    if (pendFiltro.length === 0) return list;
+    const set = new Set(pendFiltro);
+    return list.filter((p) => set.has((p.produto ?? "").trim() || "—"));
+  }, [pendProdutos, pendFiltro]);
+
+  const pendTotais = useMemo(() => {
+    return {
+      vol: pendFiltradas.reduce((a, b) => a + Number(b.quantidade), 0),
+      valor: pendFiltradas.reduce((a, b) => a + Number(b.valor), 0),
+    };
+  }, [pendFiltradas]);
 
   const { data: arquivos } = useQuery({
     queryKey: ["mapas", clienteId],
@@ -225,9 +243,17 @@ function ClienteDetalhe() {
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">Pendências em aberto</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Produtos pendentes deste cliente</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Produtos pendentes deste cliente · ordem alfabética</p>
           </div>
-          <div className="flex items-center gap-6 text-right">
+          <div className="flex items-center gap-3 flex-wrap text-right">
+            <MultiSelect
+              width={260}
+              placeholder="Filtrar produtos"
+              searchPlaceholder="Buscar produto..."
+              options={pendOpcoes}
+              selected={pendFiltro}
+              onChange={setPendFiltro}
+            />
             <div>
               <div className="bi-stat-label">Total VOL</div>
               <div className="font-display text-lg font-bold tabular-nums">{pendTotais.vol.toLocaleString("pt-BR")}</div>
@@ -238,7 +264,7 @@ function ClienteDetalhe() {
             </div>
             <button
               onClick={() => {
-                const rows = (pendProdutos ?? []).map((p) => ({
+                const rows = pendFiltradas.map((p) => ({
                   "Data de Lançamento": p.data_lancamento ? formatDateBR(p.data_lancamento) : "",
                   "EAN": p.ean ?? "",
                   "Produto": p.produto ?? "",
@@ -268,7 +294,7 @@ function ClienteDetalhe() {
               </tr>
             </thead>
             <tbody>
-              {(pendProdutos ?? []).map((p, i) => (
+              {pendFiltradas.map((p, i) => (
                 <tr key={i}>
                   <td className="text-xs tabular-nums">{p.data_lancamento ? formatDateBR(p.data_lancamento) : "—"}</td>
                   <td className="text-xs text-muted-foreground tabular-nums">{p.ean || "—"}</td>
@@ -278,7 +304,7 @@ function ClienteDetalhe() {
                   <td className="text-right tabular-nums font-semibold">{formatBRL(Number(p.valor))}</td>
                 </tr>
               ))}
-              {(!pendProdutos || pendProdutos.length === 0) && (
+              {pendFiltradas.length === 0 && (
                 <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma pendência registrada.</td></tr>
               )}
             </tbody>
