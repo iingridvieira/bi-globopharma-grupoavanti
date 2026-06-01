@@ -322,7 +322,8 @@ function ImportarPage() {
         const rows = Array.from(agg.values());
         if (rows.length === 0) throw new Error("Nenhuma pendência válida encontrada.");
         if (isAnterior) {
-          const { error: delErr } = await supabase.from(tabela).delete().eq("ano", metaAno).eq("mes", metaMes);
+          const { error: delErr } = await (supabase.from(tabela).delete() as unknown as { eq: (c: string, v: number) => { eq: (c: string, v: number) => Promise<{ error: unknown }> } }).eq("ano", metaAno).eq("mes", metaMes);
+          if (delErr) throw delErr;
           if (delErr) throw delErr;
         } else {
           const { error: delErr } = await supabase.from(tabela).delete().not("id", "is", null);
