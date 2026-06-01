@@ -12,12 +12,15 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 const now = new Date();
-const ANO = now.getFullYear();
-const MES = now.getMonth() + 1;
+const ANO_ATUAL = now.getFullYear();
+const MES_ATUAL = now.getMonth() + 1;
+const MESES_BR = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 function Dashboard() {
   const { isAdmin, restrictedClientes } = useAuth();
   const queryClient = useQueryClient();
+  const [ANO, setAno] = useState(ANO_ATUAL);
+  const [MES, setMes] = useState(MES_ATUAL);
   const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
   const allowedSet = restrictedClientes ? new Set(restrictedClientes.map(norm)) : null;
 
