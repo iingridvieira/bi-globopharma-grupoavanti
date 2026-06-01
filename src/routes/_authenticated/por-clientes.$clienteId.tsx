@@ -288,7 +288,10 @@ function ClienteDetalhe() {
 
 
       {/* Mapas de vendas */}
+      {/* Mapas de Vendas + Conta Corrente lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <section className="bi-card overflow-hidden">
+
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">Mapas de Vendas</h2>
