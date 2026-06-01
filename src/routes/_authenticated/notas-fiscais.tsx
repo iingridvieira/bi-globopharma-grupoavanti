@@ -291,9 +291,21 @@ function NFsPage() {
                           e.stopPropagation();
                           const { data: itens } = await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", n.id);
                           if (!itens || itens.length === 0) { toast.error("Sem itens para exportar."); return; }
+                          const produtos = Array.from(new Set(itens.map((i) => (i.produto ?? "").trim()).filter(Boolean)));
+                          const eanMap: Record<string, string> = {};
+                          if (produtos.length > 0) {
+                            const [a, b] = await Promise.all([
+                              supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+                              supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+                            ]);
+                            [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
+                              const p = (r.produto ?? "").trim();
+                              if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
+                            });
+                          }
                           const rows = itens.map((i) => ({
                             "Data de Faturamento": formatDateBR(n.data),
-                            "EAN": i.codigo_produto ?? "",
+                            "EAN": eanMap[(i.produto ?? "").trim()] ?? "",
                             "Descrição do Produto": i.produto ?? "",
                             "Quantidade": Number(i.quantidade ?? 0),
                             "Valor": Number(i.valor_unitario ?? 0),
