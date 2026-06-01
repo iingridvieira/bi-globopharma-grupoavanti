@@ -685,6 +685,8 @@ function MultiYearSection({
 }
 
 function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number }) {
+  const { user } = useAuth();
+  const canEdit = (user?.email ?? "").toLowerCase() === "avantipharma.comercial@gmail.com";
   const qc = useQueryClient();
   const { data: rows } = useQuery({
     queryKey: ["positivacao", clienteId, ano],
