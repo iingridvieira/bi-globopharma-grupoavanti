@@ -291,9 +291,21 @@ function NFsPage() {
                           e.stopPropagation();
                           const { data: itens } = await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", n.id);
                           if (!itens || itens.length === 0) { toast.error("Sem itens para exportar."); return; }
+                          const produtos = Array.from(new Set(itens.map((i) => (i.produto ?? "").trim()).filter(Boolean)));
+                          const eanMap: Record<string, string> = {};
+                          if (produtos.length > 0) {
+                            const [a, b] = await Promise.all([
+                              supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+                              supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+                            ]);
+                            [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
+                              const p = (r.produto ?? "").trim();
+                              if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
+                            });
+                          }
                           const rows = itens.map((i) => ({
                             "Data de Faturamento": formatDateBR(n.data),
-                            "EAN": i.codigo_produto ?? "",
+                            "EAN": eanMap[(i.produto ?? "").trim()] ?? "",
                             "Descrição do Produto": i.produto ?? "",
                             "Quantidade": Number(i.quantidade ?? 0),
                             "Valor": Number(i.valor_unitario ?? 0),
@@ -332,6 +344,24 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
   });
 
   const codigos = useMemo(() => Array.from(new Set((itens ?? []).map((i) => i.codigo_produto).filter(Boolean))) as string[], [itens]);
+  const produtosItens = useMemo(() => Array.from(new Set((itens ?? []).map((i) => (i.produto ?? "").trim()).filter(Boolean))), [itens]);
+
+  const { data: eanMap } = useQuery({
+    queryKey: ["ean-by-produto", produtosItens.slice().sort().join("|")],
+    enabled: produtosItens.length > 0,
+    queryFn: async () => {
+      const out: Record<string, string> = {};
+      const [a, b] = await Promise.all([
+        supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtosItens).not("ean", "is", null),
+        supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtosItens).not("ean", "is", null),
+      ]);
+      [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
+        const p = (r.produto ?? "").trim();
+        if (p && r.ean && !out[p]) out[p] = r.ean;
+      });
+      return out;
+    },
+  });
 
   const { data: ticketMap } = useQuery({
     queryKey: ["ticket-medio", clienteId, codigos.slice().sort().join(",")],
@@ -386,7 +416,7 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
                   const tm = ticketMap?.[i.codigo_produto ?? ""];
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
-                      <td className="text-xs text-muted-foreground">{i.codigo_produto}</td>
+                      <td className="text-xs text-muted-foreground tabular-nums">{eanMap?.[(i.produto ?? "").trim()] ?? "—"}</td>
                       <td>{i.produto}</td>
                       <td className="text-right tabular-nums">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.valor_unitario)}</td>

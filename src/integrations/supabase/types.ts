@@ -370,36 +370,42 @@ export type Database = {
       }
       pendencias_anteriores_produtos: {
         Row: {
+          ano: number
           cliente_id: string
           codigo_produto: string | null
           created_at: string
           data_lancamento: string | null
           ean: string | null
           id: string
+          mes: number
           preco_unitario: number
           produto: string
           quantidade: number
           valor: number
         }
         Insert: {
+          ano: number
           cliente_id: string
           codigo_produto?: string | null
           created_at?: string
           data_lancamento?: string | null
           ean?: string | null
           id?: string
+          mes: number
           preco_unitario?: number
           produto?: string
           quantidade?: number
           valor?: number
         }
         Update: {
+          ano?: number
           cliente_id?: string
           codigo_produto?: string | null
           created_at?: string
           data_lancamento?: string | null
           ean?: string | null
           id?: string
+          mes?: number
           preco_unitario?: number
           produto?: string
           quantidade?: number

@@ -685,6 +685,8 @@ function MultiYearSection({
 }
 
 function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number }) {
+  const { user } = useAuth();
+  const canEdit = (user?.email ?? "").toLowerCase() === "avantipharma.comercial@gmail.com";
   const qc = useQueryClient();
   const { data: rows } = useQuery({
     queryKey: ["positivacao", clienteId, ano],
@@ -750,15 +752,17 @@ function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number
       <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold">Positivação · {ano}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Atualize manualmente os valores mensais.</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{canEdit ? "Atualize manualmente os valores mensais." : "Somente o usuário autorizado pode editar."}</p>
         </div>
-        <button
-          onClick={() => save.mutate()}
-          disabled={save.isPending}
-          className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 disabled:opacity-60"
-        >
-          <Save className="h-4 w-4" /> {save.isPending ? "Salvando..." : "Salvar"}
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="h-9 px-3 rounded-md bg-primary text-primary-foreground font-semibold text-xs flex items-center gap-2 disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" /> {save.isPending ? "Salvando..." : "Salvar"}
+          </button>
+        )}
       </header>
       <div className="overflow-x-auto">
         <table className="bi-table">
@@ -783,7 +787,7 @@ function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number
                       next[i] = e.target.value;
                       setTotalEdit(next);
                     }}
-                    className="w-20 bg-input border border-border rounded px-2 py-1 text-xs text-right tabular-nums"
+                    readOnly={!canEdit} disabled={!canEdit} className={"w-20 border border-border rounded px-2 py-1 text-xs text-right tabular-nums " + (canEdit ? "bg-input" : "bg-muted/30 cursor-not-allowed")}
                   />
                 </td>
               ))}
@@ -804,7 +808,7 @@ function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number
                       next[i] = e.target.value;
                       setGloboEdit(next);
                     }}
-                    className="w-20 bg-input border border-border rounded px-2 py-1 text-xs text-right tabular-nums"
+                    readOnly={!canEdit} disabled={!canEdit} className={"w-20 border border-border rounded px-2 py-1 text-xs text-right tabular-nums " + (canEdit ? "bg-input" : "bg-muted/30 cursor-not-allowed")}
                   />
                 </td>
               ))}
