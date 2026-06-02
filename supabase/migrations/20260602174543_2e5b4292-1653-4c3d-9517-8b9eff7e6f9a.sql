@@ -1,0 +1,1 @@
+DELETE FROM public.sell_out WHERE ano = 2026;
