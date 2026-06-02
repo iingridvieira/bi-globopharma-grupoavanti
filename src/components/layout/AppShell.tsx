@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Activity, LayoutDashboard, Send, FileText, TrendingUp, ShoppingCart, Users, Upload, LogOut, Sun, Moon } from "lucide-react";
+import { Activity, LayoutDashboard, Send, FileText, TrendingUp, Users, Upload, LogOut, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 
