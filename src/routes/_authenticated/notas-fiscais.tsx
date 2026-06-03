@@ -128,6 +128,24 @@ function NFsPage() {
     return s;
   }, [allowedNameSet, clientes]);
 
+  const numerosNFAll = useMemo(() => (nfs ?? []).map((n) => n.numero), [nfs]);
+  const { data: entregasMap } = useQuery({
+    queryKey: ["nf-entregas", numerosNFAll.slice().sort().join("|")],
+    enabled: numerosNFAll.length > 0,
+    queryFn: async () => {
+      const map: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
+      const BATCH = 500;
+      for (let i = 0; i < numerosNFAll.length; i += BATCH) {
+        const { data } = await supabase
+          .from("nf_entregas")
+          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
+          .in("numero", numerosNFAll.slice(i, i + BATCH));
+        (data ?? []).forEach((d) => { map[d.numero] = d; });
+      }
+      return map;
+    },
+  });
+
   const filtradas = useMemo(() => {
     const respSet = responsavel ? clientesPorResponsavel[responsavel] : null;
     return (nfs ?? []).filter((n) => {
@@ -138,27 +156,13 @@ function NFsPage() {
       }
       if (respSet && !respSet.has(n.cliente_id)) return false;
       if (allowedIdSet && !allowedIdSet.has(n.cliente_id)) return false;
+      if (statusEntrega.length > 0) {
+        const s = entregasMap?.[n.numero]?.status ?? "Não Coletada";
+        if (!statusEntrega.includes(s)) return false;
+      }
       return true;
     });
-  }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet]);
-
-  const numerosNF = useMemo(() => filtradas.map((n) => n.numero), [filtradas]);
-  const { data: entregasMap } = useQuery({
-    queryKey: ["nf-entregas", numerosNF.slice().sort().join("|")],
-    enabled: numerosNF.length > 0,
-    queryFn: async () => {
-      const map: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
-      const BATCH = 500;
-      for (let i = 0; i < numerosNF.length; i += BATCH) {
-        const { data } = await supabase
-          .from("nf_entregas")
-          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
-          .in("numero", numerosNF.slice(i, i + BATCH));
-        (data ?? []).forEach((d) => { map[d.numero] = d; });
-      }
-      return map;
-    },
-  });
+  }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet, statusEntrega, entregasMap]);
 
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
@@ -170,7 +174,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel("");
+    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]);
   }
 
 
