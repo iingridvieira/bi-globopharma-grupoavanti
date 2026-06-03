@@ -544,7 +544,7 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
                   const tm = ticketMap?.[i.codigo_produto ?? ""];
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
-                      <td className="text-xs text-muted-foreground tabular-nums">{eanMap?.[(i.produto ?? "").trim()] ?? "—"}</td>
+                      <td className="text-xs text-muted-foreground tabular-nums">{(i as { ean?: string | null }).ean ?? eanMap?.[(i.produto ?? "").trim()] ?? "—"}</td>
                       <td>{i.produto}</td>
                       <td className="text-right tabular-nums">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.valor_unitario)}</td>
