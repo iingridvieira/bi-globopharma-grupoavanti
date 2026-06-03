@@ -23,8 +23,11 @@ function normNome(s: string): string {
   return (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
+const EDITOR_ENTREGAS_EMAIL = "avantipharma.comercial@gmail.com";
+
 function NFsPage() {
-  const { restrictedClientes, canEdit } = useAuth();
+  const { restrictedClientes, user } = useAuth();
+  const canEditEntregas = (user?.email ?? "").toLowerCase() === EDITOR_ENTREGAS_EMAIL;
   const qc = useQueryClient();
   const allowedNameSet = useMemo(
     () => (restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null),
@@ -38,6 +41,7 @@ function NFsPage() {
   const [responsavel, setResponsavel] = useState<string>("");
   const [busca, setBusca] = useState("");
   const [operacoes, setOperacoes] = useState<string[]>([]);
+  const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
