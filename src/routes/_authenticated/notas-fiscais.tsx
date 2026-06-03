@@ -357,7 +357,7 @@ function NFsPage() {
                           }
                           const rows = itens.map((i) => ({
                             "Data de Faturamento": formatDateBR(n.data),
-                            "EAN": eanMap[(i.produto ?? "").trim()] ?? "",
+                            "EAN": (i as { ean?: string | null }).ean ?? eanMap[(i.produto ?? "").trim()] ?? "",
                             "Descrição do Produto": i.produto ?? "",
                             "Quantidade": Number(i.quantidade ?? 0),
                             "Valor": Number(i.valor_unitario ?? 0),
