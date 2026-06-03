@@ -24,7 +24,8 @@ function normNome(s: string): string {
 }
 
 function NFsPage() {
-  const { restrictedClientes } = useAuth();
+  const { restrictedClientes, canEdit } = useAuth();
+  const qc = useQueryClient();
   const allowedNameSet = useMemo(
     () => (restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null),
     [restrictedClientes],
