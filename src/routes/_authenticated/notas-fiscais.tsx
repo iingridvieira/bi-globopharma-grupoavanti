@@ -248,6 +248,14 @@ function NFsPage() {
             onChange={setOperacoes}
           />
 
+          <MultiSelect
+            width={200}
+            placeholder="Status entrega"
+            options={STATUS_OPCOES.map((s) => ({ value: s, label: s }))}
+            selected={statusEntrega}
+            onChange={setStatusEntrega}
+          />
+
           <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
             <option value="">Representantes</option>
             <option value="Alexandre">Alexandre</option>
@@ -255,7 +263,7 @@ function NFsPage() {
             <option value="Paulo">Paulo</option>
           </select>
 
-          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel) && (
+          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel || statusEntrega.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
