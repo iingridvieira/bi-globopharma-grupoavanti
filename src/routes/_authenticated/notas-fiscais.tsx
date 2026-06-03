@@ -557,7 +557,6 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
                   <th className="text-right">Qtd</th>
                   <th className="text-right">V. Unit</th>
                   <th className="text-right">Ticket Médio</th>
-                  <th className="text-right">Desc.</th>
                   <th className="text-right">Total</th>
                 </tr>
               </thead>
@@ -565,14 +564,14 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
                 {itens.map((i) => {
                   const hit = match(i.produto ?? "") || match(i.codigo_produto ?? "");
                   const tm = ticketMap?.[i.codigo_produto ?? ""];
+                  const eanShow = eanMap?.[(i.produto ?? "").trim()] ?? (i as { ean?: string | null }).ean ?? "—";
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
-                      <td className="text-xs text-muted-foreground tabular-nums">{(i as { ean?: string | null }).ean ?? eanMap?.[(i.produto ?? "").trim()] ?? "—"}</td>
+                      <td className="text-xs text-muted-foreground tabular-nums">{eanShow}</td>
                       <td>{i.produto}</td>
                       <td className="text-right tabular-nums">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.valor_unitario)}</td>
                       <td className="text-right tabular-nums text-muted-foreground">{tm != null ? formatBRL(tm) : "—"}</td>
-                      <td className="text-right tabular-nums">{formatBRL(i.desconto)}</td>
                       <td className="text-right tabular-nums font-semibold">{formatBRL(i.valor_total)}</td>
                     </tr>
                   );
