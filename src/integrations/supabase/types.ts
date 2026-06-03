@@ -105,6 +105,7 @@ export type Database = {
         Row: {
           codigo_produto: string | null
           desconto: number
+          ean: string | null
           id: string
           nota_fiscal_id: string
           produto: string
@@ -115,6 +116,7 @@ export type Database = {
         Insert: {
           codigo_produto?: string | null
           desconto?: number
+          ean?: string | null
           id?: string
           nota_fiscal_id: string
           produto: string
@@ -125,6 +127,7 @@ export type Database = {
         Update: {
           codigo_produto?: string | null
           desconto?: number
+          ean?: string | null
           id?: string
           nota_fiscal_id?: string
           produto?: string
