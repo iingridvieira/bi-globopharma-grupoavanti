@@ -248,6 +248,78 @@ export type Database = {
           },
         ]
       }
+      nf_entregas: {
+        Row: {
+          created_at: string
+          data_agendamento: string | null
+          data_entrega: string | null
+          id: string
+          numero: string
+          observacao: string | null
+          previsao_entrega: string | null
+          status: string
+          transportadora: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_agendamento?: string | null
+          data_entrega?: string | null
+          id?: string
+          numero: string
+          observacao?: string | null
+          previsao_entrega?: string | null
+          status?: string
+          transportadora?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_agendamento?: string | null
+          data_entrega?: string | null
+          id?: string
+          numero?: string
+          observacao?: string | null
+          previsao_entrega?: string | null
+          status?: string
+          transportadora?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      nf_entregas_importacoes: {
+        Row: {
+          arquivo: string | null
+          atualizadas: number
+          created_at: string
+          created_by: string | null
+          id: string
+          novas: number
+          total_linhas: number
+        }
+        Insert: {
+          arquivo?: string | null
+          atualizadas?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          novas?: number
+          total_linhas?: number
+        }
+        Update: {
+          arquivo?: string | null
+          atualizadas?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          novas?: number
+          total_linhas?: number
+        }
+        Relationships: []
+      }
       notas_fiscais: {
         Row: {
           cliente_id: string
