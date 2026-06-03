@@ -603,7 +603,8 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     const qtd = rowToBRNumber(
       pickCol(r, "Faturado (VOL)", "Soma de Faturado (VOL)", "Faturado VOL", "Soma de Faturado VOL", "Quantidade", "Qtd", "VOL"),
     );
-    const cod = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN", "EAN") ?? "").trim();
+    const cod = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN") ?? "").trim();
+    const ean = String(pickCol(r, "EAN", "Código de Barras", "Codigo de Barras", "Cód EAN", "Cod EAN", "Cód. EAN", "Cod. EAN", "Barcode") ?? "").trim() || null;
     const desc = String(pickCol(r, "Descrição", "Descricao", "Produto") ?? "").trim();
 
     if (!numero || !dataISO || !rs) {
@@ -625,6 +626,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     agg.itens.push({
       codigo_produto: cod,
       produto: desc,
+      ean,
       quantidade: qtd,
       valor_unitario: qtd > 0 ? valor / qtd : valor,
       valor_total: valor,
