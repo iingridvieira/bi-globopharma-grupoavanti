@@ -647,26 +647,45 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     return `Nenhuma NF válida encontrada. ${puladas} linhas puladas (verifique colunas Data, NF, Cliente).`;
   }
 
-  // Catálogo de EAN da própria planilha: codigo_produto -> ean e produto -> ean.
-  const eanByCodigo = new Map<string, string>();
+  // Catálogo de EAN por NOME do produto (prioridade) e por código, da própria planilha.
   const eanByProduto = new Map<string, string>();
+  const eanByCodigo = new Map<string, string>();
   for (const n of nfsArr) {
     for (const it of n.itens) {
       if (it.ean) {
-        if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) eanByCodigo.set(it.codigo_produto, it.ean);
         if (it.produto && !eanByProduto.has(it.produto)) eanByProduto.set(it.produto, it.ean);
+        if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) eanByCodigo.set(it.codigo_produto, it.ean);
       }
     }
   }
 
-  // Cruza com a base atual para preencher EANs faltantes a partir de itens já cadastrados.
+  // Cruza com a base atual para preencher EANs faltantes (por nome e por código).
+  const produtosFaltando = new Set<string>();
   const codigosFaltando = new Set<string>();
   for (const n of nfsArr) for (const it of n.itens) {
-    if (!it.ean && it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) codigosFaltando.add(it.codigo_produto);
+    if (!it.ean) {
+      if (it.produto && !eanByProduto.has(it.produto)) produtosFaltando.add(it.produto);
+      if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) codigosFaltando.add(it.codigo_produto);
+    }
+  }
+  const CHUNK = 200;
+  if (produtosFaltando.size > 0) {
+    const arr = Array.from(produtosFaltando);
+    for (let i = 0; i < arr.length; i += CHUNK) {
+      const slice = arr.slice(i, i + CHUNK);
+      const [a, b, c] = await Promise.all([
+        supabase.from("itens_nf").select("produto,ean").not("ean", "is", null).in("produto", slice),
+        supabase.from("pendencias_produtos").select("produto,ean").not("ean", "is", null).in("produto", slice),
+        supabase.from("pendencias_anteriores_produtos").select("produto,ean").not("ean", "is", null).in("produto", slice),
+      ]);
+      [...(a.data ?? []), ...(b.data ?? []), ...(c.data ?? [])].forEach((e: { produto: string | null; ean: string | null }) => {
+        const p = (e.produto ?? "").trim();
+        if (p && e.ean && !eanByProduto.has(p)) eanByProduto.set(p, e.ean);
+      });
+    }
   }
   if (codigosFaltando.size > 0) {
     const arr = Array.from(codigosFaltando);
-    const CHUNK = 200;
     for (let i = 0; i < arr.length; i += CHUNK) {
       const { data: existentes } = await supabase
         .from("itens_nf")
@@ -681,13 +700,30 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     }
   }
 
-  // Aplica o catálogo às linhas sem EAN.
+  // Aplica catálogo: prioridade NOME do produto, depois código.
   for (const n of nfsArr) for (const it of n.itens) {
     if (!it.ean) {
-      const porCod = it.codigo_produto ? eanByCodigo.get(it.codigo_produto) : undefined;
       const porProd = it.produto ? eanByProduto.get(it.produto) : undefined;
-      it.ean = porCod ?? porProd ?? null;
+      const porCod = it.codigo_produto ? eanByCodigo.get(it.codigo_produto) : undefined;
+      it.ean = porProd ?? porCod ?? null;
     }
+  }
+
+  // Deduplica itens dentro da mesma NF (mesmo código + produto + EAN): soma quantidade e valor.
+  for (const n of nfsArr) {
+    const dedup = new Map<string, NFAgg["itens"][number]>();
+    for (const it of n.itens) {
+      const k = `${it.codigo_produto}|${(it.produto ?? "").trim()}|${it.ean ?? ""}`;
+      const cur = dedup.get(k);
+      if (!cur) {
+        dedup.set(k, { ...it });
+      } else {
+        cur.quantidade += it.quantidade;
+        cur.valor_total += it.valor_total;
+        cur.valor_unitario = cur.quantidade > 0 ? cur.valor_total / cur.quantidade : cur.valor_unitario;
+      }
+    }
+    n.itens = Array.from(dedup.values());
   }
 
   // Upsert NFs em lotes de 500
@@ -711,7 +747,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     (nfsRet ?? []).forEach((n) => idByNumero.set(n.numero, n.id));
   }
 
-  // Limpa itens antigos das NFs reimportadas (em lotes)
+  // Limpa itens antigos das NFs reimportadas (em lotes) — evita duplicação ao reimportar.
   const allNfIds = Array.from(idByNumero.values()).filter(Boolean) as string[];
   for (let i = 0; i < allNfIds.length; i += BATCH) {
     await supabase
