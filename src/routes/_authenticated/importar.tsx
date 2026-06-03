@@ -647,6 +647,49 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     return `Nenhuma NF válida encontrada. ${puladas} linhas puladas (verifique colunas Data, NF, Cliente).`;
   }
 
+  // Catálogo de EAN da própria planilha: codigo_produto -> ean e produto -> ean.
+  const eanByCodigo = new Map<string, string>();
+  const eanByProduto = new Map<string, string>();
+  for (const n of nfsArr) {
+    for (const it of n.itens) {
+      if (it.ean) {
+        if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) eanByCodigo.set(it.codigo_produto, it.ean);
+        if (it.produto && !eanByProduto.has(it.produto)) eanByProduto.set(it.produto, it.ean);
+      }
+    }
+  }
+
+  // Cruza com a base atual para preencher EANs faltantes a partir de itens já cadastrados.
+  const codigosFaltando = new Set<string>();
+  for (const n of nfsArr) for (const it of n.itens) {
+    if (!it.ean && it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) codigosFaltando.add(it.codigo_produto);
+  }
+  if (codigosFaltando.size > 0) {
+    const arr = Array.from(codigosFaltando);
+    const CHUNK = 200;
+    for (let i = 0; i < arr.length; i += CHUNK) {
+      const { data: existentes } = await supabase
+        .from("itens_nf")
+        .select("codigo_produto,ean")
+        .not("ean", "is", null)
+        .in("codigo_produto", arr.slice(i, i + CHUNK));
+      (existentes ?? []).forEach((e) => {
+        const cod = e.codigo_produto as string | null;
+        const ean = e.ean as string | null;
+        if (cod && ean && !eanByCodigo.has(cod)) eanByCodigo.set(cod, ean);
+      });
+    }
+  }
+
+  // Aplica o catálogo às linhas sem EAN.
+  for (const n of nfsArr) for (const it of n.itens) {
+    if (!it.ean) {
+      const porCod = it.codigo_produto ? eanByCodigo.get(it.codigo_produto) : undefined;
+      const porProd = it.produto ? eanByProduto.get(it.produto) : undefined;
+      it.ean = porCod ?? porProd ?? null;
+    }
+  }
+
   // Upsert NFs em lotes de 500
   const BATCH = 500;
   const idByNumero = new Map<string, string>();
