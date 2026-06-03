@@ -23,8 +23,11 @@ function normNome(s: string): string {
   return (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
+const EDITOR_ENTREGAS_EMAIL = "avantipharma.comercial@gmail.com";
+
 function NFsPage() {
-  const { restrictedClientes, canEdit } = useAuth();
+  const { restrictedClientes, user } = useAuth();
+  const canEditEntregas = (user?.email ?? "").toLowerCase() === EDITOR_ENTREGAS_EMAIL;
   const qc = useQueryClient();
   const allowedNameSet = useMemo(
     () => (restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null),
@@ -38,6 +41,7 @@ function NFsPage() {
   const [responsavel, setResponsavel] = useState<string>("");
   const [busca, setBusca] = useState("");
   const [operacoes, setOperacoes] = useState<string[]>([]);
+  const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
@@ -124,6 +128,24 @@ function NFsPage() {
     return s;
   }, [allowedNameSet, clientes]);
 
+  const numerosNFAll = useMemo(() => (nfs ?? []).map((n) => n.numero), [nfs]);
+  const { data: entregasMap } = useQuery({
+    queryKey: ["nf-entregas", numerosNFAll.slice().sort().join("|")],
+    enabled: numerosNFAll.length > 0,
+    queryFn: async () => {
+      const map: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
+      const BATCH = 500;
+      for (let i = 0; i < numerosNFAll.length; i += BATCH) {
+        const { data } = await supabase
+          .from("nf_entregas")
+          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
+          .in("numero", numerosNFAll.slice(i, i + BATCH));
+        (data ?? []).forEach((d) => { map[d.numero] = d; });
+      }
+      return map;
+    },
+  });
+
   const filtradas = useMemo(() => {
     const respSet = responsavel ? clientesPorResponsavel[responsavel] : null;
     return (nfs ?? []).filter((n) => {
@@ -134,27 +156,13 @@ function NFsPage() {
       }
       if (respSet && !respSet.has(n.cliente_id)) return false;
       if (allowedIdSet && !allowedIdSet.has(n.cliente_id)) return false;
+      if (statusEntrega.length > 0) {
+        const s = entregasMap?.[n.numero]?.status ?? "Não Coletada";
+        if (!statusEntrega.includes(s)) return false;
+      }
       return true;
     });
-  }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet]);
-
-  const numerosNF = useMemo(() => filtradas.map((n) => n.numero), [filtradas]);
-  const { data: entregasMap } = useQuery({
-    queryKey: ["nf-entregas", numerosNF.slice().sort().join("|")],
-    enabled: numerosNF.length > 0,
-    queryFn: async () => {
-      const map: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
-      const BATCH = 500;
-      for (let i = 0; i < numerosNF.length; i += BATCH) {
-        const { data } = await supabase
-          .from("nf_entregas")
-          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
-          .in("numero", numerosNF.slice(i, i + BATCH));
-        (data ?? []).forEach((d) => { map[d.numero] = d; });
-      }
-      return map;
-    },
-  });
+  }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet, statusEntrega, entregasMap]);
 
 
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
@@ -166,7 +174,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel("");
+    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]);
   }
 
 
@@ -240,6 +248,14 @@ function NFsPage() {
             onChange={setOperacoes}
           />
 
+          <MultiSelect
+            width={200}
+            placeholder="Status entrega"
+            options={STATUS_OPCOES.map((s) => ({ value: s, label: s }))}
+            selected={statusEntrega}
+            onChange={setStatusEntrega}
+          />
+
           <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
             <option value="">Representantes</option>
             <option value="Alexandre">Alexandre</option>
@@ -247,7 +263,7 @@ function NFsPage() {
             <option value="Paulo">Paulo</option>
           </select>
 
-          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel) && (
+          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel || statusEntrega.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
@@ -308,12 +324,12 @@ function NFsPage() {
                       <StatusEntregaBadge
                         numero={n.numero}
                         status={statusAtual}
-                        canEdit={canEdit}
+                        canEdit={canEditEntregas}
                         onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
                       />
                     </td>
                     <td className="text-center text-sm">
-                      {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">Não Coletada</span>}
+                      {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="text-center">
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
