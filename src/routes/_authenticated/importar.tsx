@@ -684,8 +684,9 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
   // Aplica o catálogo às linhas sem EAN.
   for (const n of nfsArr) for (const it of n.itens) {
     if (!it.ean) {
-      it.ean = (it.codigo_produto ? eanByCodigo.get(it.codigo_produto) ?? null : null)
-        ?? (it.produto ? eanByProduto.get(it.produto) ?? null : null);
+      const porCod = it.codigo_produto ? eanByCodigo.get(it.codigo_produto) : undefined;
+      const porProd = it.produto ? eanByProduto.get(it.produto) : undefined;
+      it.ean = porCod ?? porProd ?? null;
     }
   }
 
