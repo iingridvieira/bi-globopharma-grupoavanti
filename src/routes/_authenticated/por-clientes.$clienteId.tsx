@@ -10,14 +10,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { MultiSelect } from "@/components/MultiSelect";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-const MAPAS_UPLOAD_EMAIL = "avantipharma.comercial@gmail.com";
+const ALL_KEY = "ALL";
 const ALL = "ALL" as const;
 
 export const Route = createFileRoute("/_authenticated/por-clientes/$clienteId")({ component: ClienteDetalhe });
 
 function ClienteDetalhe() {
   const { clienteId } = Route.useParams();
-  const { user, restrictedClientes } = useAuth();
+  const { user, restrictedClientes, canEdit: globalCanEdit } = useAuth();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
@@ -25,7 +25,7 @@ function ClienteDetalhe() {
   const fileInput = useRef<HTMLInputElement>(null);
   const ccInput = useRef<HTMLInputElement>(null);
 
-  const canUploadMapas = (user?.email ?? "").toLowerCase() === MAPAS_UPLOAD_EMAIL;
+  const canUploadMapas = globalCanEdit;
 
   const { data: cliente } = useQuery({
     queryKey: ["cliente", clienteId],
@@ -685,8 +685,7 @@ function MultiYearSection({
 }
 
 function PositivacaoSection({ clienteId, ano }: { clienteId: string; ano: number }) {
-  const { user } = useAuth();
-  const canEdit = (user?.email ?? "").toLowerCase() === "avantipharma.comercial@gmail.com";
+  const { canEdit } = useAuth();
   const qc = useQueryClient();
   const { data: rows } = useQuery({
     queryKey: ["positivacao", clienteId, ano],
