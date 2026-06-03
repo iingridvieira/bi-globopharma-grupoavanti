@@ -299,6 +299,7 @@ function NFsPage() {
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
               <th className="text-center">Status Entrega</th>
+              <th className="text-center">Lead Time</th>
               <th className="text-center">Data Entrega</th>
               <th className="text-center">Operação</th>
               <th className="text-right">Valor</th>
@@ -306,13 +307,26 @@ function NFsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={9} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
+            {isLoading && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
               const entrega = entregasMap?.[n.numero];
               const dataExibida = entrega?.data_entrega ?? entrega?.data_agendamento ?? entrega?.previsao_entrega ?? null;
               const statusAtual = entrega?.status ?? "Não Coletada";
+              const leadDays = (() => {
+                if (!dataExibida || !n.data) return null;
+                const ms = new Date(dataExibida).getTime() - new Date(n.data).getTime();
+                if (!Number.isFinite(ms)) return null;
+                return Math.round(ms / 86400000);
+              })();
+              const leadCls = leadDays == null
+                ? "text-muted-foreground"
+                : leadDays <= 10
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : leadDays <= 15
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    : "bg-red-500/20 text-red-400 border border-red-500/30";
               return (
                 <>
                   <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
@@ -327,6 +341,15 @@ function NFsPage() {
                         canEdit={canEditEntregas}
                         onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
                       />
+                    </td>
+                    <td className="text-center">
+                      {leadDays == null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold tabular-nums ${leadCls}`}>
+                          {leadDays} {leadDays === 1 ? "dia" : "dias"}
+                        </span>
+                      )}
                     </td>
                     <td className="text-center text-sm">
                       {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">—</span>}
@@ -376,10 +399,10 @@ function NFsPage() {
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && filtradas.length === 0 && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
-            <tr><td colSpan={7}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
+            <tr><td colSpan={8}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
           </tfoot>
         </table>
       </div>
@@ -521,7 +544,7 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
 
   return (
     <tr>
-      <td colSpan={9} className="bg-muted/30 p-0">
+      <td colSpan={10} className="bg-muted/30 p-0">
         <div className="px-6 py-4">
           <div className="bi-stat-label mb-2">Itens da NF</div>
           {isLoading && <div className="text-sm text-muted-foreground py-2">Carregando…</div>}
@@ -534,7 +557,6 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
                   <th className="text-right">Qtd</th>
                   <th className="text-right">V. Unit</th>
                   <th className="text-right">Ticket Médio</th>
-                  <th className="text-right">Desc.</th>
                   <th className="text-right">Total</th>
                 </tr>
               </thead>
@@ -542,14 +564,14 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
                 {itens.map((i) => {
                   const hit = match(i.produto ?? "") || match(i.codigo_produto ?? "");
                   const tm = ticketMap?.[i.codigo_produto ?? ""];
+                  const eanShow = eanMap?.[(i.produto ?? "").trim()] ?? (i as { ean?: string | null }).ean ?? "—";
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
-                      <td className="text-xs text-muted-foreground tabular-nums">{(i as { ean?: string | null }).ean ?? eanMap?.[(i.produto ?? "").trim()] ?? "—"}</td>
+                      <td className="text-xs text-muted-foreground tabular-nums">{eanShow}</td>
                       <td>{i.produto}</td>
                       <td className="text-right tabular-nums">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
                       <td className="text-right tabular-nums">{formatBRL(i.valor_unitario)}</td>
                       <td className="text-right tabular-nums text-muted-foreground">{tm != null ? formatBRL(tm) : "—"}</td>
-                      <td className="text-right tabular-nums">{formatBRL(i.desconto)}</td>
                       <td className="text-right tabular-nums font-semibold">{formatBRL(i.valor_total)}</td>
                     </tr>
                   );
