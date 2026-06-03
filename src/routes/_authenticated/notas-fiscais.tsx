@@ -138,6 +138,25 @@ function NFsPage() {
     });
   }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet]);
 
+  const numerosNF = useMemo(() => filtradas.map((n) => n.numero), [filtradas]);
+  const { data: entregasMap } = useQuery({
+    queryKey: ["nf-entregas", numerosNF.slice().sort().join("|")],
+    enabled: numerosNF.length > 0,
+    queryFn: async () => {
+      const map: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
+      const BATCH = 500;
+      for (let i = 0; i < numerosNF.length; i += BATCH) {
+        const { data } = await supabase
+          .from("nf_entregas")
+          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
+          .in("numero", numerosNF.slice(i, i + BATCH));
+        (data ?? []).forEach((d) => { map[d.numero] = d; });
+      }
+      return map;
+    },
+  });
+
+
   const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
   const totalBonif = useMemo(() => filtradas.filter((n) => Number(n.valor) <= 0).length, [filtradas]);
