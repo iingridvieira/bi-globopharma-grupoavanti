@@ -399,10 +399,10 @@ function NFsPage() {
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && filtradas.length === 0 && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
-            <tr><td colSpan={7}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
+            <tr><td colSpan={8}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
           </tfoot>
         </table>
       </div>
