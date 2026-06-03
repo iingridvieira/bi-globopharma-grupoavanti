@@ -544,7 +544,7 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
 
   return (
     <tr>
-      <td colSpan={9} className="bg-muted/30 p-0">
+      <td colSpan={10} className="bg-muted/30 p-0">
         <div className="px-6 py-4">
           <div className="bi-stat-label mb-2">Itens da NF</div>
           {isLoading && <div className="text-sm text-muted-foreground py-2">Carregando…</div>}
