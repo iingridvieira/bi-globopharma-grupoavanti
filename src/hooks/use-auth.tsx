@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 const EDUARDO_EMAIL = "avantipharma.comercial2@gmail.com";
 const EDUARDO_CLIENTES = [
-  "CAMPEÃ", "CG MEDICAMENTOS", "DF DISTRIBUIDORA", "FARMA CONDE", "MEDLOG",
+  "CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "DF DISTRIBUIDORA", "FARMA CONDE", "MEDLOG",
 ];
 
 export function AuthProvider({ children }: { children: ReactNode }) {

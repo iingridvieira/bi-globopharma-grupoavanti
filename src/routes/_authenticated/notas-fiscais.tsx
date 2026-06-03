@@ -354,11 +354,7 @@ function NFsPage() {
                     <td className="text-center text-sm">
                       {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
-                        isVenda ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                      }`}>{isVenda ? "Venda" : "Bonificação"}</span>
-                    </td>
+                    <td className="text-center">{isVenda ? "Venda" : "Bonificação"}</td>
                     <td className="text-right tabular-nums">{formatBRL(n.valor)}</td>
                     <td className="text-right">
                       <button
