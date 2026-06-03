@@ -339,6 +339,8 @@ function ImportarPage() {
         resumoTxt = isAnterior
           ? `${rows.length} ${label} importados para ${String(metaMes).padStart(2, "0")}/${metaAno}.`
           : `${rows.length} ${label} importados (base substituída).`;
+      } else if (tipo === "entregas") {
+        resumoTxt = await processEntregas(firstSheet);
       }
       setResumo(resumoTxt);
       toast.success(resumoTxt);
