@@ -307,7 +307,7 @@ function NFsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={9} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
+            {isLoading && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
