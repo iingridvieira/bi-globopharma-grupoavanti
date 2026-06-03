@@ -299,6 +299,7 @@ function NFsPage() {
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
               <th className="text-center">Status Entrega</th>
+              <th className="text-center">Lead Time</th>
               <th className="text-center">Data Entrega</th>
               <th className="text-center">Operação</th>
               <th className="text-right">Valor</th>
