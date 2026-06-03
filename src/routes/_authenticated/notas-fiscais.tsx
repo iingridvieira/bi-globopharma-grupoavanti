@@ -282,16 +282,21 @@ function NFsPage() {
             <tr>
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
+              <th className="text-center">Status Entrega</th>
+              <th className="text-center">Data Entrega</th>
               <th className="text-center">Operação</th>
               <th className="text-right">Valor</th>
               <th style={{ width: 60 }}></th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
+            {isLoading && <tr><td colSpan={9} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
+              const entrega = entregasMap?.[n.numero];
+              const dataExibida = entrega?.data_entrega ?? entrega?.data_agendamento ?? entrega?.previsao_entrega ?? null;
+              const statusAtual = entrega?.status ?? "Não Coletada";
               return (
                 <>
                   <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
@@ -299,6 +304,17 @@ function NFsPage() {
                     <td>{formatDateBR(n.data)}</td>
                     <td className="font-medium text-primary">{n.numero}</td>
                     <td>{n.clientes?.nome ?? "—"}</td>
+                    <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                      <StatusEntregaBadge
+                        numero={n.numero}
+                        status={statusAtual}
+                        canEdit={canEdit}
+                        onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
+                      />
+                    </td>
+                    <td className="text-center text-sm">
+                      {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">Não Coletada</span>}
+                    </td>
                     <td className="text-center">
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
                         isVenda ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
@@ -344,10 +360,10 @@ function NFsPage() {
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && filtradas.length === 0 && <tr><td colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
-            <tr><td colSpan={5}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
+            <tr><td colSpan={7}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
           </tfoot>
         </table>
       </div>
