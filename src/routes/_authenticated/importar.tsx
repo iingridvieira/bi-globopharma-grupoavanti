@@ -12,9 +12,9 @@ import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
 
 
-type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores";
+type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores" | "entregas";
 
-type ColorKey = "primary" | "accent" | "success" | "warning" | "destructive" | "blue";
+type ColorKey = "primary" | "accent" | "success" | "warning" | "destructive" | "blue" | "purple";
 
 const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[] = [
   {
@@ -52,6 +52,12 @@ const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[]
     label: "Pendência Anterior",
     desc: "Mesmo formato da Pendência. Substitui a base atual de pendência anterior.",
     color: "blue",
+  },
+  {
+    key: "entregas",
+    label: "Planilha de Entregas",
+    desc: "Cruza por NÚMERO da NF. Atualiza datas (entrega, agendamento, previsão) e status (Entregue, Agendada, Com Previsão, Não Coletada, Extraviada) sem alterar a NF original.",
+    color: "purple",
   },
 ];
 
