@@ -436,6 +436,7 @@ function ImportarPage() {
             warning: { text: "text-warning", border: "border-warning", glow: "oklch(0.70 0.16 80 / 0.5)" },
             destructive: { text: "text-destructive", border: "border-destructive", glow: "oklch(0.58 0.22 28 / 0.5)" },
             blue: { text: "text-[#3b82f6]", border: "border-[#3b82f6]", glow: "rgba(59,130,246,0.5)" },
+            purple: { text: "text-[#a855f7]", border: "border-[#a855f7]", glow: "rgba(168,85,247,0.5)" },
           };
           const c = colorMap[t.color];
           const selected = tipo === t.key;
