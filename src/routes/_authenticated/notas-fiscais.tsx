@@ -314,6 +314,19 @@ function NFsPage() {
               const entrega = entregasMap?.[n.numero];
               const dataExibida = entrega?.data_entrega ?? entrega?.data_agendamento ?? entrega?.previsao_entrega ?? null;
               const statusAtual = entrega?.status ?? "Não Coletada";
+              const leadDays = (() => {
+                if (!dataExibida || !n.data) return null;
+                const ms = new Date(dataExibida).getTime() - new Date(n.data).getTime();
+                if (!Number.isFinite(ms)) return null;
+                return Math.round(ms / 86400000);
+              })();
+              const leadCls = leadDays == null
+                ? "text-muted-foreground"
+                : leadDays <= 10
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : leadDays <= 15
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                    : "bg-red-500/20 text-red-400 border border-red-500/30";
               return (
                 <>
                   <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
@@ -328,6 +341,15 @@ function NFsPage() {
                         canEdit={canEditEntregas}
                         onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
                       />
+                    </td>
+                    <td className="text-center">
+                      {leadDays == null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold tabular-nums ${leadCls}`}>
+                          {leadDays} {leadDays === 1 ? "dia" : "dias"}
+                        </span>
+                      )}
                     </td>
                     <td className="text-center text-sm">
                       {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">—</span>}
