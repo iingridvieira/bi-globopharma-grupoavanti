@@ -102,10 +102,19 @@ function ClienteDetalhe() {
       (await supabase.from("mapas_vendas_arquivos").select("*").eq("cliente_id", clienteId).order("created_at", { ascending: false })).data ?? [],
   });
 
+  const sanitizeFilename = (name: string) =>
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9._-]+/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
   const upload = useMutation({
     mutationFn: async (files: FileList) => {
       for (const f of Array.from(files)) {
-        const path = `${clienteId}/${Date.now()}-${f.name}`;
+        const safe = sanitizeFilename(f.name) || "arquivo";
+        const path = `${clienteId}/${Date.now()}-${safe}`;
         const { error: upErr } = await supabase.storage.from("mapas-vendas").upload(path, f);
         if (upErr) throw upErr;
         const { data: userData } = await supabase.auth.getUser();
@@ -139,7 +148,8 @@ function ClienteDetalhe() {
   const uploadCC = useMutation({
     mutationFn: async (files: FileList) => {
       for (const f of Array.from(files)) {
-        const path = `${clienteId}/${Date.now()}-${f.name}`;
+        const safe = sanitizeFilename(f.name) || "arquivo";
+        const path = `${clienteId}/${Date.now()}-${safe}`;
         const { error: upErr } = await supabase.storage.from("conta-corrente").upload(path, f);
         if (upErr) throw upErr;
         const { data: userData } = await supabase.auth.getUser();
