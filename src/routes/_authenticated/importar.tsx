@@ -570,6 +570,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     itens: Array<{
       codigo_produto: string;
       produto: string;
+      ean: string | null;
       quantidade: number;
       valor_unitario: number;
       valor_total: number;
