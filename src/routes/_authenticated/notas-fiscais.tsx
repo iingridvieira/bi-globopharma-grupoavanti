@@ -373,6 +373,82 @@ function NFsPage() {
   );
 }
 
+const STATUS_OPCOES = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada"] as const;
+
+function statusClasses(s: string): string {
+  switch (s) {
+    case "Entregue": return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+    case "Agendada": return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+    case "Com Previsão": return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+    case "Extraviada": return "bg-red-500/20 text-red-400 border border-red-500/30";
+    default: return "bg-muted text-muted-foreground border border-border";
+  }
+}
+
+function StatusEntregaBadge({
+  numero, status, canEdit, onChanged,
+}: { numero: string; status: string; canEdit: boolean; onChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  async function change(novo: string) {
+    setSaving(true);
+    try {
+      const { data: existing } = await supabase.from("nf_entregas").select("id").eq("numero", numero).maybeSingle();
+      if (existing) {
+        const { error } = await supabase.from("nf_entregas").update({ status: novo } as never).eq("numero", numero);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("nf_entregas").insert({ numero, status: novo } as never);
+        if (error) throw error;
+      }
+      toast.success("Status atualizado");
+      onChanged();
+      setOpen(false);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao atualizar status");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!canEdit) {
+    return <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${statusClasses(status)}`}>{status}</span>;
+  }
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={saving}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider cursor-pointer hover:opacity-80 ${statusClasses(status)}`}
+        title="Clique para alterar"
+      >
+        {status}
+        <ChevronDown className="h-3 w-3 opacity-60" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute z-50 mt-1 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md shadow-lg overflow-hidden min-w-[160px]">
+            {STATUS_OPCOES.map((s) => (
+              <button
+                key={s}
+                onClick={() => change(s)}
+                disabled={saving}
+                className={`block w-full text-left px-3 py-2 text-xs hover:bg-muted ${s === status ? "font-semibold text-primary" : ""}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: string; highlight?: string }) {
   const { data: itens, isLoading } = useQuery({
     queryKey: ["nf-itens", nfId],
