@@ -324,12 +324,12 @@ function NFsPage() {
                       <StatusEntregaBadge
                         numero={n.numero}
                         status={statusAtual}
-                        canEdit={canEdit}
+                        canEdit={canEditEntregas}
                         onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
                       />
                     </td>
                     <td className="text-center text-sm">
-                      {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">Não Coletada</span>}
+                      {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="text-center">
                       <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
