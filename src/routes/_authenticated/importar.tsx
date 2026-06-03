@@ -12,9 +12,9 @@ import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
 
 
-type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores";
+type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores" | "entregas";
 
-type ColorKey = "primary" | "accent" | "success" | "warning" | "destructive" | "blue";
+type ColorKey = "primary" | "accent" | "success" | "warning" | "destructive" | "blue" | "purple";
 
 const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[] = [
   {
@@ -52,6 +52,12 @@ const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[]
     label: "Pendência Anterior",
     desc: "Mesmo formato da Pendência. Substitui a base atual de pendência anterior.",
     color: "blue",
+  },
+  {
+    key: "entregas",
+    label: "Planilha de Entregas",
+    desc: "Cruza por NÚMERO da NF. Atualiza datas (entrega, agendamento, previsão) e status (Entregue, Agendada, Com Previsão, Não Coletada, Extraviada) sem alterar a NF original.",
+    color: "purple",
   },
 ];
 
@@ -333,6 +339,8 @@ function ImportarPage() {
         resumoTxt = isAnterior
           ? `${rows.length} ${label} importados para ${String(metaMes).padStart(2, "0")}/${metaAno}.`
           : `${rows.length} ${label} importados (base substituída).`;
+      } else if (tipo === "entregas") {
+        resumoTxt = await processEntregas(firstSheet, file.name);
       }
       setResumo(resumoTxt);
       toast.success(resumoTxt);
@@ -430,6 +438,7 @@ function ImportarPage() {
             warning: { text: "text-warning", border: "border-warning", glow: "oklch(0.70 0.16 80 / 0.5)" },
             destructive: { text: "text-destructive", border: "border-destructive", glow: "oklch(0.58 0.22 28 / 0.5)" },
             blue: { text: "text-[#3b82f6]", border: "border-[#3b82f6]", glow: "rgba(59,130,246,0.5)" },
+            purple: { text: "text-[#a855f7]", border: "border-[#a855f7]", glow: "rgba(168,85,247,0.5)" },
           };
           const c = colorMap[t.color];
           const selected = tipo === t.key;
@@ -724,4 +733,113 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
 
   const aviso = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
   return `${nfsArr.length} NFs · ${itensRows.length} itens · ${sellInRecalc.length} períodos sell in recalculados (dados existentes preservados)${aviso}.`;
+}
+
+/**
+ * Importa planilha de Entregas. Cruza por NÚMERO da NF e atualiza apenas
+ * informações logísticas (não toca em notas_fiscais nem itens). Status é
+ * inferido das datas presentes; "Extraviada" tem prioridade quando indicada.
+ */
+async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<string> {
+  type EntregaRow = {
+    numero: string;
+    data_entrega: string | null;
+    data_agendamento: string | null;
+    previsao_entrega: string | null;
+    status: string;
+    transportadora: string | null;
+    observacao: string | null;
+  };
+
+  function inferirStatus(args: {
+    extraviada: boolean;
+    data_entrega: string | null;
+    data_agendamento: string | null;
+    previsao_entrega: string | null;
+  }): string {
+    if (args.extraviada) return "Extraviada";
+    if (args.data_entrega) return "Entregue";
+    if (args.data_agendamento) return "Agendada";
+    if (args.previsao_entrega) return "Com Previsão";
+    return "Não Coletada";
+  }
+
+  const norm = (s: unknown) =>
+    String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const dedup = new Map<string, EntregaRow>();
+  let puladas = 0;
+  for (const r of rows) {
+    const rawNum = pickCol(r, "NOTA", "NF", "Número", "Numero", "Número da NF", "Numero da NF");
+    const numero = String(rawNum ?? "").trim().replace(/\.0$/, "");
+    if (!numero || numero === "undefined") { puladas++; continue; }
+
+    const data_entrega = rowToBRDate(pickCol(r, "DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega"));
+    const data_agendamento = rowToBRDate(pickCol(r, "DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento"));
+    const previsao_entrega = rowToBRDate(
+      pickCol(r, "PREVISÃO DE ENTREGA SITE", "PREVISAO DE ENTREGA SITE", "Previsão de Entrega", "Previsao de Entrega",
+        "PREVISÃO ENTREGA TABELA TRANSPORTADORA", "PREVISAO ENTREGA TABELA TRANSPORTADORA"),
+    );
+    const transportadora = String(pickCol(r, "TRANSPORTADORA", "Transportadora") ?? "").trim() || null;
+    const obsRaw = pickCol(r, "STATUS", "OBSERVAÇÃO", "OBSERVACAO", "Observação", "Observacao");
+    const observacao = String(obsRaw ?? "").trim() || null;
+    const statusOk = String(pickCol(r, "STATUS ENTREGA - OK (NÃO ALTERAR NADA)", "STATUS ENTREGA - OK", "STATUS ENTREGA") ?? "");
+    const statusAgend = String(pickCol(r, "STATUS AGENDAMENTO") ?? "");
+
+    const extraviada =
+      norm(observacao).includes("extrav") ||
+      norm(statusOk).includes("extrav") ||
+      norm(statusAgend).includes("extrav");
+
+    dedup.set(numero, {
+      numero,
+      data_entrega,
+      data_agendamento,
+      previsao_entrega,
+      status: inferirStatus({ extraviada, data_entrega, data_agendamento, previsao_entrega }),
+      transportadora,
+      observacao,
+    });
+  }
+
+  const linhas = Array.from(dedup.values());
+  if (linhas.length === 0) {
+    return `Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NOTA).`;
+  }
+
+  // Conta novas vs atualizadas antes do upsert
+  const numeros = linhas.map((l) => l.numero);
+  const BATCH = 500;
+  const existentes = new Set<string>();
+  for (let i = 0; i < numeros.length; i += BATCH) {
+    const { data } = await supabase
+      .from("nf_entregas")
+      .select("numero")
+      .in("numero", numeros.slice(i, i + BATCH));
+    (data ?? []).forEach((d) => existentes.add(d.numero));
+  }
+
+  // Upsert por numero
+  for (let i = 0; i < linhas.length; i += BATCH) {
+    const slice = linhas.slice(i, i + BATCH);
+    const { error } = await supabase
+      .from("nf_entregas")
+      .upsert(slice as never, { onConflict: "numero" });
+    if (error) throw new Error(`Entregas lote ${i / BATCH + 1}: ${error.message}`);
+  }
+
+  const atualizadas = linhas.filter((l) => existentes.has(l.numero)).length;
+  const novas = linhas.length - atualizadas;
+
+  const { data: userData } = await supabase.auth.getUser();
+  await supabase.from("nf_entregas_importacoes").insert({
+    arquivo,
+    total_linhas: linhas.length,
+    novas,
+    atualizadas,
+    created_by: userData.user?.id ?? null,
+  } as never);
+
+  const aviso = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
+  return `${linhas.length} NFs processadas · ${novas} novas · ${atualizadas} atualizadas${aviso}.`;
 }
