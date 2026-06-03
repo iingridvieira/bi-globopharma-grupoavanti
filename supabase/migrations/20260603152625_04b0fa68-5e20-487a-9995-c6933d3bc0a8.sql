@@ -1,0 +1,15 @@
+
+-- 1) Remove overly permissive UPDATE policy on clientes
+DROP POLICY IF EXISTS "auth update clientes" ON public.clientes;
+
+-- 2) Add 'editor' to app_role enum if not present
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum e
+    JOIN pg_type t ON t.oid = e.enumtypid
+    WHERE t.typname = 'app_role' AND e.enumlabel = 'editor'
+  ) THEN
+    ALTER TYPE public.app_role ADD VALUE 'editor';
+  END IF;
+END$$;

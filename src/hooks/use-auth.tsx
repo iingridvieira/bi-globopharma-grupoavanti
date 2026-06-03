@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-type Role = "admin" | "representante" | "viewer";
+type Role = "admin" | "representante" | "viewer" | "editor";
 
 interface AuthState {
   user: User | null;
@@ -51,11 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const user = session?.user ?? null;
   const email = (user?.email ?? "").toLowerCase();
-  const AUTHORIZED_EDITOR_EMAIL = "avantipharma.comercial@gmail.com";
-  const isAuthorizedEditor = email === AUTHORIZED_EDITOR_EMAIL;
   const isEduardoOnly = email === EDUARDO_EMAIL;
-  const isAdmin = isAuthorizedEditor;
-  const canEdit = isAuthorizedEditor;
+  const isAdmin = roles.includes("admin");
+  const canEdit = roles.includes("admin") || roles.includes("editor");
   const restrictedClientes = isEduardoOnly ? EDUARDO_CLIENTES : null;
 
   return (
