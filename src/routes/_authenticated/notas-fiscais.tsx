@@ -113,7 +113,8 @@ function NFsPage() {
 
 
   const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto],
+    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel],
+    enabled: produtosSel.length === 0 || (nfIdsPorProdutosSel != null),
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
         .select("id,data,numero,valor,desconto,cliente_id,clientes(nome)")
@@ -147,10 +148,17 @@ function NFsPage() {
         q = q.or(orParts.join(","));
       }
 
+      if (produtosSel.length > 0) {
+        const ids = nfIdsPorProdutosSel ?? [];
+        if (ids.length === 0) return [];
+        q = q.in("id", ids);
+      }
+
       const { data } = await q;
       return data ?? [];
     },
   });
+
 
   const clientesPorResponsavel = useMemo(() => {
     const map: Record<string, Set<string>> = { Alexandre: new Set(), Eduardo: new Set(), Paulo: new Set() };
