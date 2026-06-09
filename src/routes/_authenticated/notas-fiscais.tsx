@@ -42,6 +42,7 @@ function NFsPage() {
   const [busca, setBusca] = useState("");
   const [operacoes, setOperacoes] = useState<string[]>([]);
   const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
+  const [produtosSel, setProdutosSel] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
@@ -68,8 +69,52 @@ function NFsPage() {
     },
   });
 
+  // Lista de produtos distintos para o filtro estilo Excel
+  const { data: produtosOpcoes } = useQuery({
+    queryKey: ["produtos-distintos"],
+    queryFn: async () => {
+      const set = new Set<string>();
+      const PAGE = 1000;
+      for (let from = 0; from < 50000; from += PAGE) {
+        const { data, error } = await supabase
+          .from("itens_nf")
+          .select("produto")
+          .not("produto", "is", null)
+          .order("produto", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) break;
+        const rows = data ?? [];
+        rows.forEach((r) => { const p = (r.produto ?? "").trim(); if (p) set.add(p); });
+        if (rows.length < PAGE) break;
+      }
+      return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // NF ids dos produtos selecionados no filtro
+  const { data: nfIdsPorProdutosSel } = useQuery({
+    queryKey: ["nf-ids-produtos-sel", produtosSel.slice().sort().join("|")],
+    enabled: produtosSel.length > 0,
+    queryFn: async () => {
+      const ids = new Set<string>();
+      const BATCH = 100;
+      for (let i = 0; i < produtosSel.length; i += BATCH) {
+        const { data } = await supabase
+          .from("itens_nf")
+          .select("nota_fiscal_id")
+          .in("produto", produtosSel.slice(i, i + BATCH))
+          .limit(20000);
+        (data ?? []).forEach((r) => ids.add(r.nota_fiscal_id));
+      }
+      return Array.from(ids);
+    },
+  });
+
+
   const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto],
+    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel],
+    enabled: produtosSel.length === 0 || (nfIdsPorProdutosSel != null),
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
         .select("id,data,numero,valor,desconto,cliente_id,clientes(nome)")
@@ -103,10 +148,17 @@ function NFsPage() {
         q = q.or(orParts.join(","));
       }
 
+      if (produtosSel.length > 0) {
+        const ids = nfIdsPorProdutosSel ?? [];
+        if (ids.length === 0) return [];
+        q = q.in("id", ids);
+      }
+
       const { data } = await q;
       return data ?? [];
     },
   });
+
 
   const clientesPorResponsavel = useMemo(() => {
     const map: Record<string, Set<string>> = { Alexandre: new Set(), Eduardo: new Set(), Paulo: new Set() };
@@ -174,7 +226,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]);
+    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]); setProdutosSel([]);
   }
 
 
@@ -256,6 +308,15 @@ function NFsPage() {
             onChange={setStatusEntrega}
           />
 
+          <MultiSelect
+            width={280}
+            placeholder="Produtos"
+            searchPlaceholder="Buscar produto..."
+            options={(produtosOpcoes ?? []).map((p) => ({ value: p, label: p }))}
+            selected={produtosSel}
+            onChange={setProdutosSel}
+          />
+
           <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
             <option value="">Representantes</option>
             <option value="Alexandre">Alexandre</option>
@@ -263,7 +324,7 @@ function NFsPage() {
             <option value="Paulo">Paulo</option>
           </select>
 
-          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel || statusEntrega.length > 0) && (
+          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel || statusEntrega.length > 0 || produtosSel.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
