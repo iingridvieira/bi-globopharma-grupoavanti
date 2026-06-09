@@ -145,8 +145,16 @@ function NFsPage() {
         if (nfIdsPorProduto && nfIdsPorProduto.length > 0) {
           orParts.push(`id.in.(${nfIdsPorProduto.join(",")})`);
         }
+        const buscaNorm = normNome(buscaTrim);
+        const clienteIdsBusca = (clientes ?? [])
+          .filter((c) => normNome(c.nome).includes(buscaNorm))
+          .map((c) => c.id);
+        if (clienteIdsBusca.length > 0) {
+          orParts.push(`cliente_id.in.(${clienteIdsBusca.join(",")})`);
+        }
         q = q.or(orParts.join(","));
       }
+
 
       if (produtosSel.length > 0) {
         const ids = nfIdsPorProdutosSel ?? [];
