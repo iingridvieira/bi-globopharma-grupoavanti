@@ -69,6 +69,49 @@ function NFsPage() {
     },
   });
 
+  // Lista de produtos distintos para o filtro estilo Excel
+  const { data: produtosOpcoes } = useQuery({
+    queryKey: ["produtos-distintos"],
+    queryFn: async () => {
+      const set = new Set<string>();
+      const PAGE = 1000;
+      for (let from = 0; from < 50000; from += PAGE) {
+        const { data, error } = await supabase
+          .from("itens_nf")
+          .select("produto")
+          .not("produto", "is", null)
+          .order("produto", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) break;
+        const rows = data ?? [];
+        rows.forEach((r) => { const p = (r.produto ?? "").trim(); if (p) set.add(p); });
+        if (rows.length < PAGE) break;
+      }
+      return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // NF ids dos produtos selecionados no filtro
+  const { data: nfIdsPorProdutosSel } = useQuery({
+    queryKey: ["nf-ids-produtos-sel", produtosSel.slice().sort().join("|")],
+    enabled: produtosSel.length > 0,
+    queryFn: async () => {
+      const ids = new Set<string>();
+      const BATCH = 100;
+      for (let i = 0; i < produtosSel.length; i += BATCH) {
+        const { data } = await supabase
+          .from("itens_nf")
+          .select("nota_fiscal_id")
+          .in("produto", produtosSel.slice(i, i + BATCH))
+          .limit(20000);
+        (data ?? []).forEach((r) => ids.add(r.nota_fiscal_id));
+      }
+      return Array.from(ids);
+    },
+  });
+
+
   const { data: nfs, isLoading } = useQuery({
     queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto],
     queryFn: async () => {
