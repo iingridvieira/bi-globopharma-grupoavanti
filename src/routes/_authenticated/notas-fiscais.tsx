@@ -226,7 +226,7 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]);
+    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]); setProdutosSel([]);
   }
 
 
