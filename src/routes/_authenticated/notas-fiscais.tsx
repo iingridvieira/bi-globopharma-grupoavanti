@@ -113,7 +113,7 @@ function NFsPage() {
 
 
   const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel],
+    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel, (clientes ?? []).length],
     enabled: produtosSel.length === 0 || (nfIdsPorProdutosSel != null),
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
