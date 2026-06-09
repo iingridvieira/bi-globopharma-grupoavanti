@@ -42,6 +42,7 @@ function NFsPage() {
   const [busca, setBusca] = useState("");
   const [operacoes, setOperacoes] = useState<string[]>([]);
   const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
+  const [produtosSel, setProdutosSel] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const buscaTrim = busca.trim();
