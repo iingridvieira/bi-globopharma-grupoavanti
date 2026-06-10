@@ -553,6 +553,43 @@ function StatusEntregaBadge({
   );
 }
 
+function normProduto(s: string | null | undefined): string {
+  return (s ?? "").trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+function quantil(sorted: number[], q: number): number {
+  if (sorted.length === 0) return NaN;
+  const pos = (sorted.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  return sorted[base + 1] !== undefined ? sorted[base] + rest * (sorted[base + 1] - sorted[base]) : sorted[base];
+}
+
+/** Média dos preços do produto, ignorando valores "Nitro" (outliers extremos). */
+function mediaSemNitro(valores: number[]): number {
+  if (valores.length === 0) return NaN;
+  const sorted = [...valores].sort((a, b) => a - b);
+  if (sorted.length <= 2) return sorted.reduce((s, v) => s + v, 0) / sorted.length;
+  const mediana = quantil(sorted, 0.5);
+  let lo: number;
+  let hi: number;
+  if (sorted.length >= 5) {
+    const q1 = quantil(sorted, 0.25);
+    const q3 = quantil(sorted, 0.75);
+    const iqr = q3 - q1;
+    // Cerca de Tukey, alargada por banda relativa à mediana p/ não punir variação normal
+    lo = Math.min(q1 - 1.5 * iqr, mediana * 0.5);
+    hi = Math.max(q3 + 1.5 * iqr, mediana * 2);
+  } else {
+    // Poucas amostras: banda relativa à mediana
+    lo = mediana / 3;
+    hi = mediana * 3;
+  }
+  const validos = sorted.filter((v) => v >= lo && v <= hi);
+  const base = validos.length > 0 ? validos : sorted;
+  return base.reduce((s, v) => s + v, 0) / base.length;
+}
+
 function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: string; highlight?: string }) {
   const { data: itens, isLoading } = useQuery({
     queryKey: ["nf-itens", nfId],
@@ -580,26 +617,29 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
   });
 
   const { data: ticketMap } = useQuery({
-    queryKey: ["ticket-medio", clienteId, codigos.slice().sort().join(",")],
-    enabled: codigos.length > 0 && !!clienteId,
+    queryKey: ["ticket-medio-produto", clienteId],
+    enabled: !!clienteId,
     queryFn: async () => {
       const { data } = await supabase
         .from("itens_nf")
-        .select("codigo_produto,valor_unitario,notas_fiscais!inner(cliente_id)")
+        .select("produto,valor_unitario,notas_fiscais!inner(cliente_id)")
         .eq("notas_fiscais.cliente_id", clienteId)
-        .in("codigo_produto", codigos)
         .limit(10000);
-      const acc = new Map<string, { soma: number; n: number }>();
-      (data ?? []).forEach((r: { codigo_produto: string | null; valor_unitario: number | string }) => {
-        const k = r.codigo_produto ?? "";
+      // Agrupa preços por produto (nome normalizado)
+      const grupos = new Map<string, number[]>();
+      (data ?? []).forEach((r: { produto: string | null; valor_unitario: number | string }) => {
+        const k = normProduto(r.produto);
         if (!k) return;
         const v = Number(r.valor_unitario);
         if (!Number.isFinite(v) || v <= 0) return;
-        const cur = acc.get(k) ?? { soma: 0, n: 0 };
-        cur.soma += v; cur.n += 1; acc.set(k, cur);
+        const arr = grupos.get(k) ?? [];
+        arr.push(v);
+        grupos.set(k, arr);
       });
       const out: Record<string, number> = {};
-      acc.forEach((v, k) => { out[k] = v.soma / v.n; });
+      grupos.forEach((valores, k) => {
+        out[k] = mediaSemNitro(valores);
+      });
       return out;
     },
   });
