@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          status: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           ativo: boolean
@@ -574,18 +604,21 @@ export type Database = {
           email: string | null
           id: string
           nome: string | null
+          username: string | null
         }
         Insert: {
           created_at?: string
           email?: string | null
           id: string
           nome?: string | null
+          username?: string | null
         }
         Update: {
           created_at?: string
           email?: string | null
           id?: string
           nome?: string | null
+          username?: string | null
         }
         Relationships: []
       }
@@ -685,6 +718,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_email_for_username: { Args: { _username: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

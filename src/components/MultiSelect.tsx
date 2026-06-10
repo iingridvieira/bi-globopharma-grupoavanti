@@ -12,6 +12,7 @@ export function MultiSelect({
   searchPlaceholder = "Buscar...",
   className = "",
   width = 240,
+  resizable = false,
 }: {
   options: MSOption[];
   selected: string[];
@@ -21,6 +22,7 @@ export function MultiSelect({
   searchPlaceholder?: string;
   className?: string;
   width?: number;
+  resizable?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -88,8 +90,21 @@ export function MultiSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-1 w-full bg-popover border border-border rounded-md shadow-lg overflow-hidden">
-          <div className="relative border-b border-border">
+        <div
+          className={`absolute z-50 mt-1 bg-popover border border-border rounded-md shadow-lg ${resizable ? "flex flex-col" : "w-full overflow-hidden"}`}
+          style={resizable ? {
+            resize: "both",
+            overflow: "hidden",
+            width: Math.max(width, 340),
+            height: 340,
+            minWidth: "100%",
+            minHeight: 180,
+            maxWidth: 760,
+            maxHeight: 600,
+          } : undefined}
+          title={resizable ? "Arraste o canto inferior direito para redimensionar" : undefined}
+        >
+          <div className="relative border-b border-border shrink-0">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input
               value={q}
@@ -98,13 +113,13 @@ export function MultiSelect({
               className="w-full pl-7 pr-2 h-8 bg-transparent text-sm outline-none"
             />
           </div>
-          <div className="max-h-64 overflow-y-auto py-1">
+          <div className={resizable ? "flex-1 overflow-y-auto py-1" : "max-h-64 overflow-y-auto py-1"}>
             <button
               type="button"
               onClick={toggleAll}
               className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent text-left"
             >
-              <span className={`h-4 w-4 rounded border flex items-center justify-center ${allFilteredSelected ? "bg-primary border-primary" : "border-border"}`}>
+              <span className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${allFilteredSelected ? "bg-primary border-primary" : "border-border"}`}>
                 {allFilteredSelected && <Check className="h-3 w-3 text-primary-foreground" />}
               </span>
               <span className="font-medium">{allLabel}</span>
@@ -118,10 +133,10 @@ export function MultiSelect({
                   onClick={() => toggle(o.value)}
                   className="w-full flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent text-left"
                 >
-                  <span className={`h-4 w-4 rounded border flex items-center justify-center ${checked ? "bg-primary border-primary" : "border-border"}`}>
+                  <span className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${checked ? "bg-primary border-primary" : "border-border"}`}>
                     {checked && <Check className="h-3 w-3 text-primary-foreground" />}
                   </span>
-                  <span className="truncate">{o.label}</span>
+                  <span className={resizable ? "whitespace-normal break-words" : "truncate"}>{o.label}</span>
                 </button>
               );
             })}

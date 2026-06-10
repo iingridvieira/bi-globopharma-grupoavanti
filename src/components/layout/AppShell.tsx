@@ -1,23 +1,33 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Activity, LayoutDashboard, Send, FileText, TrendingUp, ShoppingCart, Users, Upload, LogOut, Sun, Moon } from "lucide-react";
+import { Activity, LayoutDashboard, Send, FileText, TrendingUp, ShoppingCart, Users, Upload, LogOut, Sun, Moon, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 
-const NAV = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof Activity;
+  exact?: boolean;
+  editorOnly?: boolean;
+  adminOnly?: boolean;
+};
+
+const NAV: NavItem[] = [
   { to: "/", label: "Início", icon: Activity, exact: true },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pedidos", label: "Pedidos Enviados", icon: Send },
   { to: "/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/sell-in", label: "Sell in", icon: TrendingUp },
   { to: "/sell-out", label: "Sell Out", icon: ShoppingCart },
-  
+
   { to: "/por-clientes", label: "Por Clientes", icon: Users },
   { to: "/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
+  { to: "/acessos", label: "Solicitações de Acesso", icon: UserPlus, adminOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { user, roles, signOut, canEdit } = useAuth();
+  const { user, roles, signOut, canEdit, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -38,8 +48,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           <div className="px-2 py-2 bi-stat-label text-sidebar-foreground/60">Operação</div>
           {NAV
-            .filter((i) => !i.editorOnly || canEdit)
-            
+            .filter((i) => (!i.editorOnly || canEdit) && (!i.adminOnly || isAdmin))
+
             .map((item) => {
             const active = item.exact ? path === item.to : path === item.to || path.startsWith(item.to + "/");
             const Icon = item.icon;

@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, ShieldCheck } from "lucide-react";
+import { Activity, ShieldCheck, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -15,10 +15,13 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
+  const [mode, setMode] = useState<"login" | "solicitar">("login");
+  const [identificador, setIdentificador] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
+  const [emailSolic, setEmailSolic] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [enviado, setEnviado] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -26,22 +29,26 @@ function LoginPage() {
     setLoading(true);
     try {
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-        if (error) throw error;
+        let loginEmail = identificador.trim();
+        if (!loginEmail.includes("@")) {
+          const { data: mapped, error: rpcErr } = await supabase.rpc("get_email_for_username", {
+            _username: loginEmail,
+          });
+          if (rpcErr || !mapped) throw new Error("Usuário não encontrado. Verifique o nome de usuário.");
+          loginEmail = mapped;
+        }
+        const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: senha });
+        if (error) throw new Error("Credenciais inválidas. Verifique usuário e senha.");
         toast.success("Bem-vindo ao BI GLOBO PHARMA");
         navigate({ to: "/" });
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password: senha,
-          options: {
-            data: { nome },
-            emailRedirectTo: `${window.location.origin}/`,
-          },
+        const { error } = await supabase.from("access_requests").insert({
+          nome: nome.trim(),
+          email: emailSolic.trim(),
+          telefone: telefone.trim() || null,
         });
-        if (error) throw error;
-        toast.success("Conta criada. Você já pode acessar.");
-        setMode("login");
+        if (error) throw new Error("Não foi possível enviar a solicitação. Tente novamente.");
+        setEnviado(true);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro";
@@ -101,38 +108,72 @@ function LoginPage() {
             </div>
             <span className="font-display text-lg font-bold">BI GLOBO PHARMA</span>
           </div>
-          <h1 className="font-display text-2xl font-bold">
-            {mode === "login" ? "Acessar plataforma" : "Criar conta"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "login" ? "Use suas credenciais corporativas." : "Cadastre-se para começar."}
-          </p>
 
-          <form onSubmit={onSubmit} className="mt-6 space-y-4">
-            {mode === "signup" && (
-              <Field label="Nome">
-                <input value={nome} onChange={(e) => setNome(e.target.value)} required
-                  className="bi-input" placeholder="Seu nome" />
-              </Field>
-            )}
-            <Field label="E-mail">
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                className="bi-input" placeholder="voce@empresa.com" />
-            </Field>
-            <Field label="Senha">
-              <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6}
-                className="bi-input" placeholder="••••••••" />
-            </Field>
-            <button type="submit" disabled={loading}
-              className="w-full h-11 rounded-md bg-primary text-primary-foreground font-display font-semibold tracking-wide uppercase text-sm hover:opacity-90 disabled:opacity-50 transition-opacity">
-              {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
-            </button>
-          </form>
+          {mode === "solicitar" && enviado ? (
+            <div className="text-center py-6">
+              <div className="mx-auto h-12 w-12 rounded-full bg-primary/15 flex items-center justify-center mb-4">
+                <Send className="h-5 w-5 text-primary" />
+              </div>
+              <h1 className="font-display text-xl font-bold">Solicitação enviada</h1>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Sua solicitação de acesso foi enviada para análise. Após aprovação, você receberá as instruções de acesso.
+              </p>
+              <button type="button" onClick={() => { setEnviado(false); setMode("login"); }}
+                className="mt-6 text-sm text-primary hover:underline">
+                Voltar para o login
+              </button>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-display text-2xl font-bold">
+                {mode === "login" ? "Acessar plataforma" : "Solicitar acesso"}
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {mode === "login"
+                  ? "Use seu nome de usuário ou e-mail."
+                  : "Preencha seus dados. Um administrador analisará sua solicitação."}
+              </p>
 
-          <button type="button" onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="mt-6 w-full text-sm text-muted-foreground hover:text-foreground">
-            {mode === "login" ? "Não tem conta? Criar agora" : "Já tem conta? Entrar"}
-          </button>
+              <form onSubmit={onSubmit} className="mt-6 space-y-4">
+                {mode === "login" ? (
+                  <>
+                    <Field label="Usuário ou e-mail">
+                      <input value={identificador} onChange={(e) => setIdentificador(e.target.value)} required
+                        className="bi-input" placeholder="Seu nome de usuário ou e-mail" />
+                    </Field>
+                    <Field label="Senha">
+                      <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required minLength={6}
+                        className="bi-input" placeholder="••••••••" />
+                    </Field>
+                  </>
+                ) : (
+                  <>
+                    <Field label="Nome completo">
+                      <input value={nome} onChange={(e) => setNome(e.target.value)} required minLength={2}
+                        className="bi-input" placeholder="Seu nome" />
+                    </Field>
+                    <Field label="E-mail">
+                      <input type="email" value={emailSolic} onChange={(e) => setEmailSolic(e.target.value)} required
+                        className="bi-input" placeholder="voce@empresa.com" />
+                    </Field>
+                    <Field label="Telefone (opcional)">
+                      <input value={telefone} onChange={(e) => setTelefone(e.target.value)}
+                        className="bi-input" placeholder="(11) 99999-9999" />
+                    </Field>
+                  </>
+                )}
+                <button type="submit" disabled={loading}
+                  className="w-full h-11 rounded-md bg-primary text-primary-foreground font-display font-semibold tracking-wide uppercase text-sm hover:opacity-90 disabled:opacity-50 transition-opacity">
+                  {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Enviar solicitação"}
+                </button>
+              </form>
+
+              <button type="button" onClick={() => setMode(mode === "login" ? "solicitar" : "login")}
+                className="mt-6 w-full text-sm text-muted-foreground hover:text-foreground">
+                {mode === "login" ? "Não tem conta? Solicitar acesso" : "Já tem conta? Entrar"}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
