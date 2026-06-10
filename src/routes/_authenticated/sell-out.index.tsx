@@ -78,7 +78,7 @@ function SellOutPage() {
         <table className="bi-table">
           <thead>
             <tr>
-              <th>Cliente</th>
+              <th className="bi-col-sticky">Cliente</th>
               {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
               <th className="text-right">Total</th>
               <th className="text-right">Média</th>
@@ -88,7 +88,7 @@ function SellOutPage() {
           <tbody>
             {data?.rows.map((r) => (
               <tr key={r.nome}>
-                <td className="font-medium">{r.nome}</td>
+                <td className="font-medium bi-col-sticky">{r.nome}</td>
                 {r.meses.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
                 <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(r.total)}</td>
                 <td className="text-right tabular-nums text-xs text-muted-foreground">{formatBRL(r.media)}</td>
@@ -106,7 +106,7 @@ function SellOutPage() {
           </tbody>
           <tfoot>
             <tr>
-              <td>TOTAL</td>
+              <td className="bi-col-sticky">TOTAL</td>
               {data?.totaisMes.map((v, i) => <td key={i} className="text-right text-xs">{formatBRL(v)}</td>)}
               <td className="text-right text-primary">{formatBRL(data?.totalGeral ?? 0)}</td>
               <td className="text-right text-xs text-muted-foreground">
