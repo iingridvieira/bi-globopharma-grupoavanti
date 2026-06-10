@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
-type PeriodoMode = "mes" | "ano" | "tudo";
+
 
 const RESPONSAVEIS: Record<string, string[]> = {
   Alexandre: ["ANDORINHA", "BANDEIRANTES", "DISMAP", "IMPACTA MED", "MAXIFARMA", "NÚCLEO FARMA", "DISMED", "MED VALLE", "GEMELI"],
@@ -34,7 +34,6 @@ function NFsPage() {
     [restrictedClientes],
   );
   const now = new Date();
-  const [periodoMode, setPeriodoMode] = useState<PeriodoMode>("mes");
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
@@ -113,7 +112,7 @@ function NFsPage() {
 
 
   const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs", periodoMode, anos, meses, clientesSel, buscaTrim, nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel, (clientes ?? []).length],
+    queryKey: ["nfs", anos, meses, clientesSel, buscaTrim, nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel, (clientes ?? []).length],
     enabled: produtosSel.length === 0 || (nfIdsPorProdutosSel != null),
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
@@ -121,21 +120,21 @@ function NFsPage() {
         .order("data", { ascending: false })
         .limit(5000);
 
-      // Período: gera lista de intervalos (ano/mês) e aplica via or
-      if (periodoMode === "mes" || periodoMode === "ano") {
-        const anosNum = anos.map(Number);
-        const mesesNum = periodoMode === "mes" ? meses.map(Number) : Array.from({ length: 12 }, (_, i) => i + 1);
-        if (anosNum.length > 0 && mesesNum.length > 0) {
-          const ranges: string[] = [];
-          anosNum.forEach((a) => {
-            mesesNum.forEach((m) => {
-              const start = `${a}-${String(m).padStart(2, "0")}-01`;
-              const end = new Date(a, m, 0).toISOString().slice(0, 10);
-              ranges.push(`and(data.gte.${start},data.lte.${end})`);
-            });
+      // Período: meses/anos selecionados (nenhum selecionado = todo período)
+      const anosNum = anos.map(Number);
+      const mesesNum = meses.map(Number);
+      if (anosNum.length > 0 || mesesNum.length > 0) {
+        const anosAplicar = anosNum.length > 0 ? anosNum : anosOpcoes;
+        const mesesAplicar = mesesNum.length > 0 ? mesesNum : Array.from({ length: 12 }, (_, i) => i + 1);
+        const ranges: string[] = [];
+        anosAplicar.forEach((a) => {
+          mesesAplicar.forEach((m) => {
+            const start = `${a}-${String(m).padStart(2, "0")}-01`;
+            const end = new Date(a, m, 0).toISOString().slice(0, 10);
+            ranges.push(`and(data.gte.${start},data.lte.${end})`);
           });
-          q = q.or(ranges.join(","));
-        }
+        });
+        if (ranges.length > 0) q = q.or(ranges.join(","));
       }
 
       if (clientesSel.length > 0) q = q.in("cliente_id", clientesSel);
@@ -225,7 +224,93 @@ function NFsPage() {
   }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet, statusEntrega, entregasMap]);
 
 
-  const total = useMemo(() => filtradas.reduce((a, n) => a + Number(n.valor), 0), [filtradas]);
+  const buscaAtiva = buscaTrim.length >= 2;
+  const usaItens = produtosSel.length > 0 || (buscaAtiva && (nfIdsPorProduto?.length ?? 0) > 0);
+  const idsFiltradas = useMemo(() => filtradas.map((n) => n.id), [filtradas]);
+
+  // NFs que casaram com a busca por número da NF ou nome do cliente (não por produto)
+  const nfsMatchOutro = useMemo(() => {
+    const s = new Set<string>();
+    if (!buscaAtiva) return s;
+    const b = buscaTrim.toLowerCase();
+    const bNorm = normNome(buscaTrim);
+    (nfs ?? []).forEach((n) => {
+      if ((n.numero ?? "").toLowerCase().includes(b)) s.add(n.id);
+      else if (bNorm && normNome(n.clientes?.nome ?? "").includes(bNorm)) s.add(n.id);
+    });
+    return s;
+  }, [nfs, buscaAtiva, buscaTrim]);
+
+  // Itens das NFs filtradas — para o subtotal estilo SUBTOTAL do Excel
+  const { data: itensFiltrados } = useQuery({
+    queryKey: ["itens-nfs-filtradas", idsFiltradas.slice().sort().join("|")],
+    enabled: usaItens && idsFiltradas.length > 0,
+    queryFn: async () => {
+      const out: { nota_fiscal_id: string; produto: string | null; codigo_produto: string | null; valor_total: number }[] = [];
+      const BATCH = 150;
+      for (let i = 0; i < idsFiltradas.length; i += BATCH) {
+        const { data } = await supabase
+          .from("itens_nf")
+          .select("nota_fiscal_id,produto,codigo_produto,valor_total")
+          .in("nota_fiscal_id", idsFiltradas.slice(i, i + BATCH));
+        out.push(...((data ?? []) as typeof out));
+      }
+      return out;
+    },
+  });
+
+  // Total estilo SUBTOTAL: considera apenas os itens que casam com a pesquisa/filtro de produto
+  const total = useMemo(() => {
+    if (!usaItens || !itensFiltrados) {
+      return filtradas.reduce((a, n) => a + Number(n.valor), 0);
+    }
+    const b = buscaTrim.toLowerCase();
+    const prodSet = new Set(produtosSel.map((p) => p.trim()));
+    const buscaOk = (it: { produto: string | null; codigo_produto: string | null }) =>
+      !buscaAtiva || (it.produto ?? "").toLowerCase().includes(b) || (it.codigo_produto ?? "").toLowerCase().includes(b);
+    const prodOk = (it: { produto: string | null }) =>
+      prodSet.size === 0 || prodSet.has((it.produto ?? "").trim());
+    const porNf = new Map<string, number>();
+    itensFiltrados.forEach((it) => {
+      const matchedOutro = nfsMatchOutro.has(it.nota_fiscal_id);
+      let conta: boolean;
+      if (prodSet.size > 0) conta = prodOk(it) && (matchedOutro || buscaOk(it));
+      else conta = matchedOutro ? false : buscaOk(it);
+      if (!conta) return;
+      porNf.set(it.nota_fiscal_id, (porNf.get(it.nota_fiscal_id) ?? 0) + Number(it.valor_total));
+    });
+    let soma = 0;
+    filtradas.forEach((n) => {
+      const matchedOutro = nfsMatchOutro.has(n.id);
+      if (prodSet.size === 0 && matchedOutro) soma += Number(n.valor);
+      else soma += porNf.get(n.id) ?? 0;
+    });
+    return soma;
+  }, [usaItens, itensFiltrados, filtradas, buscaTrim, buscaAtiva, produtosSel, nfsMatchOutro]);
+
+  // Total geral de todas as NFs (ignora pesquisa e filtros; respeita restrições de acesso)
+  const { data: totalGeral } = useQuery({
+    queryKey: ["nfs-total-geral", restrictedClientes?.join("|") ?? "all", allowedIdSet ? allowedIdSet.size : -1],
+    enabled: !allowedNameSet || (allowedIdSet != null && (clientes ?? []).length > 0),
+    queryFn: async () => {
+      let sum = 0;
+      const PAGE = 1000;
+      for (let from = 0; from < 100000; from += PAGE) {
+        const { data, error } = await supabase
+          .from("notas_fiscais")
+          .select("valor,cliente_id")
+          .range(from, from + PAGE - 1);
+        if (error) break;
+        const rows = data ?? [];
+        rows.forEach((r) => {
+          if (!allowedIdSet || allowedIdSet.has(r.cliente_id)) sum += Number(r.valor);
+        });
+        if (rows.length < PAGE) break;
+      }
+      return sum;
+    },
+  });
+
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
   const totalBonif = useMemo(() => filtradas.filter((n) => Number(n.valor) <= 0).length, [filtradas]);
 
@@ -264,30 +349,20 @@ function NFsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <select value={periodoMode} onChange={(e) => setPeriodoMode(e.target.value as PeriodoMode)} className="bi-input-sm w-36">
-            <option value="mes">Por mês</option>
-            <option value="ano">Por ano</option>
-            <option value="tudo">Todo período</option>
-          </select>
-
-          {periodoMode === "mes" && (
-            <MultiSelect
-              width={200}
-              placeholder="Meses"
-              options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
-              selected={meses}
-              onChange={setMeses}
-            />
-          )}
-          {(periodoMode === "mes" || periodoMode === "ano") && (
-            <MultiSelect
-              width={160}
-              placeholder="Anos"
-              options={anosOpcoes.map((a) => ({ value: String(a), label: String(a) }))}
-              selected={anos}
-              onChange={setAnos}
-            />
-          )}
+          <MultiSelect
+            width={200}
+            placeholder="Meses (todos)"
+            options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
+            selected={meses}
+            onChange={setMeses}
+          />
+          <MultiSelect
+            width={160}
+            placeholder="Anos (todos)"
+            options={anosOpcoes.map((a) => ({ value: String(a), label: String(a) }))}
+            selected={anos}
+            onChange={setAnos}
+          />
 
           <MultiSelect
             width={260}
@@ -320,6 +395,7 @@ function NFsPage() {
             width={280}
             placeholder="Produtos"
             searchPlaceholder="Buscar produto..."
+            resizable
             options={(produtosOpcoes ?? []).map((p) => ({ value: p, label: p }))}
             selected={produtosSel}
             onChange={setProdutosSel}
@@ -347,7 +423,7 @@ function NFsPage() {
           <div className="text-2xl font-bold tabular-nums mt-1">{filtradas.length.toLocaleString("pt-BR")}</div>
         </div>
         <div className="bi-card p-4">
-          <div className="bi-stat-label">Total faturado</div>
+          <div className="bi-stat-label">Total faturado (filtros aplicados)</div>
           <div className="text-2xl font-bold tabular-nums mt-1 text-primary">{formatBRL(total)}</div>
         </div>
         <div className="bi-card p-4">
@@ -467,7 +543,11 @@ function NFsPage() {
             {!isLoading && filtradas.length === 0 && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
-            <tr><td colSpan={8}>TOTAL</td><td className="text-right text-primary">{formatBRL(total)}</td><td></td></tr>
+            <tr>
+              <td colSpan={8}>TOTAL GERAL · TODAS AS NFS</td>
+              <td className="text-right text-primary">{formatBRL(totalGeral ?? 0)}</td>
+              <td></td>
+            </tr>
           </tfoot>
         </table>
       </div>
