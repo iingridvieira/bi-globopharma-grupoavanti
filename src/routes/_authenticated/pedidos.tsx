@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
-import { Download, Send } from "lucide-react";
+import { Download, Send, Pencil, Trash2, Check, X } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 
 
@@ -70,6 +70,37 @@ function PedidosPage() {
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const updatePedido = useMutation({
+    mutationFn: async ({ id, data, cliente_id, valor }: { id: string; data: string; cliente_id: string; valor: number }) => {
+      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, valor }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pedido atualizado"); setEditId(null); void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removePedido = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pedidos_enviados").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pedido removido"); void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editData, setEditData] = useState("");
+  const [editClienteId, setEditClienteId] = useState("");
+  const [editValor, setEditValor] = useState("");
+
+  function startEdit(p: { id: string; data: string; cliente_id: string; valor: number | string }) {
+    setEditId(p.id);
+    setEditData(p.data);
+    setEditClienteId(p.cliente_id);
+    setEditValor(String(p.valor).replace(".", ","));
+  }
+
 
   const clientesVisiveis = allowedNameSet
     ? (clientes ?? []).filter((c) => allowedNameSet.has(normNome(c.nome)))
@@ -179,11 +210,37 @@ function PedidosPage() {
             <thead>
               <tr>
                 <th>Data</th><th>Cliente</th><th className="text-right">Valor</th><th className="text-center">Status</th>
+                {canEdit && <th className="text-center">Ações</th>}
               </tr>
             </thead>
             <tbody>
               {filtrados.map((p) => {
                 const aprovado = p.status === "aprovado";
+                const isEditing = editId === p.id;
+                if (isEditing) {
+                  return (
+                    <tr key={p.id}>
+                      <td><input type="date" value={editData} onChange={(e) => setEditData(e.target.value)} className="bi-input-sm" /></td>
+                      <td>
+                        <select value={editClienteId} onChange={(e) => setEditClienteId(e.target.value)} className="bi-input-sm">
+                          {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </td>
+                      <td className="text-right"><input value={editValor} onChange={(e) => setEditValor(e.target.value)} className="bi-input-sm text-right" /></td>
+                      <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
+                      <td className="text-center">
+                        <div className="inline-flex gap-1">
+                          <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, valor: parseBRNumber(editValor) })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button type="button" title="Cancelar" onClick={() => setEditId(null)} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
                 return (
                   <tr key={p.id}>
                     <td>{formatDateBR(p.data)}</td>
@@ -201,14 +258,37 @@ function PedidosPage() {
                         {aprovado ? "APROVADO" : "AGUARDANDO"}
                       </button>
                     </td>
+                    {canEdit && (
+                      <td className="text-center">
+                        <div className="inline-flex gap-1">
+                          <button type="button" title="Editar" onClick={() => startEdit(p)} className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border hover:bg-accent">
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Remover"
+                            disabled={removePedido.isPending}
+                            onClick={() => {
+                              if (confirm(`Remover pedido de ${p.clientes?.nome ?? ""} (${formatBRL(p.valor)})?`)) {
+                                removePedido.mutate(p.id);
+                              }
+                            }}
+                            className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
-              {filtrados.length === 0 && <tr><td colSpan={4} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
+              {filtrados.length === 0 && <tr><td colSpan={canEdit ? 5 : 4} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
             </tbody>
             <tfoot>
-              <tr><td colSpan={2}>TOTAL ({filtrados.length})</td><td className="text-right text-primary">{formatBRL(total)}</td><td /></tr>
+              <tr><td colSpan={2}>TOTAL ({filtrados.length})</td><td className="text-right text-primary">{formatBRL(total)}</td><td />{canEdit && <td />}</tr>
             </tfoot>
+
           </table>
         </div>
       </div>
