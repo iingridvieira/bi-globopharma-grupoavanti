@@ -6,7 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
-import { Download, Send } from "lucide-react";
+import { Download, Send, Pencil, Trash2, Check, X } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 
 
