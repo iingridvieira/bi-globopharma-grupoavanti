@@ -241,6 +241,25 @@
     border-top: 2px solid var(--color-primary);
   }
 
+  /* Coluna fixa (sticky) — nome do cliente em tabelas com rolagem horizontal */
+  .bi-table .bi-col-sticky {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--color-surface);
+    box-shadow: 1px 0 0 0 var(--color-border);
+  }
+  .bi-table thead th.bi-col-sticky {
+    z-index: 3;
+    background: var(--color-surface-2);
+  }
+  .bi-table tfoot td.bi-col-sticky {
+    background: var(--color-surface-2);
+  }
+  .bi-table tbody tr:hover td.bi-col-sticky {
+    background: color-mix(in oklab, var(--color-primary) 6%, var(--color-surface));
+  }
+
   .bi-stat-label {
     font-family: var(--font-display);
     font-size: 11px;
