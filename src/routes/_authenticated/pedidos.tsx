@@ -71,6 +71,37 @@ function PedidosPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updatePedido = useMutation({
+    mutationFn: async ({ id, data, cliente_id, valor }: { id: string; data: string; cliente_id: string; valor: number }) => {
+      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, valor }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pedido atualizado"); setEditId(null); void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removePedido = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pedidos_enviados").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Pedido removido"); void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editData, setEditData] = useState("");
+  const [editClienteId, setEditClienteId] = useState("");
+  const [editValor, setEditValor] = useState("");
+
+  function startEdit(p: { id: string; data: string; cliente_id: string; valor: number | string }) {
+    setEditId(p.id);
+    setEditData(p.data);
+    setEditClienteId(p.cliente_id);
+    setEditValor(String(p.valor).replace(".", ","));
+  }
+
+
   const clientesVisiveis = allowedNameSet
     ? (clientes ?? []).filter((c) => allowedNameSet.has(normNome(c.nome)))
     : (clientes ?? []);
