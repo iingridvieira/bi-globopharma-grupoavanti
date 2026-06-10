@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as ApiSetupUsersRouteImport } from './routes/api/setup-users'
 import { Route as AuthenticatedSellInRouteImport } from './routes/_authenticated/sell-in'
 import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
 import { Route as AuthenticatedNotasFiscaisRouteImport } from './routes/_authenticated/notas-fiscais'
@@ -38,11 +37,6 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
-} as any)
-const ApiSetupUsersRoute = ApiSetupUsersRouteImport.update({
-  id: '/api/setup-users',
-  path: '/api/setup-users',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSellInRoute = AuthenticatedSellInRouteImport.update({
   id: '/sell-in',
@@ -115,7 +109,6 @@ export interface FileRoutesByFullPath {
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
-  '/api/setup-users': typeof ApiSetupUsersRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
@@ -130,7 +123,6 @@ export interface FileRoutesByTo {
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
-  '/api/setup-users': typeof ApiSetupUsersRoute
   '/': typeof AuthenticatedIndexRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
@@ -148,7 +140,6 @@ export interface FileRoutesById {
   '/_authenticated/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
   '/_authenticated/sell-in': typeof AuthenticatedSellInRoute
-  '/api/setup-users': typeof ApiSetupUsersRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/_authenticated/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
@@ -167,7 +158,6 @@ export interface FileRouteTypes {
     | '/notas-fiscais'
     | '/pedidos'
     | '/sell-in'
-    | '/api/setup-users'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
     | '/sell-out/$clienteId'
@@ -182,7 +172,6 @@ export interface FileRouteTypes {
     | '/notas-fiscais'
     | '/pedidos'
     | '/sell-in'
-    | '/api/setup-users'
     | '/'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
@@ -199,7 +188,6 @@ export interface FileRouteTypes {
     | '/_authenticated/notas-fiscais'
     | '/_authenticated/pedidos'
     | '/_authenticated/sell-in'
-    | '/api/setup-users'
     | '/_authenticated/'
     | '/_authenticated/por-clientes/$clienteId'
     | '/_authenticated/por-clientes/geral'
@@ -211,7 +199,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ApiSetupUsersRoute: typeof ApiSetupUsersRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -236,13 +223,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
-    }
-    '/api/setup-users': {
-      id: '/api/setup-users'
-      path: '/api/setup-users'
-      fullPath: '/api/setup-users'
-      preLoaderRoute: typeof ApiSetupUsersRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/sell-in': {
       id: '/_authenticated/sell-in'
@@ -362,7 +342,6 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
-  ApiSetupUsersRoute: ApiSetupUsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
