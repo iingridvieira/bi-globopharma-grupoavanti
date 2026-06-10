@@ -596,7 +596,6 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
     queryFn: async () => (await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", nfId)).data ?? [],
   });
 
-  const codigos = useMemo(() => Array.from(new Set((itens ?? []).map((i) => i.codigo_produto).filter(Boolean))) as string[], [itens]);
   const produtosItens = useMemo(() => Array.from(new Set((itens ?? []).map((i) => (i.produto ?? "").trim()).filter(Boolean))), [itens]);
 
   const { data: eanMap } = useQuery({
@@ -668,7 +667,7 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
               <tbody>
                 {itens.map((i) => {
                   const hit = match(i.produto ?? "") || match(i.codigo_produto ?? "");
-                  const tm = ticketMap?.[i.codigo_produto ?? ""];
+                  const tm = ticketMap?.[normProduto(i.produto)];
                   const eanShow = eanMap?.[(i.produto ?? "").trim()] ?? (i as { ean?: string | null }).ean ?? "—";
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
