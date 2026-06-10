@@ -5,6 +5,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { aprovarSolicitacaoAcesso } from "@/lib/admin-users.functions";
+import { SmallStyles } from "./pedidos";
 import { toast } from "sonner";
 import { UserCheck, UserX, ShieldAlert } from "lucide-react";
 
