@@ -155,6 +155,7 @@ function AcessosPage() {
           </div>
         </div>
       )}
+      <SmallStyles />
     </div>
   );
 }
