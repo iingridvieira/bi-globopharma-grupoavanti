@@ -507,6 +507,16 @@ function NFsPage() {
         <table className="bi-table">
           <thead>
             <tr>
+              <th style={{ width: 32 }}>
+                <input
+                  type="checkbox"
+                  aria-label="Selecionar todas visíveis"
+                  checked={allVisibleSelected}
+                  ref={(el) => { if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected; }}
+                  onChange={toggleSelectAllVisible}
+                  className="cursor-pointer"
+                />
+              </th>
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
               <th className="text-center">Status Entrega</th>
@@ -518,7 +528,7 @@ function NFsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
+            {isLoading && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
@@ -538,9 +548,19 @@ function NFsPage() {
                   : leadDays <= 15
                     ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                     : "bg-red-500/20 text-red-400 border border-red-500/30";
+              const isSelected = selectedIds.has(n.id);
               return (
                 <>
                   <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Selecionar NF ${n.numero}`}
+                        checked={isSelected}
+                        onChange={() => toggleSelected(n.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
                     <td>{open ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}</td>
                     <td>{formatDateBR(n.data)}</td>
                     <td className="font-medium text-primary">{n.numero}</td>
@@ -606,12 +626,31 @@ function NFsPage() {
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && filtradas.length === 0 && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={8}>TOTAL GERAL · TODAS AS NFS</td>
-              <td className="text-right text-primary">{formatBRL(totalGeral ?? 0)}</td>
+              <td colSpan={9}>
+                <div className="flex items-center justify-between gap-3">
+                  <span>SUBTOTAL · NFS VISÍVEIS ({filtradas.length.toLocaleString("pt-BR")})</span>
+                  <button
+                    type="button"
+                    onClick={exportarSelecionadas}
+                    disabled={selectedIds.size === 0 || exporting}
+                    className="h-8 px-3 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 text-xs font-semibold"
+                    title="Exportar NFs selecionadas"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    {exporting ? "Exportando..." : `Exportar Selecionadas${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+                  </button>
+                </div>
+              </td>
+              <td className="text-right text-primary">{formatBRL(total)}</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colSpan={9} className="text-muted-foreground text-xs">Total geral · todas as NFs</td>
+              <td className="text-right text-muted-foreground text-xs">{formatBRL(totalGeral ?? 0)}</td>
               <td></td>
             </tr>
           </tfoot>
