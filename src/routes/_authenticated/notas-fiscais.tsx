@@ -320,6 +320,70 @@ function NFsPage() {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
 
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+
+  const allVisibleSelected = filtradas.length > 0 && filtradas.every((n) => selectedIds.has(n.id));
+  const someVisibleSelected = filtradas.some((n) => selectedIds.has(n.id));
+
+  function toggleSelectAllVisible() {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (allVisibleSelected) filtradas.forEach((f) => n.delete(f.id));
+      else filtradas.forEach((f) => n.add(f.id));
+      return n;
+    });
+  }
+
+  async function exportarSelecionadas() {
+    const selecionadas = filtradas.filter((n) => selectedIds.has(n.id));
+    if (selecionadas.length === 0) return;
+    setExporting(true);
+    try {
+      const ids = selecionadas.map((n) => n.id);
+      const itensAll: { nota_fiscal_id: string; produto: string | null; quantidade: number | string; valor_unitario: number | string; valor_total: number | string; ean?: string | null }[] = [];
+      const BATCH = 150;
+      for (let i = 0; i < ids.length; i += BATCH) {
+        const { data } = await supabase.from("itens_nf").select("*").in("nota_fiscal_id", ids.slice(i, i + BATCH));
+        itensAll.push(...((data ?? []) as typeof itensAll));
+      }
+      const produtos = Array.from(new Set(itensAll.map((i) => (i.produto ?? "").trim()).filter(Boolean)));
+      const eanMap: Record<string, string> = {};
+      if (produtos.length > 0) {
+        const [a, b] = await Promise.all([
+          supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+          supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+        ]);
+        [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
+          const p = (r.produto ?? "").trim();
+          if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
+        });
+      }
+      const nfById = new Map(selecionadas.map((n) => [n.id, n]));
+      const rows = itensAll.map((i) => {
+        const nf = nfById.get(i.nota_fiscal_id);
+        return {
+          "Data de Faturamento": nf ? formatDateBR(nf.data) : "",
+          "NF": nf?.numero ?? "",
+          "Cliente": nf?.clientes?.nome ?? "",
+          "EAN": i.ean ?? eanMap[(i.produto ?? "").trim()] ?? "",
+          "Descrição do Produto": i.produto ?? "",
+          "Quantidade": Number(i.quantidade ?? 0),
+          "Valor": Number(i.valor_unitario ?? 0),
+          "Total": Number(i.valor_total ?? 0),
+        };
+      });
+      if (rows.length === 0) { toast.error("Nenhum item para exportar."); return; }
+      exportToExcel(rows, `nfs-selecionadas-${selecionadas.length}.xlsx`, "Itens");
+      toast.success(`${selecionadas.length} NF(s) exportadas.`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao exportar.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function limparFiltros() {
     setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]); setProdutosSel([]);
   }
