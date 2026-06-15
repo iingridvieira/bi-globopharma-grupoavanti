@@ -630,9 +630,8 @@ function NFsPage() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={9}>
-                <div className="flex items-center justify-between gap-3">
-                  <span>SUBTOTAL · NFS VISÍVEIS ({filtradas.length.toLocaleString("pt-BR")})</span>
+              <td colSpan={11}>
+                <div className="flex items-center justify-end">
                   <button
                     type="button"
                     onClick={exportarSelecionadas}
@@ -641,17 +640,12 @@ function NFsPage() {
                     title="Exportar NFs selecionadas"
                   >
                     <FileDown className="h-3.5 w-3.5" />
-                    {exporting ? "Exportando..." : `Exportar Selecionadas${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+                    {exporting
+                      ? "Exportando..."
+                      : `Exportar Selecionadas (${selectedIds.size.toLocaleString("pt-BR")})`}
                   </button>
                 </div>
               </td>
-              <td className="text-right text-primary">{formatBRL(total)}</td>
-              <td></td>
-            </tr>
-            <tr>
-              <td colSpan={9} className="text-muted-foreground text-xs">Total geral · todas as NFs</td>
-              <td className="text-right text-muted-foreground text-xs">{formatBRL(totalGeral ?? 0)}</td>
-              <td></td>
             </tr>
           </tfoot>
         </table>
