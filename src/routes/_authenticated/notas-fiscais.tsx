@@ -43,6 +43,8 @@ function NFsPage() {
   const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
   const [produtosSel, setProdutosSel] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   const buscaTrim = busca.trim();
   const anoAtual = now.getFullYear();
