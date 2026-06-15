@@ -43,6 +43,8 @@ function NFsPage() {
   const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
   const [produtosSel, setProdutosSel] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
 
   const buscaTrim = busca.trim();
   const anoAtual = now.getFullYear();
@@ -318,6 +320,70 @@ function NFsPage() {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
 
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+
+  const allVisibleSelected = filtradas.length > 0 && filtradas.every((n) => selectedIds.has(n.id));
+  const someVisibleSelected = filtradas.some((n) => selectedIds.has(n.id));
+
+  function toggleSelectAllVisible() {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (allVisibleSelected) filtradas.forEach((f) => n.delete(f.id));
+      else filtradas.forEach((f) => n.add(f.id));
+      return n;
+    });
+  }
+
+  async function exportarSelecionadas() {
+    const selecionadas = filtradas.filter((n) => selectedIds.has(n.id));
+    if (selecionadas.length === 0) return;
+    setExporting(true);
+    try {
+      const ids = selecionadas.map((n) => n.id);
+      const itensAll: { nota_fiscal_id: string; produto: string | null; quantidade: number | string; valor_unitario: number | string; valor_total: number | string; ean?: string | null }[] = [];
+      const BATCH = 150;
+      for (let i = 0; i < ids.length; i += BATCH) {
+        const { data } = await supabase.from("itens_nf").select("*").in("nota_fiscal_id", ids.slice(i, i + BATCH));
+        itensAll.push(...((data ?? []) as typeof itensAll));
+      }
+      const produtos = Array.from(new Set(itensAll.map((i) => (i.produto ?? "").trim()).filter(Boolean)));
+      const eanMap: Record<string, string> = {};
+      if (produtos.length > 0) {
+        const [a, b] = await Promise.all([
+          supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+          supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+        ]);
+        [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
+          const p = (r.produto ?? "").trim();
+          if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
+        });
+      }
+      const nfById = new Map(selecionadas.map((n) => [n.id, n]));
+      const rows = itensAll.map((i) => {
+        const nf = nfById.get(i.nota_fiscal_id);
+        return {
+          "Data de Faturamento": nf ? formatDateBR(nf.data) : "",
+          "NF": nf?.numero ?? "",
+          "Cliente": nf?.clientes?.nome ?? "",
+          "EAN": i.ean ?? eanMap[(i.produto ?? "").trim()] ?? "",
+          "Descrição do Produto": i.produto ?? "",
+          "Quantidade": Number(i.quantidade ?? 0),
+          "Valor": Number(i.valor_unitario ?? 0),
+          "Total": Number(i.valor_total ?? 0),
+        };
+      });
+      if (rows.length === 0) { toast.error("Nenhum item para exportar."); return; }
+      exportToExcel(rows, `nfs-selecionadas-${selecionadas.length}.xlsx`, "Itens");
+      toast.success(`${selecionadas.length} NF(s) exportadas.`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao exportar.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function limparFiltros() {
     setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]); setProdutosSel([]);
   }
@@ -441,6 +507,16 @@ function NFsPage() {
         <table className="bi-table">
           <thead>
             <tr>
+              <th style={{ width: 32 }}>
+                <input
+                  type="checkbox"
+                  aria-label="Selecionar todas visíveis"
+                  checked={allVisibleSelected}
+                  ref={(el) => { if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected; }}
+                  onChange={toggleSelectAllVisible}
+                  className="cursor-pointer"
+                />
+              </th>
               <th style={{ width: 38 }}></th>
               <th>Data</th><th>Número</th><th>Cliente</th>
               <th className="text-center">Status Entrega</th>
@@ -452,7 +528,7 @@ function NFsPage() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
+            {isLoading && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
             {!isLoading && filtradas.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
@@ -472,9 +548,19 @@ function NFsPage() {
                   : leadDays <= 15
                     ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                     : "bg-red-500/20 text-red-400 border border-red-500/30";
+              const isSelected = selectedIds.has(n.id);
               return (
                 <>
                   <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Selecionar NF ${n.numero}`}
+                        checked={isSelected}
+                        onChange={() => toggleSelected(n.id)}
+                        className="cursor-pointer"
+                      />
+                    </td>
                     <td>{open ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}</td>
                     <td>{formatDateBR(n.data)}</td>
                     <td className="font-medium text-primary">{n.numero}</td>
@@ -540,12 +626,31 @@ function NFsPage() {
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={10} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && filtradas.length === 0 && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={8}>TOTAL GERAL · TODAS AS NFS</td>
-              <td className="text-right text-primary">{formatBRL(totalGeral ?? 0)}</td>
+              <td colSpan={9}>
+                <div className="flex items-center justify-between gap-3">
+                  <span>SUBTOTAL · NFS VISÍVEIS ({filtradas.length.toLocaleString("pt-BR")})</span>
+                  <button
+                    type="button"
+                    onClick={exportarSelecionadas}
+                    disabled={selectedIds.size === 0 || exporting}
+                    className="h-8 px-3 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5 text-xs font-semibold"
+                    title="Exportar NFs selecionadas"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                    {exporting ? "Exportando..." : `Exportar Selecionadas${selectedIds.size > 0 ? ` (${selectedIds.size})` : ""}`}
+                  </button>
+                </div>
+              </td>
+              <td className="text-right text-primary">{formatBRL(total)}</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colSpan={9} className="text-muted-foreground text-xs">Total geral · todas as NFs</td>
+              <td className="text-right text-muted-foreground text-xs">{formatBRL(totalGeral ?? 0)}</td>
               <td></td>
             </tr>
           </tfoot>
@@ -728,7 +833,7 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
 
   return (
     <tr>
-      <td colSpan={10} className="bg-muted/30 p-0">
+      <td colSpan={11} className="bg-muted/30 p-0">
         <div className="px-6 py-4">
           <div className="bi-stat-label mb-2">Itens da NF</div>
           {isLoading && <div className="text-sm text-muted-foreground py-2">Carregando…</div>}
