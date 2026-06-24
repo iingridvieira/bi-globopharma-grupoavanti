@@ -170,26 +170,9 @@ function PedidosPage() {
         <MultiSelect
           width={160}
           placeholder="Anos"
-          options={[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => ({ value: String(a), label: String(a) }))}
-          selected={anos}
-          onChange={setAnos}
-        />
-        <MultiSelect
-          width={260}
-          placeholder="Todos os clientes"
-          options={clientesVisiveis.map((c) => ({ value: c.id, label: c.nome }))}
-          selected={clientesSel}
-          onChange={setClientesSel}
-        />
-        
-        <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
-          <Download className="h-4 w-4" /> Exportar
-        </button>
-      </div>
-
       {canEdit && (
         <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
-          className="bi-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
+          className="bi-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3 mt-6">
           <div className="md:col-span-4 bi-stat-label">Adicionar Pedido</div>
           <Field label="Data">
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="bi-input-sm" />
@@ -213,6 +196,50 @@ function PedidosPage() {
           </div>
         </form>
       )}
+
+      <div className="flex flex-wrap items-center gap-3 mt-5">
+        <MultiSelect
+          width={220}
+          placeholder="Meses"
+          options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
+          selected={meses}
+          onChange={setMeses}
+        />
+        <MultiSelect
+          width={160}
+          placeholder="Anos"
+          options={[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => ({ value: String(a), label: String(a) }))}
+          selected={anos}
+          onChange={setAnos}
+        />
+        <MultiSelect
+          width={260}
+          placeholder="Todos os clientes"
+          options={clientesVisiveis.map((c) => ({ value: c.id, label: c.nome }))}
+          selected={clientesSel}
+          onChange={setClientesSel}
+        />
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          className="bi-input-sm"
+          style={{ width: 240 }}
+          title="Ordenar"
+        >
+          <option value="data_desc">Data: mais recente → antiga</option>
+          <option value="data_asc">Data: antiga → mais recente</option>
+          <option value="cliente_asc">Cliente: A → Z</option>
+          <option value="cliente_desc">Cliente: Z → A</option>
+          <option value="valor_asc">Valor: menor → maior</option>
+          <option value="valor_desc">Valor: maior → menor</option>
+        </select>
+
+        <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
+          <Download className="h-4 w-4" /> Exportar
+        </button>
+      </div>
+
+
 
 
       <div className="bi-card mt-6 overflow-hidden">
