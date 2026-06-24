@@ -106,9 +106,19 @@ function PedidosPage() {
   const clientesVisiveis = allowedNameSet
     ? (clientes ?? []).filter((c) => allowedNameSet.has(normNome(c.nome)))
     : (clientes ?? []);
-  const filtrados = allowedNameSet
+  const baseFiltrados = allowedNameSet
     ? (pedidos ?? []).filter((p) => p.clientes?.nome && allowedNameSet.has(normNome(p.clientes.nome)))
     : (pedidos ?? []);
+  const filtrados = [...baseFiltrados].sort((a, b) => {
+    switch (sortBy) {
+      case "data_asc": return String(a.data).localeCompare(String(b.data));
+      case "data_desc": return String(b.data).localeCompare(String(a.data));
+      case "cliente_asc": return (a.clientes?.nome ?? "").localeCompare(b.clientes?.nome ?? "", "pt-BR");
+      case "cliente_desc": return (b.clientes?.nome ?? "").localeCompare(a.clientes?.nome ?? "", "pt-BR");
+      case "valor_asc": return Number(a.valor) - Number(b.valor);
+      case "valor_desc": return Number(b.valor) - Number(a.valor);
+    }
+  });
   const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
