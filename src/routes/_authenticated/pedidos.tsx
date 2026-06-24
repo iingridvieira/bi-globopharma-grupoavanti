@@ -22,6 +22,7 @@ function PedidosPage() {
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<"data_desc" | "data_asc" | "cliente_asc" | "cliente_desc" | "valor_asc" | "valor_desc">("data_desc");
   
 
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
@@ -105,9 +106,19 @@ function PedidosPage() {
   const clientesVisiveis = allowedNameSet
     ? (clientes ?? []).filter((c) => allowedNameSet.has(normNome(c.nome)))
     : (clientes ?? []);
-  const filtrados = allowedNameSet
+  const baseFiltrados = allowedNameSet
     ? (pedidos ?? []).filter((p) => p.clientes?.nome && allowedNameSet.has(normNome(p.clientes.nome)))
     : (pedidos ?? []);
+  const filtrados = [...baseFiltrados].sort((a, b) => {
+    switch (sortBy) {
+      case "data_asc": return String(a.data).localeCompare(String(b.data));
+      case "data_desc": return String(b.data).localeCompare(String(a.data));
+      case "cliente_asc": return (a.clientes?.nome ?? "").localeCompare(b.clientes?.nome ?? "", "pt-BR");
+      case "cliente_desc": return (b.clientes?.nome ?? "").localeCompare(a.clientes?.nome ?? "", "pt-BR");
+      case "valor_asc": return Number(a.valor) - Number(b.valor);
+      case "valor_desc": return Number(b.valor) - Number(a.valor);
+    }
+  });
   const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
@@ -148,37 +159,10 @@ function PedidosPage() {
       </div>
 
 
-      <div className="flex flex-wrap items-center gap-3 mt-6">
-        <MultiSelect
-          width={220}
-          placeholder="Meses"
-          options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
-          selected={meses}
-          onChange={setMeses}
-        />
-        <MultiSelect
-          width={160}
-          placeholder="Anos"
-          options={[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => ({ value: String(a), label: String(a) }))}
-          selected={anos}
-          onChange={setAnos}
-        />
-        <MultiSelect
-          width={260}
-          placeholder="Todos os clientes"
-          options={clientesVisiveis.map((c) => ({ value: c.id, label: c.nome }))}
-          selected={clientesSel}
-          onChange={setClientesSel}
-        />
-        
-        <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
-          <Download className="h-4 w-4" /> Exportar
-        </button>
-      </div>
-
       {canEdit && (
+
         <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
-          className="bi-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3 mt-5">
+          className="bi-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3 mt-6">
           <div className="md:col-span-4 bi-stat-label">Adicionar Pedido</div>
           <Field label="Data">
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="bi-input-sm" />
@@ -202,6 +186,50 @@ function PedidosPage() {
           </div>
         </form>
       )}
+
+      <div className="flex flex-wrap items-center gap-3 mt-5">
+        <MultiSelect
+          width={220}
+          placeholder="Meses"
+          options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
+          selected={meses}
+          onChange={setMeses}
+        />
+        <MultiSelect
+          width={160}
+          placeholder="Anos"
+          options={[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => ({ value: String(a), label: String(a) }))}
+          selected={anos}
+          onChange={setAnos}
+        />
+        <MultiSelect
+          width={260}
+          placeholder="Todos os clientes"
+          options={clientesVisiveis.map((c) => ({ value: c.id, label: c.nome }))}
+          selected={clientesSel}
+          onChange={setClientesSel}
+        />
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          className="bi-input-sm"
+          style={{ width: 240 }}
+          title="Ordenar"
+        >
+          <option value="data_desc">Data: mais recente → antiga</option>
+          <option value="data_asc">Data: antiga → mais recente</option>
+          <option value="cliente_asc">Cliente: A → Z</option>
+          <option value="cliente_desc">Cliente: Z → A</option>
+          <option value="valor_asc">Valor: menor → maior</option>
+          <option value="valor_desc">Valor: maior → menor</option>
+        </select>
+
+        <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
+          <Download className="h-4 w-4" /> Exportar
+        </button>
+      </div>
+
+
 
 
       <div className="bi-card mt-6 overflow-hidden">
