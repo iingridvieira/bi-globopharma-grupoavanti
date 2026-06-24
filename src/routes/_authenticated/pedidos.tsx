@@ -159,18 +159,8 @@ function PedidosPage() {
       </div>
 
 
-      <div className="flex flex-wrap items-center gap-3 mt-6">
-        <MultiSelect
-          width={220}
-          placeholder="Meses"
-          options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))}
-          selected={meses}
-          onChange={setMeses}
-        />
-        <MultiSelect
-          width={160}
-          placeholder="Anos"
       {canEdit && (
+
         <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
           className="bi-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3 mt-6">
           <div className="md:col-span-4 bi-stat-label">Adicionar Pedido</div>
