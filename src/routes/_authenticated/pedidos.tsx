@@ -9,19 +9,19 @@ import { exportToExcel } from "@/lib/excel";
 import { Download, Send, Pencil, Trash2, Check, X } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 
-
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
 
 const normNome = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 
 function PedidosPage() {
-  const { canEdit, restrictedClientes } = useAuth();
+  const { canEdit, restrictedClientes, user } = useAuth();
   const allowedNameSet = restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null;
   const qc = useQueryClient();
   const now = new Date();
   const [meses, setMeses] = useState<string[]>([String(now.getMonth() + 1)]);
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
+  const [representantesSel, setRepresentantesSel] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"data_desc" | "data_asc" | "cliente_asc" | "cliente_desc" | "valor_asc" | "valor_desc">("data_desc");
   
 
@@ -34,11 +34,16 @@ function PedidosPage() {
     queryFn: async () => (await supabase.from("clientes").select("id,nome").order("nome")).data ?? [],
   });
 
+  const { data: representantes } = useQuery({
+    queryKey: ["representantes"],
+    queryFn: async () => (await supabase.from("profiles").select("id,nome").order("nome")).data ?? [],
+  });
+
   const { data: pedidos } = useQuery({
-    queryKey: ["pedidos", anos, meses, clientesSel],
+    queryKey: ["pedidos", anos, meses, clientesSel, representantesSel],
     queryFn: async () => {
       let q = supabase.from("pedidos_enviados")
-        .select("id,data,valor,status,cliente_id,clientes(nome)")
+        .select("id,data,valor,status,cliente_id,created_by,clientes(nome)")
         .order("data", { ascending: false });
 
       const anosNum = anos.map(Number);
@@ -54,10 +59,10 @@ function PedidosPage() {
         });
         q = q.or(ranges.join(","));
       } else {
-        // sem período válido: retorna vazio
         return [];
       }
       if (clientesSel.length > 0) q = q.in("cliente_id", clientesSel);
+      if (representantesSel.length > 0) q = q.in("created_by", representantesSel);
       const { data } = await q;
       return data ?? [];
     },
@@ -124,7 +129,7 @@ function PedidosPage() {
   const create = useMutation({
     mutationFn: async () => {
       const v = parseBRNumber(valor);
-      const { error } = await supabase.from("pedidos_enviados").insert({ data, cliente_id: clienteId, valor: v });
+      const { error } = await supabase.from("pedidos_enviados").insert({ data, cliente_id: clienteId, valor: v, created_by: user?.id });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pedido registrado"); setValor(""); void qc.invalidateQueries(); },
@@ -135,6 +140,7 @@ function PedidosPage() {
     const rows = filtrados.map((p) => ({
       Data: formatDateBR(p.data),
       Cliente: p.clientes?.nome ?? "",
+      Representante: p.created_by ? (representantes ?? []).find((r) => r.id === p.created_by)?.nome ?? "—" : "—",
       Valor: Number(p.valor),
       Status: p.status === "aprovado" ? "APROVADO" : "AGUARDANDO",
     }));
@@ -209,6 +215,13 @@ function PedidosPage() {
           selected={clientesSel}
           onChange={setClientesSel}
         />
+        <MultiSelect
+          width={220}
+          placeholder="Todos os representantes"
+          options={(representantes ?? []).map((r) => ({ value: r.id, label: r.nome ?? "" }))}
+          selected={representantesSel}
+          onChange={setRepresentantesSel}
+        />
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
@@ -237,7 +250,7 @@ function PedidosPage() {
           <table className="bi-table">
             <thead>
               <tr>
-                <th>Data</th><th>Cliente</th><th className="text-right">Valor</th><th className="text-center">Status</th>
+                <th>Data</th><th>Cliente</th><th>Representante</th><th className="text-right">Valor</th><th className="text-center">Status</th>
                 {canEdit && <th className="text-center">Ações</th>}
               </tr>
             </thead>
@@ -253,6 +266,9 @@ function PedidosPage() {
                         <select value={editClienteId} onChange={(e) => setEditClienteId(e.target.value)} className="bi-input-sm">
                           {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
+                      </td>
+                      <td className="text-xs text-muted-foreground">
+                        {p.created_by ? (representantes ?? []).find((r) => r.id === p.created_by)?.nome ?? "—" : "—"}
                       </td>
                       <td className="text-right"><input value={editValor} onChange={(e) => setEditValor(e.target.value)} className="bi-input-sm text-right" /></td>
                       <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
@@ -273,6 +289,9 @@ function PedidosPage() {
                   <tr key={p.id}>
                     <td>{formatDateBR(p.data)}</td>
                     <td>{p.clientes?.nome ?? "—"}</td>
+                    <td className="text-xs text-muted-foreground">
+                      {p.created_by ? (representantes ?? []).find((r) => r.id === p.created_by)?.nome ?? "—" : "—"}
+                    </td>
                     <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
                     <td className="text-center">
                       <button
@@ -311,10 +330,10 @@ function PedidosPage() {
                   </tr>
                 );
               })}
-              {filtrados.length === 0 && <tr><td colSpan={canEdit ? 5 : 4} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
+              {filtrados.length === 0 && <tr><td colSpan={canEdit ? 6 : 5} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
             </tbody>
             <tfoot>
-              <tr><td colSpan={2}>TOTAL ({filtrados.length})</td><td className="text-right text-primary">{formatBRL(total)}</td><td />{canEdit && <td />}</tr>
+              <tr><td colSpan={3}>TOTAL ({filtrados.length})</td><td className="text-right text-primary">{formatBRL(total)}</td><td />{canEdit && <td />}</tr>
             </tfoot>
 
           </table>
