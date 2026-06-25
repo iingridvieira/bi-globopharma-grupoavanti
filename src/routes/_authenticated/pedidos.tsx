@@ -215,6 +215,13 @@ function PedidosPage() {
           selected={clientesSel}
           onChange={setClientesSel}
         />
+        <MultiSelect
+          width={220}
+          placeholder="Todos os representantes"
+          options={(representantes ?? []).map((r) => ({ value: r.id, label: r.nome }))}
+          selected={representantesSel}
+          onChange={setRepresentantesSel}
+        />
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
