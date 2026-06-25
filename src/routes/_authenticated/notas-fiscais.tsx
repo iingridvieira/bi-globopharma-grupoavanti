@@ -118,7 +118,7 @@ function NFsPage() {
     enabled: produtosSel.length === 0 || (nfIdsPorProdutosSel != null),
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
-        .select("id,data,numero,valor,desconto,cliente_id,clientes(nome)")
+        .select("id,data,numero,valor,desconto,cliente_id,observacao,clientes(nome)")
         .order("data", { ascending: false })
         .limit(5000);
 
@@ -372,6 +372,7 @@ function NFsPage() {
           "Quantidade": Number(i.quantidade ?? 0),
           "Valor": Number(i.valor_unitario ?? 0),
           "Total": Number(i.valor_total ?? 0),
+          "Observação": (nf as { observacao?: string | null } | undefined)?.observacao ?? "",
         };
       });
       if (rows.length === 0) { toast.error("Nenhum item para exportar."); return; }
@@ -612,6 +613,7 @@ function NFsPage() {
                             "Quantidade": Number(i.quantidade ?? 0),
                             "Valor": Number(i.valor_unitario ?? 0),
                             "Total": Number(i.valor_total ?? 0),
+                            "Observação": (n as { observacao?: string | null }).observacao ?? "",
                           }));
                           exportToExcel(rows, `nf-${n.numero}-${n.clientes?.nome ?? "cliente"}.xlsx`, "Itens");
                         }}
@@ -622,7 +624,7 @@ function NFsPage() {
                       </button>
                     </td>
                   </tr>
-                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} clienteId={n.cliente_id} highlight={buscaTrim} />}
+                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} clienteId={n.cliente_id} highlight={buscaTrim} observacaoInicial={(n as { observacao?: string | null }).observacao ?? ""} onObservacaoSaved={() => qc.invalidateQueries({ queryKey: ["nfs"] })} />}
                 </>
               );
             })}
@@ -769,7 +771,25 @@ function mediaSemNitro(valores: number[]): number {
   return base.reduce((s, v) => s + v, 0) / base.length;
 }
 
-function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: string; highlight?: string }) {
+function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoSaved }: { nfId: string; clienteId: string; highlight?: string; observacaoInicial?: string; onObservacaoSaved?: () => void }) {
+  const [obs, setObs] = useState(observacaoInicial ?? "");
+  const [savingObs, setSavingObs] = useState(false);
+  const obsDirty = (obs ?? "") !== (observacaoInicial ?? "");
+
+  async function salvarObs() {
+    setSavingObs(true);
+    try {
+      const { error } = await supabase.from("notas_fiscais").update({ observacao: obs || null } as never).eq("id", nfId);
+      if (error) throw error;
+      toast.success("Observação salva");
+      onObservacaoSaved?.();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar observação");
+    } finally {
+      setSavingObs(false);
+    }
+  }
+
   const { data: itens, isLoading } = useQuery({
     queryKey: ["nf-itens", nfId],
     queryFn: async () => (await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", nfId)).data ?? [],
@@ -862,6 +882,26 @@ function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: str
               </tbody>
             </table>
           )}
+          <div className="mt-4">
+            <div className="bi-stat-label mb-1">Observação</div>
+            <div className="flex items-start gap-2">
+              <textarea
+                value={obs}
+                onChange={(e) => setObs(e.target.value)}
+                placeholder="Adicione detalhes específicos desta NF (visível nos relatórios exportados)…"
+                rows={2}
+                className="bi-input-sm flex-1 resize-y min-h-[44px]"
+              />
+              <button
+                type="button"
+                onClick={salvarObs}
+                disabled={!obsDirty || savingObs}
+                className="h-9 px-3 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
+              >
+                {savingObs ? "Salvando…" : "Salvar"}
+              </button>
+            </div>
+          </div>
         </div>
       </td>
     </tr>
