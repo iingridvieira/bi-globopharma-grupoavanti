@@ -289,6 +289,9 @@ function PedidosPage() {
                   <tr key={p.id}>
                     <td>{formatDateBR(p.data)}</td>
                     <td>{p.clientes?.nome ?? "—"}</td>
+                    <td className="text-xs text-muted-foreground">
+                      {p.created_by ? (representantes ?? []).find((r) => r.id === p.created_by)?.nome ?? "—" : "—"}
+                    </td>
                     <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
                     <td className="text-center">
                       <button
