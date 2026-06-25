@@ -250,7 +250,7 @@ function PedidosPage() {
           <table className="bi-table">
             <thead>
               <tr>
-                <th>Data</th><th>Cliente</th><th className="text-right">Valor</th><th className="text-center">Status</th>
+                <th>Data</th><th>Cliente</th><th>Representante</th><th className="text-right">Valor</th><th className="text-center">Status</th>
                 {canEdit && <th className="text-center">Ações</th>}
               </tr>
             </thead>
