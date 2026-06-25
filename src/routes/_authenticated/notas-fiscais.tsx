@@ -118,7 +118,7 @@ function NFsPage() {
     enabled: produtosSel.length === 0 || (nfIdsPorProdutosSel != null),
     queryFn: async () => {
       let q = supabase.from("notas_fiscais")
-        .select("id,data,numero,valor,desconto,cliente_id,clientes(nome)")
+        .select("id,data,numero,valor,desconto,cliente_id,observacao,clientes(nome)")
         .order("data", { ascending: false })
         .limit(5000);
 
