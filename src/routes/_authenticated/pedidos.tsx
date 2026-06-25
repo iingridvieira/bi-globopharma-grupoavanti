@@ -140,6 +140,7 @@ function PedidosPage() {
     const rows = filtrados.map((p) => ({
       Data: formatDateBR(p.data),
       Cliente: p.clientes?.nome ?? "",
+      Representante: p.created_by ? (representantes ?? []).find((r) => r.id === p.created_by)?.nome ?? "—" : "—",
       Valor: Number(p.valor),
       Status: p.status === "aprovado" ? "APROVADO" : "AGUARDANDO",
     }));
