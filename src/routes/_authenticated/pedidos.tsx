@@ -267,6 +267,9 @@ function PedidosPage() {
                           {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
                       </td>
+                      <td className="text-xs text-muted-foreground">
+                        {p.created_by ? (representantes ?? []).find((r) => r.id === p.created_by)?.nome ?? "—" : "—"}
+                      </td>
                       <td className="text-right"><input value={editValor} onChange={(e) => setEditValor(e.target.value)} className="bi-input-sm text-right" /></td>
                       <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
                       <td className="text-center">
