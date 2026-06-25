@@ -372,6 +372,7 @@ function NFsPage() {
           "Quantidade": Number(i.quantidade ?? 0),
           "Valor": Number(i.valor_unitario ?? 0),
           "Total": Number(i.valor_total ?? 0),
+          "Observação": (nf as { observacao?: string | null } | undefined)?.observacao ?? "",
         };
       });
       if (rows.length === 0) { toast.error("Nenhum item para exportar."); return; }
