@@ -129,7 +129,7 @@ function PedidosPage() {
   const create = useMutation({
     mutationFn: async () => {
       const v = parseBRNumber(valor);
-      const { error } = await supabase.from("pedidos_enviados").insert({ data, cliente_id: clienteId, valor: v });
+      const { error } = await supabase.from("pedidos_enviados").insert({ data, cliente_id: clienteId, valor: v, created_by: user?.id });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pedido registrado"); setValor(""); void qc.invalidateQueries(); },
