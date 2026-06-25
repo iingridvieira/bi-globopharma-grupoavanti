@@ -882,6 +882,26 @@ function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoS
               </tbody>
             </table>
           )}
+          <div className="mt-4">
+            <div className="bi-stat-label mb-1">Observação</div>
+            <div className="flex items-start gap-2">
+              <textarea
+                value={obs}
+                onChange={(e) => setObs(e.target.value)}
+                placeholder="Adicione detalhes específicos desta NF (visível nos relatórios exportados)…"
+                rows={2}
+                className="bi-input-sm flex-1 resize-y min-h-[44px]"
+              />
+              <button
+                type="button"
+                onClick={salvarObs}
+                disabled={!obsDirty || savingObs}
+                className="h-9 px-3 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold"
+              >
+                {savingObs ? "Salvando…" : "Salvar"}
+              </button>
+            </div>
+          </div>
         </div>
       </td>
     </tr>
