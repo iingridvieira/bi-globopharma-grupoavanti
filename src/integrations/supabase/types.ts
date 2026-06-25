@@ -362,6 +362,7 @@ export type Database = {
           desconto: number
           id: string
           numero: string
+          observacao: string | null
           razao_social: string | null
           valor: number
         }
@@ -373,6 +374,7 @@ export type Database = {
           desconto?: number
           id?: string
           numero: string
+          observacao?: string | null
           razao_social?: string | null
           valor: number
         }
@@ -384,6 +386,7 @@ export type Database = {
           desconto?: number
           id?: string
           numero?: string
+          observacao?: string | null
           razao_social?: string | null
           valor?: number
         }
