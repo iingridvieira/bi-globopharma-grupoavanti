@@ -330,7 +330,7 @@ function PedidosPage() {
                   </tr>
                 );
               })}
-              {filtrados.length === 0 && <tr><td colSpan={canEdit ? 5 : 4} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
+              {filtrados.length === 0 && <tr><td colSpan={canEdit ? 6 : 5} className="text-center text-muted-foreground py-8">Nenhum pedido neste período.</td></tr>}
             </tbody>
             <tfoot>
               <tr><td colSpan={2}>TOTAL ({filtrados.length})</td><td className="text-right text-primary">{formatBRL(total)}</td><td />{canEdit && <td />}</tr>
