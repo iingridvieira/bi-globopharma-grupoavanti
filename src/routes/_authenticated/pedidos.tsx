@@ -43,7 +43,7 @@ function PedidosPage() {
     queryKey: ["pedidos", anos, meses, clientesSel, representantesSel],
     queryFn: async () => {
       let q = supabase.from("pedidos_enviados")
-        .select("id,data,valor,status,cliente_id,created_by,clientes(nome),profiles(nome)")
+        .select("id,data,valor,status,cliente_id,created_by,clientes(nome)")
         .order("data", { ascending: false });
 
       const anosNum = anos.map(Number);
