@@ -34,11 +34,16 @@ function PedidosPage() {
     queryFn: async () => (await supabase.from("clientes").select("id,nome").order("nome")).data ?? [],
   });
 
+  const { data: representantes } = useQuery({
+    queryKey: ["representantes"],
+    queryFn: async () => (await supabase.from("profiles").select("id,nome").order("nome")).data ?? [],
+  });
+
   const { data: pedidos } = useQuery({
-    queryKey: ["pedidos", anos, meses, clientesSel],
+    queryKey: ["pedidos", anos, meses, clientesSel, representantesSel],
     queryFn: async () => {
       let q = supabase.from("pedidos_enviados")
-        .select("id,data,valor,status,cliente_id,clientes(nome)")
+        .select("id,data,valor,status,cliente_id,created_by,clientes(nome),profiles(nome)")
         .order("data", { ascending: false });
 
       const anosNum = anos.map(Number);
@@ -54,10 +59,10 @@ function PedidosPage() {
         });
         q = q.or(ranges.join(","));
       } else {
-        // sem período válido: retorna vazio
         return [];
       }
       if (clientesSel.length > 0) q = q.in("cliente_id", clientesSel);
+      if (representantesSel.length > 0) q = q.in("created_by", representantesSel);
       const { data } = await q;
       return data ?? [];
     },
