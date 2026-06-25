@@ -771,7 +771,25 @@ function mediaSemNitro(valores: number[]): number {
   return base.reduce((s, v) => s + v, 0) / base.length;
 }
 
-function ItensRow({ nfId, clienteId, highlight }: { nfId: string; clienteId: string; highlight?: string }) {
+function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoSaved }: { nfId: string; clienteId: string; highlight?: string; observacaoInicial?: string; onObservacaoSaved?: () => void }) {
+  const [obs, setObs] = useState(observacaoInicial ?? "");
+  const [savingObs, setSavingObs] = useState(false);
+  const obsDirty = (obs ?? "") !== (observacaoInicial ?? "");
+
+  async function salvarObs() {
+    setSavingObs(true);
+    try {
+      const { error } = await supabase.from("notas_fiscais").update({ observacao: obs || null } as never).eq("id", nfId);
+      if (error) throw error;
+      toast.success("Observação salva");
+      onObservacaoSaved?.();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar observação");
+    } finally {
+      setSavingObs(false);
+    }
+  }
+
   const { data: itens, isLoading } = useQuery({
     queryKey: ["nf-itens", nfId],
     queryFn: async () => (await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", nfId)).data ?? [],
