@@ -624,7 +624,7 @@ function NFsPage() {
                       </button>
                     </td>
                   </tr>
-                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} clienteId={n.cliente_id} highlight={buscaTrim} />}
+                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} clienteId={n.cliente_id} highlight={buscaTrim} observacaoInicial={(n as { observacao?: string | null }).observacao ?? ""} onObservacaoSaved={() => qc.invalidateQueries({ queryKey: ["nfs"] })} />}
                 </>
               );
             })}
