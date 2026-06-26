@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
 import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
-import { ChevronDown, ChevronRight, Search, X, FileDown } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
@@ -361,8 +361,24 @@ function NFsPage() {
         });
       }
       const nfById = new Map(selecionadas.map((n) => [n.id, n]));
+      // Buscar entregas das NFs selecionadas
+      const numerosSel = selecionadas.map((n) => n.numero);
+      const entregasSelMap: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
+      const BATCH_E = 500;
+      for (let i = 0; i < numerosSel.length; i += BATCH_E) {
+        const { data } = await supabase
+          .from("nf_entregas")
+          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
+          .in("numero", numerosSel.slice(i, i + BATCH_E));
+        (data ?? []).forEach((d) => { entregasSelMap[d.numero] = d; });
+      }
       const rows = itensAll.map((i) => {
         const nf = nfById.get(i.nota_fiscal_id);
+        const ent = nf ? entregasSelMap[nf.numero] : undefined;
+        const dataEnt = ent?.data_entrega ?? ent?.data_agendamento ?? ent?.previsao_entrega ?? null;
+        const lead = (dataEnt && nf?.data)
+          ? Math.round((new Date(dataEnt).getTime() - new Date(nf.data).getTime()) / 86400000)
+          : null;
         return {
           "Data de Faturamento": nf ? formatDateBR(nf.data) : "",
           "NF": nf?.numero ?? "",
@@ -372,6 +388,9 @@ function NFsPage() {
           "Quantidade": Number(i.quantidade ?? 0),
           "Valor": Number(i.valor_unitario ?? 0),
           "Total": Number(i.valor_total ?? 0),
+          "Status Entrega": ent?.status ?? "Não Coletada",
+          "Lead Time (dias)": lead ?? "",
+          "Data Entrega": dataEnt ? formatDateBR(dataEnt) : "",
           "Observação": (nf as { observacao?: string | null } | undefined)?.observacao ?? "",
         };
       });
@@ -564,7 +583,19 @@ function NFsPage() {
                     </td>
                     <td>{open ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}</td>
                     <td>{formatDateBR(n.data)}</td>
-                    <td className="font-medium text-primary">{n.numero}</td>
+                    <td className="font-medium text-primary">
+                      <span className="inline-flex items-center gap-1.5">
+                        {n.numero}
+                        {((n as { observacao?: string | null }).observacao ?? "").trim() && (
+                          <MessageSquareText
+                            className="h-3.5 w-3.5 text-amber-400"
+                            aria-label="Possui observação"
+                          >
+                            <title>Possui observação</title>
+                          </MessageSquareText>
+                        )}
+                      </span>
+                    </td>
                     <td>{n.clientes?.nome ?? "—"}</td>
                     <td className="text-center" onClick={(e) => e.stopPropagation()}>
                       <StatusEntregaBadge
@@ -613,6 +644,9 @@ function NFsPage() {
                             "Quantidade": Number(i.quantidade ?? 0),
                             "Valor": Number(i.valor_unitario ?? 0),
                             "Total": Number(i.valor_total ?? 0),
+                            "Status Entrega": statusAtual,
+                            "Lead Time (dias)": leadDays ?? "",
+                            "Data Entrega": dataExibida ? formatDateBR(dataExibida) : "",
                             "Observação": (n as { observacao?: string | null }).observacao ?? "",
                           }));
                           exportToExcel(rows, `nf-${n.numero}-${n.clientes?.nome ?? "cliente"}.xlsx`, "Itens");
