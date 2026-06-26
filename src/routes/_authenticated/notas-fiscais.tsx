@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
 import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
-import { ChevronDown, ChevronRight, Search, X, FileDown } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
