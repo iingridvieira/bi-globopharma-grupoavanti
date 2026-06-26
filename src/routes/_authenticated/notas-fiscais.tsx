@@ -583,7 +583,19 @@ function NFsPage() {
                     </td>
                     <td>{open ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}</td>
                     <td>{formatDateBR(n.data)}</td>
-                    <td className="font-medium text-primary">{n.numero}</td>
+                    <td className="font-medium text-primary">
+                      <span className="inline-flex items-center gap-1.5">
+                        {n.numero}
+                        {((n as { observacao?: string | null }).observacao ?? "").trim() && (
+                          <MessageSquareText
+                            className="h-3.5 w-3.5 text-amber-400"
+                            aria-label="Possui observação"
+                          >
+                            <title>Possui observação</title>
+                          </MessageSquareText>
+                        )}
+                      </span>
+                    </td>
                     <td>{n.clientes?.nome ?? "—"}</td>
                     <td className="text-center" onClick={(e) => e.stopPropagation()}>
                       <StatusEntregaBadge
