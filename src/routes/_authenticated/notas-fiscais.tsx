@@ -632,6 +632,9 @@ function NFsPage() {
                             "Quantidade": Number(i.quantidade ?? 0),
                             "Valor": Number(i.valor_unitario ?? 0),
                             "Total": Number(i.valor_total ?? 0),
+                            "Status Entrega": statusAtual,
+                            "Lead Time (dias)": leadDays ?? "",
+                            "Data Entrega": dataExibida ? formatDateBR(dataExibida) : "",
                             "Observação": (n as { observacao?: string | null }).observacao ?? "",
                           }));
                           exportToExcel(rows, `nf-${n.numero}-${n.clientes?.nome ?? "cliente"}.xlsx`, "Itens");
