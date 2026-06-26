@@ -361,8 +361,24 @@ function NFsPage() {
         });
       }
       const nfById = new Map(selecionadas.map((n) => [n.id, n]));
+      // Buscar entregas das NFs selecionadas
+      const numerosSel = selecionadas.map((n) => n.numero);
+      const entregasSelMap: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
+      const BATCH_E = 500;
+      for (let i = 0; i < numerosSel.length; i += BATCH_E) {
+        const { data } = await supabase
+          .from("nf_entregas")
+          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
+          .in("numero", numerosSel.slice(i, i + BATCH_E));
+        (data ?? []).forEach((d) => { entregasSelMap[d.numero] = d; });
+      }
       const rows = itensAll.map((i) => {
         const nf = nfById.get(i.nota_fiscal_id);
+        const ent = nf ? entregasSelMap[nf.numero] : undefined;
+        const dataEnt = ent?.data_entrega ?? ent?.data_agendamento ?? ent?.previsao_entrega ?? null;
+        const lead = (dataEnt && nf?.data)
+          ? Math.round((new Date(dataEnt).getTime() - new Date(nf.data).getTime()) / 86400000)
+          : null;
         return {
           "Data de Faturamento": nf ? formatDateBR(nf.data) : "",
           "NF": nf?.numero ?? "",
@@ -372,6 +388,9 @@ function NFsPage() {
           "Quantidade": Number(i.quantidade ?? 0),
           "Valor": Number(i.valor_unitario ?? 0),
           "Total": Number(i.valor_total ?? 0),
+          "Status Entrega": ent?.status ?? "Não Coletada",
+          "Lead Time (dias)": lead ?? "",
+          "Data Entrega": dataEnt ? formatDateBR(dataEnt) : "",
           "Observação": (nf as { observacao?: string | null } | undefined)?.observacao ?? "",
         };
       });
