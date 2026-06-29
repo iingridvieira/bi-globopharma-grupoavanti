@@ -123,49 +123,8 @@ function SellInPage() {
         </div>
       </header>
 
-      <div className="bi-card overflow-x-auto">
-        <table className="bi-table">
-          <thead>
-            <tr>
-              <th className="bi-col-sticky">Cliente</th>
-              {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
-              <th className="text-right">Total</th>
-              <th className="text-right">Média</th>
-              <th className="text-right">Rep.</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data?.rows.map((r) => (
-              <tr key={r.nome}>
-                <td className="font-medium bi-col-sticky">{r.nome}</td>
-                {r.meses.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
-                <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(r.total)}</td>
-                <td className="text-right tabular-nums text-xs text-muted-foreground">{formatBRL(r.media)}</td>
-                <td className="text-right">
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
-                    r.repr <= 5 ? "bg-red-500/20 text-red-400" :
-                    r.repr <= 10 ? "bg-yellow-500/20 text-yellow-400" :
-                    "bg-emerald-500/20 text-emerald-400"
-                  }`}>
-                    {r.repr.toFixed(1).replace(".", ",")}%
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td className="bi-col-sticky">TOTAL</td>
-              {data?.totaisMes.map((v, i) => <td key={i} className="text-right text-xs">{formatBRL(v)}</td>)}
-              <td className="text-right text-primary">{formatBRL(data?.totalGeral ?? 0)}</td>
-              <td className="text-right text-xs text-muted-foreground">
-                {data?.totalGeral && data?.mesAtual ? formatBRL(data.totalGeral / data.mesAtual) : formatBRL(0)}
-              </td>
-              <td className="text-right text-xs font-semibold">100%</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+      <SellInTable rows={data?.rows ?? []} totaisMes={data?.totaisMes ?? Array(12).fill(0)} totalGeral={data?.totalGeral ?? 0} mesAtual={data?.mesAtual ?? 0} />
+
 
       <section className="mt-10">
         <div className="flex items-end justify-between mb-4">
