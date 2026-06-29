@@ -244,14 +244,6 @@ function PedidosPage() {
           <option value="Eduardo">Eduardo</option>
           <option value="Paulo">Paulo</option>
         </select>
-        <select
-          value=""
-          onChange={() => {}}
-          className="bi-input-sm hidden"
-          style={{ width: 240 }}
-        >
-          <option value="">—</option>
-        </select>
 
 
         <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
