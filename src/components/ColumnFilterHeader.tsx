@@ -216,7 +216,12 @@ export function ClearFiltersButton({
 
 function parseBRNum(s: string): number {
   if (!s) return 0;
-  const n = Number(String(s).replace(/[^\d,-]/g, "").replace(",", "."));
+  let cleaned = String(s).replace(/[^\d.,-]/g, "");
+  const hasComma = cleaned.includes(",");
+  if (hasComma) {
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  }
+  const n = Number(cleaned);
   return Number.isFinite(n) ? n : 0;
 }
 function parseBRDate(s: string): number {
