@@ -699,7 +699,7 @@ function NFsPage() {
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && view.length === 0 && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
             <tr>
