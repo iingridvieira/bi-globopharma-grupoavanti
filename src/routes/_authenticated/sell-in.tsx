@@ -232,11 +232,6 @@ function SellInTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellInRo
     l.total = "Total"; l.media = "Média"; l.repr = "Rep.";
     return l;
   }, []);
-  const fmt = (k: string, v: string) => {
-    if (k === "cliente") return v;
-    if (k === "repr") return `${Number(v).toFixed(1).replace(".", ",")}%`;
-    return Number(v) ? formatBRL(Number(v)) : "—";
-  };
   const { view, distinct, filters, sorts, setFilter, setSort } = useColumnFilters(rows, getters, types);
 
   return (
