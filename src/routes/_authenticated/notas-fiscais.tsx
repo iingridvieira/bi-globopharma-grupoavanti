@@ -317,6 +317,36 @@ function NFsPage() {
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
   const totalBonif = useMemo(() => filtradas.filter((n) => Number(n.valor) <= 0).length, [filtradas]);
 
+  // Enriched rows + column-level Excel-style filters
+  type NfRow = typeof filtradas[number];
+  const colGetters = useMemo(() => ({
+    data: (n: NfRow) => formatDateBR(n.data),
+    numero: (n: NfRow) => String(n.numero ?? ""),
+    cliente: (n: NfRow) => n.clientes?.nome ?? "",
+    status: (n: NfRow) => entregasMap?.[n.numero]?.status ?? "Não Coletada",
+    lead: (n: NfRow) => {
+      const e = entregasMap?.[n.numero];
+      const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+      if (!d || !n.data) return "";
+      const ms = new Date(d).getTime() - new Date(n.data).getTime();
+      return Number.isFinite(ms) ? String(Math.round(ms / 86400000)) : "";
+    },
+    dataEntrega: (n: NfRow) => {
+      const e = entregasMap?.[n.numero];
+      const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+      return d ? formatDateBR(d) : "";
+    },
+    operacao: (n: NfRow) => (Number(n.valor) > 0 ? "Venda" : "Bonificação"),
+    valor: (n: NfRow) => String(n.valor ?? 0),
+  }), [entregasMap]);
+  const colTypes = useMemo(() => ({
+    data: "date" as const, numero: "text" as const, cliente: "text" as const,
+    status: "text" as const, lead: "number" as const, dataEntrega: "date" as const,
+    operacao: "text" as const, valor: "number" as const,
+  }), []);
+  const { view, distinct, filters: colFilters, sorts: colSorts, setFilter: setColFilter, setSort: setColSort, reset: resetColFilters } =
+    useColumnFilters(filtradas, colGetters, colTypes);
+
   function toggle(id: string) {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
@@ -325,17 +355,18 @@ function NFsPage() {
     setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
 
-  const allVisibleSelected = filtradas.length > 0 && filtradas.every((n) => selectedIds.has(n.id));
-  const someVisibleSelected = filtradas.some((n) => selectedIds.has(n.id));
+  const allVisibleSelected = view.length > 0 && view.every((n) => selectedIds.has(n.id));
+  const someVisibleSelected = view.some((n) => selectedIds.has(n.id));
 
   function toggleSelectAllVisible() {
     setSelectedIds((prev) => {
       const n = new Set(prev);
-      if (allVisibleSelected) filtradas.forEach((f) => n.delete(f.id));
-      else filtradas.forEach((f) => n.add(f.id));
+      if (allVisibleSelected) view.forEach((f) => n.delete(f.id));
+      else view.forEach((f) => n.add(f.id));
       return n;
     });
   }
+
 
   async function exportarSelecionadas() {
     const selecionadas = filtradas.filter((n) => selectedIds.has(n.id));
