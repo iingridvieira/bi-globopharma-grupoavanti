@@ -27,7 +27,6 @@ type LinhaMes = {
   metaGlobo: number;
   metaAvanti: number;
   pendAnt: number;
-  captado: number;
   enviado: number;
   pendMaisEnviado: number;
   faturado: number;
