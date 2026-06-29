@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, parseBRNumber } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
