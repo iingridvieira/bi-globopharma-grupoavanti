@@ -286,7 +286,6 @@ function SellInTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellInRo
           </tr>
         </tfoot>
       </table>
-      <span className="hidden">{fmt("", "")}</span>
     </div>
   );
 }
