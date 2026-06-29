@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
 import { toast } from "sonner";
