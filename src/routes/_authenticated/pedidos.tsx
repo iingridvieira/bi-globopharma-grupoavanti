@@ -135,17 +135,20 @@ function PedidosPage() {
   const porResponsavel = responsavel
     ? baseFiltrados.filter((p) => clientesPorResponsavel[responsavel]?.has(p.cliente_id))
     : baseFiltrados;
-  const filtrados = [...porResponsavel].sort((a, b) => {
-    switch (sortBy) {
-      case "data_asc": return String(a.data).localeCompare(String(b.data));
-      case "data_desc": return String(b.data).localeCompare(String(a.data));
-      case "cliente_asc": return (a.clientes?.nome ?? "").localeCompare(b.clientes?.nome ?? "", "pt-BR");
-      case "cliente_desc": return (b.clientes?.nome ?? "").localeCompare(a.clientes?.nome ?? "", "pt-BR");
-      case "valor_asc": return Number(a.valor) - Number(b.valor);
-      case "valor_desc": return Number(b.valor) - Number(a.valor);
-    }
-  });
-  const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
+  const filtrados = porResponsavel;
+
+  type PedRow = typeof filtrados[number];
+  const pedGetters = useMemo(() => ({
+    data: (p: PedRow) => formatDateBR(p.data),
+    cliente: (p: PedRow) => p.clientes?.nome ?? "",
+    valor: (p: PedRow) => String(p.valor),
+    status: (p: PedRow) => (p.status === "aprovado" ? "APROVADO" : "AGUARDANDO"),
+  }), []);
+  const pedTypes = useMemo(() => ({ data: "date" as const, cliente: "text" as const, valor: "number" as const, status: "text" as const }), []);
+  const { view: pedView, distinct: pedDistinct, filters: pedFilters, sorts: pedSorts, setFilter: setPedFilter, setSort: setPedSort, reset: resetPed } =
+    useColumnFilters(filtrados, pedGetters, pedTypes);
+
+  const total = pedView.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
     mutationFn: async () => {
