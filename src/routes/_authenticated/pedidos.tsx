@@ -32,7 +32,8 @@ function PedidosPage() {
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [responsavel, setResponsavel] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"data_desc" | "data_asc" | "cliente_asc" | "cliente_desc" | "valor_asc" | "valor_desc">("data_desc");
+  
+
   
 
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
