@@ -99,7 +99,6 @@ function Consolidado() {
         const b = base[m];
         const encerrado = ano < ANO_ATUAL || (ano === ANO_ATUAL && m < MES_ATUAL);
         const metaGlobo = b.metaGlobo;
-        const captado = b.enviado;
         const enviado = b.enviado;
         const faturado = b.faturado;
         const pendAntV = b.pendAnt;
@@ -169,7 +168,6 @@ function TabelaConsolidado({ linhas }: { linhas: LinhaMes[] }) {
     return {
       metaGlobo, metaAvanti,
       pendAnt: sum("pendAnt"),
-      captado: sum("captado"),
       enviado: sum("enviado"),
       pendMaisEnviado,
       faturado,
@@ -186,12 +184,31 @@ function TabelaConsolidado({ linhas }: { linhas: LinhaMes[] }) {
         const r = porMes[m];
         if (!r) return false;
         return (
-          r.metaGlobo !== 0 || r.pendAnt !== 0 || r.captado !== 0 ||
+          r.metaGlobo !== 0 || r.pendAnt !== 0 ||
           r.enviado !== 0 || r.faturado !== 0
         );
       });
     });
   }, [porMes]);
+
+  const totalAno = useMemo(() => {
+    const rs = linhas;
+    const sum = (k: keyof LinhaMes) => rs.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const metaGlobo = sum("metaGlobo");
+    const metaAvanti = sum("metaAvanti");
+    const faturado = sum("faturado");
+    const pendMaisEnviado = sum("pendMaisEnviado");
+    return {
+      metaGlobo, metaAvanti,
+      pendAnt: sum("pendAnt"),
+      enviado: sum("enviado"),
+      pendMaisEnviado,
+      faturado,
+      atGlobo: metaGlobo > 0 ? faturado / metaGlobo : 0,
+      atAvanti: metaAvanti > 0 ? faturado / metaAvanti : 0,
+      nivelServico: pendMaisEnviado > 0 ? faturado / pendMaisEnviado : 0,
+    };
+  }, [linhas]);
 
   type Col = {
     key: string;
@@ -221,11 +238,6 @@ function TabelaConsolidado({ linhas }: { linhas: LinhaMes[] }) {
       key: "pendAnt", label: "Pendência Anterior", derived: "pendAnt",
       render: (r) => <td className={cellNum}>{formatBRL(r.pendAnt)}</td>,
       renderTotal: (t) => <td className={totalNum}>{formatBRL(t.pendAnt)}</td>,
-    },
-    {
-      key: "captado", label: "Total Captado", derived: "captado",
-      render: (r) => <td className={cellNum}>{formatBRL(r.captado)}</td>,
-      renderTotal: (t) => <td className={totalNum}>{formatBRL(t.captado)}</td>,
     },
     {
       key: "enviado", label: "Valor Enviado", derived: "enviado",
@@ -328,6 +340,15 @@ function TabelaConsolidado({ linhas }: { linhas: LinhaMes[] }) {
               </React.Fragment>
             );
           })}
+          {/* Total Anual */}
+          <tr aria-hidden><td colSpan={cols.length + 2} className="h-2 bg-transparent" /></tr>
+          <tr className="bg-[#c23300] text-white font-bold uppercase text-[10.5px] tracking-wider">
+            <td className={`${stickyTri} bg-[#c23300] px-2 py-2 text-center border-r border-white/15`} />
+            <td className={`${stickyMes} bg-[#c23300] px-2.5 py-2 text-left border-r border-white/15`}>Total Anual</td>
+            {cols.map((c) => (
+              <React.Fragment key={c.key}>{c.renderTotal(totalAno)}</React.Fragment>
+            ))}
+          </tr>
         </tbody>
       </table>
     </div>
