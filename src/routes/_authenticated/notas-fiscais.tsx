@@ -692,7 +692,7 @@ function NFsPage() {
   );
 }
 
-const STATUS_OPCOES = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada"] as const;
+const STATUS_OPCOES = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada", "Devolvida"] as const;
 
 function statusClasses(s: string): string {
   switch (s) {
@@ -700,6 +700,7 @@ function statusClasses(s: string): string {
     case "Agendada": return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
     case "Com Previsão": return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
     case "Extraviada": return "bg-red-500/20 text-red-400 border border-red-500/30";
+    case "Devolvida": return "bg-violet-500/20 text-violet-400 border border-violet-500/30";
     default: return "bg-muted text-muted-foreground border border-border";
   }
 }
