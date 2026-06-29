@@ -7,7 +7,7 @@ import { exportToExcel } from "@/lib/excel";
 import { Download, Plus, Trash2, Save } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { ColumnFilterHeader, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 
 export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
 
