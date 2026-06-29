@@ -255,16 +255,22 @@ function PedidosPage() {
 
 
       <div className="bi-card mt-6 overflow-hidden">
+        <div className="flex justify-end px-3 py-1.5">
+          <ClearFiltersButton filters={pedFilters} sorts={pedSorts} onReset={resetPed} />
+        </div>
         <div className="overflow-x-auto">
           <table className="bi-table">
             <thead>
               <tr>
-                <th>Data</th><th>Cliente</th><th className="text-right">Valor</th><th className="text-center">Status</th>
+                <th><ColumnFilterHeader label="Data" type="date" values={pedDistinct.data ?? []} selected={pedFilters.data ?? []} onChange={(v) => setPedFilter("data", v)} sort={pedSorts.data ?? null} onSortChange={(s) => setPedSort("data", s)} /></th>
+                <th><ColumnFilterHeader label="Cliente" values={pedDistinct.cliente ?? []} selected={pedFilters.cliente ?? []} onChange={(v) => setPedFilter("cliente", v)} sort={pedSorts.cliente ?? null} onSortChange={(s) => setPedSort("cliente", s)} /></th>
+                <th className="text-right"><ColumnFilterHeader label="Valor" align="right" type="number" values={pedDistinct.valor ?? []} selected={pedFilters.valor ?? []} onChange={(v) => setPedFilter("valor", v)} sort={pedSorts.valor ?? null} onSortChange={(s) => setPedSort("valor", s)} /></th>
+                <th className="text-center"><ColumnFilterHeader label="Status" align="center" values={pedDistinct.status ?? []} selected={pedFilters.status ?? []} onChange={(v) => setPedFilter("status", v)} sort={pedSorts.status ?? null} onSortChange={(s) => setPedSort("status", s)} /></th>
                 {canEdit && <th className="text-center">Ações</th>}
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((p) => {
+              {pedView.map((p) => {
                 const aprovado = p.status === "aprovado";
                 const isEditing = editId === p.id;
                 if (isEditing) {
