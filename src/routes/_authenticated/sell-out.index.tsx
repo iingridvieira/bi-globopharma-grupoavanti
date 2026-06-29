@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { exportToExcel } from "@/lib/excel";
 import { Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { ColumnFilterHeader, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 
 export const Route = createFileRoute("/_authenticated/sell-out/")({ component: SellOutPage });
 
