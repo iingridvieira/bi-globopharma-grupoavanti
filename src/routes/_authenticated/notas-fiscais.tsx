@@ -556,6 +556,9 @@ function NFsPage() {
       </div>
 
       <div className="bi-card mt-4 overflow-hidden">
+        <div className="flex justify-end px-3 py-1.5">
+          <ClearFiltersButton filters={colFilters} sorts={colSorts} onReset={resetColFilters} />
+        </div>
         <table className="bi-table">
           <thead>
             <tr>
@@ -570,18 +573,20 @@ function NFsPage() {
                 />
               </th>
               <th style={{ width: 38 }}></th>
-              <th>Data</th><th>Número</th><th>Cliente</th>
-              <th className="text-center">Status Entrega</th>
-              <th className="text-center">Lead Time</th>
-              <th className="text-center">Data Entrega</th>
-              <th className="text-center">Operação</th>
-              <th className="text-right">Valor</th>
+              <th><ColumnFilterHeader label="Data" type="date" values={distinct.data ?? []} selected={colFilters.data ?? []} onChange={(v) => setColFilter("data", v)} sort={colSorts.data ?? null} onSortChange={(s) => setColSort("data", s)} /></th>
+              <th><ColumnFilterHeader label="Número" values={distinct.numero ?? []} selected={colFilters.numero ?? []} onChange={(v) => setColFilter("numero", v)} sort={colSorts.numero ?? null} onSortChange={(s) => setColSort("numero", s)} /></th>
+              <th><ColumnFilterHeader label="Cliente" values={distinct.cliente ?? []} selected={colFilters.cliente ?? []} onChange={(v) => setColFilter("cliente", v)} sort={colSorts.cliente ?? null} onSortChange={(s) => setColSort("cliente", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Status Entrega" align="center" values={distinct.status ?? []} selected={colFilters.status ?? []} onChange={(v) => setColFilter("status", v)} sort={colSorts.status ?? null} onSortChange={(s) => setColSort("status", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Lead Time" align="center" type="number" values={distinct.lead ?? []} selected={colFilters.lead ?? []} onChange={(v) => setColFilter("lead", v)} sort={colSorts.lead ?? null} onSortChange={(s) => setColSort("lead", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Data Entrega" align="center" type="date" values={distinct.dataEntrega ?? []} selected={colFilters.dataEntrega ?? []} onChange={(v) => setColFilter("dataEntrega", v)} sort={colSorts.dataEntrega ?? null} onSortChange={(s) => setColSort("dataEntrega", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Operação" align="center" values={distinct.operacao ?? []} selected={colFilters.operacao ?? []} onChange={(v) => setColFilter("operacao", v)} sort={colSorts.operacao ?? null} onSortChange={(s) => setColSort("operacao", s)} /></th>
+              <th className="text-right"><ColumnFilterHeader label="Valor" align="right" type="number" values={distinct.valor ?? []} selected={colFilters.valor ?? []} onChange={(v) => setColFilter("valor", v)} sort={colSorts.valor ?? null} onSortChange={(s) => setColSort("valor", s)} /></th>
               <th style={{ width: 60 }}></th>
             </tr>
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
-            {!isLoading && filtradas.map((n) => {
+            {!isLoading && view.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
               const entrega = entregasMap?.[n.numero];
