@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, parseBRNumber } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
@@ -207,66 +207,136 @@ function TabelaConsolidado({
     };
   }
 
+  // Definição declarativa das colunas para auto-ocultar as vazias
+  type Col = {
+    key: string;
+    label: string;
+    derived?: keyof LinhaMes; // campo usado para o teste "tem dados?"
+    render: (r: LinhaMes, m: number) => React.ReactNode;
+    renderTotal: (t: ReturnType<typeof totalTri>) => React.ReactNode;
+    headClass?: string;
+    cellClass?: string;
+    totalClass?: string;
+  };
+
+  const fmtPct = (v: number) => `${(v * 100).toFixed(1).replace(".", ",")}%`;
+  const num = "px-3 py-2.5 text-right tabular-nums";
+
+  const allCols: Col[] = [
+    {
+      key: "metaGlobo", label: "Meta Trimestral Globo", derived: "metaGlobo",
+      render: (r, m) => <EditableCell value={r.metaGlobo} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "metaGlobo", v)} onClear={() => onClear(m, "metaGlobo")} />,
+      renderTotal: (t) => <td className={num}>{formatBRL(t.metaGlobo)}</td>,
+    },
+    {
+      key: "metaAvanti", label: "Meta Avanti (+20%)", derived: "metaAvanti",
+      render: (r) => <td className={num}>{formatBRL(r.metaAvanti)}</td>,
+      renderTotal: (t) => <td className={num}>{formatBRL(t.metaAvanti)}</td>,
+    },
+    {
+      key: "pendAnt", label: "Pendência Anterior", derived: "pendAnt",
+      render: (r, m) => <EditableCell value={r.pendAnt} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "pendAnt", v)} onClear={() => onClear(m, "pendAnt")} />,
+      renderTotal: (t) => <td className={num}>{formatBRL(t.pendAnt)}</td>,
+    },
+    {
+      key: "captado", label: "Total Captado", derived: "captado",
+      render: (r, m) => <EditableCell value={r.captado} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "captado", v)} onClear={() => onClear(m, "captado")} />,
+      renderTotal: (t) => <td className={num}>{formatBRL(t.captado)}</td>,
+    },
+    {
+      key: "enviado", label: "Valor Enviado", derived: "enviado",
+      render: (r, m) => <EditableCell value={r.enviado} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "enviado", v)} onClear={() => onClear(m, "enviado")} />,
+      renderTotal: (t) => <td className={num}>{formatBRL(t.enviado)}</td>,
+    },
+    {
+      key: "pendMaisEnviado", label: "Pendência + Total Enviado", derived: "pendMaisEnviado",
+      render: (r) => <td className={`${num} font-medium`}>{formatBRL(r.pendMaisEnviado)}</td>,
+      renderTotal: (t) => <td className={num}>{formatBRL(t.pendMaisEnviado)}</td>,
+    },
+    {
+      key: "faturado", label: "Valor Faturado", derived: "faturado",
+      render: (r, m) => <EditableCell value={r.faturado} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "faturado", v)} onClear={() => onClear(m, "faturado")} />,
+      renderTotal: (t) => <td className={num}>{formatBRL(t.faturado)}</td>,
+    },
+    {
+      key: "atGlobo", label: "Ating. Faturado / Meta Globo", derived: "atGlobo",
+      render: (r) => <td className={num}>{fmtPct(r.atGlobo)}</td>,
+      renderTotal: (t) => <td className={num}>{fmtPct(t.atGlobo)}</td>,
+    },
+    {
+      key: "atAvanti", label: "Ating. Faturado / Meta Avanti", derived: "atAvanti",
+      headClass: "bg-[#095E11] border-l border-r border-[#063a09]",
+      cellClass: "bg-[#095E11]/10 text-[#095E11] font-semibold",
+      totalClass: "bg-[#063a09] text-white",
+      render: (r) => <td className={`${num} bg-[#095E11]/10 text-[#095E11] font-semibold`}>{fmtPct(r.atAvanti)}</td>,
+      renderTotal: (t) => <td className={`${num} bg-[#063a09] text-white`}>{fmtPct(t.atAvanti)}</td>,
+    },
+    {
+      key: "nivelServico", label: "Nível de Serviço Globo", derived: "nivelServico",
+      render: (r) => <td className={num}>{fmtPct(r.nivelServico)}</td>,
+      renderTotal: (t) => <td className={num}>{fmtPct(t.nivelServico)}</td>,
+    },
+  ];
+
+  // Oculta colunas sem dados (todos os meses com valor 0)
+  const cols = allCols.filter((c) => {
+    if (!c.derived) return true;
+    return linhas.some((l) => Number(l[c.derived as keyof LinhaMes]) !== 0);
+  });
+
   return (
-    <table className="w-full text-xs">
-      <thead>
+    <table className="w-full text-[13px] border-separate border-spacing-0">
+      <thead className="sticky top-0 z-10">
         <tr className="bg-[#FF3E00] text-white">
-          <th className="px-2 py-2 text-left">TRI</th>
-          <th className="px-2 py-2 text-left">MÊS</th>
-          <th className="px-2 py-2 text-right">META TRIMESTRAL GLOBO</th>
-          <th className="px-2 py-2 text-right">META AVANTI (+20%)</th>
-          <th className="px-2 py-2 text-right">PENDÊNCIA ANTERIOR</th>
-          <th className="px-2 py-2 text-right">TOTAL CAPTADO</th>
-          <th className="px-2 py-2 text-right">VALOR ENVIADO</th>
-          <th className="px-2 py-2 text-right">PENDÊNCIA + TOTAL ENVIADO</th>
-          <th className="px-2 py-2 text-right">VALOR FATURADO</th>
-          <th className="px-2 py-2 text-right">ATING. FAT. / META GLOBO</th>
-          <th className="px-2 py-2 text-right bg-[#095E11]">ATING. FAT. / META AVANTI</th>
-          <th className="px-2 py-2 text-right">NÍVEL DE SERVIÇO GLOBO</th>
+          <th className="px-3 py-3 text-left font-semibold uppercase text-[11px] tracking-wider w-20">Tri</th>
+          <th className="px-3 py-3 text-left font-semibold uppercase text-[11px] tracking-wider">Mês</th>
+          {cols.map((c) => (
+            <th
+              key={c.key}
+              className={`px-3 py-3 text-right font-semibold uppercase text-[11px] tracking-wider whitespace-nowrap ${c.headClass ?? ""}`}
+            >
+              {c.label}
+            </th>
+          ))}
         </tr>
       </thead>
       <tbody>
-        {TRIMESTRES.map((tri) => {
+        {TRIMESTRES.map((tri, triIdx) => {
           const tot = totalTri(tri.meses);
           return (
             <ReactFragmentTri key={tri.label}>
               {tri.meses.map((m, i) => {
                 const r = porMes[m];
                 if (!r) return null;
+                const zebra = i % 2 === 0 ? "bg-background" : "bg-muted/20";
                 return (
-                  <tr key={m} className="border-b border-border hover:bg-muted/30">
+                  <tr key={m} className={`${zebra} hover:bg-primary/5 transition-colors`}>
                     {i === 0 && (
-                      <td rowSpan={tri.meses.length} className="px-2 py-2 font-bold text-[#FF3E00] bg-[#FF3E00]/5 align-middle text-center">
+                      <td
+                        rowSpan={tri.meses.length}
+                        className="px-3 py-2.5 font-bold text-[#FF3E00] bg-[#FF3E00]/10 align-middle text-center border-y border-[#FF3E00]/20 text-sm tracking-wide"
+                      >
                         {tri.label}
                       </td>
                     )}
-                    <td className="px-2 py-2 font-semibold text-[#FF3E00]">{MESES[m - 1]}</td>
-                    <EditableCell value={r.metaGlobo} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "metaGlobo", v)} onClear={() => onClear(m, "metaGlobo")} />
-                    <td className="px-2 py-2 text-right tabular-nums">{formatBRL(r.metaAvanti)}</td>
-                    <EditableCell value={r.pendAnt} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "pendAnt", v)} onClear={() => onClear(m, "pendAnt")} />
-                    <EditableCell value={r.captado} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "captado", v)} onClear={() => onClear(m, "captado")} />
-                    <EditableCell value={r.enviado} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "enviado", v)} onClear={() => onClear(m, "enviado")} />
-                    <td className="px-2 py-2 text-right tabular-nums font-medium">{formatBRL(r.pendMaisEnviado)}</td>
-                    <EditableCell value={r.faturado} editable={canEdit && r.encerrado} onSave={(v) => onSave(m, "faturado", v)} onClear={() => onClear(m, "faturado")} />
-                    <td className="px-2 py-2 text-right tabular-nums">{(r.atGlobo * 100).toFixed(1).replace(".", ",")}%</td>
-                    <td className="px-2 py-2 text-right tabular-nums bg-[#095E11]/10 text-[#095E11] font-semibold">{(r.atAvanti * 100).toFixed(1).replace(".", ",")}%</td>
-                    <td className="px-2 py-2 text-right tabular-nums">{(r.nivelServico * 100).toFixed(1).replace(".", ",")}%</td>
+                    <td className="px-3 py-2.5 font-semibold text-foreground border-b border-border/40">
+                      {MESES[m - 1]}
+                    </td>
+                    {cols.map((c) => (
+                      <React.Fragment key={c.key}>{c.render(r, m)}</React.Fragment>
+                    ))}
                   </tr>
                 );
               })}
-              <tr className="bg-[#FF3E00] text-white font-bold">
-                <td className="px-2 py-2 text-center" colSpan={2}>TOTAL {tri.label}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.metaGlobo)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.metaAvanti)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.pendAnt)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.captado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.enviado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.pendMaisEnviado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.faturado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{(tot.atGlobo * 100).toFixed(1).replace(".", ",")}%</td>
-                <td className="px-2 py-2 text-right tabular-nums bg-[#095E11] text-white">{(tot.atAvanti * 100).toFixed(1).replace(".", ",")}%</td>
-                <td className="px-2 py-2 text-right tabular-nums">{(tot.nivelServico * 100).toFixed(1).replace(".", ",")}%</td>
+              <tr className="bg-[#FF3E00] text-white font-bold uppercase text-[11px] tracking-wider">
+                <td className="px-3 py-2.5 text-center" colSpan={2}>Total {tri.label}</td>
+                {cols.map((c) => (
+                  <React.Fragment key={c.key}>{c.renderTotal(tot)}</React.Fragment>
+                ))}
               </tr>
+              {triIdx < TRIMESTRES.length - 1 && (
+                <tr><td colSpan={cols.length + 2} className="h-2 bg-transparent" /></tr>
+              )}
             </ReactFragmentTri>
           );
         })}
@@ -274,6 +344,8 @@ function TabelaConsolidado({
     </table>
   );
 }
+
+
 
 function ReactFragmentTri({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
