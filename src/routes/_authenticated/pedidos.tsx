@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
 import { Download, Send, Pencil, Trash2, Check, X } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
 
