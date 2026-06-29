@@ -68,6 +68,36 @@ export type Database = {
         }
         Relationships: []
       }
+      consolidado_overrides: {
+        Row: {
+          ano: number
+          campo: string
+          id: string
+          mes: number
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          ano: number
+          campo: string
+          id?: string
+          mes: number
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          campo?: string
+          id?: string
+          mes?: number
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       conta_corrente_arquivos: {
         Row: {
           cliente_id: string
