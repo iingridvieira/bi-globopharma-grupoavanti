@@ -17,6 +17,7 @@ import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedNotasFiscaisRouteImport } from './routes/_authenticated/notas-fiscais'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedConsolidadoRouteImport } from './routes/_authenticated/consolidado'
 import { Route as AuthenticatedAcessosRouteImport } from './routes/_authenticated/acessos'
 import { Route as AuthenticatedSellOutIndexRouteImport } from './routes/_authenticated/sell-out.index'
 import { Route as AuthenticatedPorClientesIndexRouteImport } from './routes/_authenticated/por-clientes.index'
@@ -64,6 +65,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedConsolidadoRoute =
+  AuthenticatedConsolidadoRouteImport.update({
+    id: '/consolidado',
+    path: '/consolidado',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAcessosRoute = AuthenticatedAcessosRouteImport.update({
   id: '/acessos',
   path: '/acessos',
@@ -104,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/acessos': typeof AuthenticatedAcessosRoute
+  '/consolidado': typeof AuthenticatedConsolidadoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
@@ -118,6 +126,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/acessos': typeof AuthenticatedAcessosRoute
+  '/consolidado': typeof AuthenticatedConsolidadoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
@@ -135,6 +144,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/acessos': typeof AuthenticatedAcessosRoute
+  '/_authenticated/consolidado': typeof AuthenticatedConsolidadoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/acessos'
+    | '/consolidado'
     | '/dashboard'
     | '/importar'
     | '/notas-fiscais'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/acessos'
+    | '/consolidado'
     | '/dashboard'
     | '/importar'
     | '/notas-fiscais'
@@ -183,6 +195,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/acessos'
+    | '/_authenticated/consolidado'
     | '/_authenticated/dashboard'
     | '/_authenticated/importar'
     | '/_authenticated/notas-fiscais'
@@ -259,6 +272,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/consolidado': {
+      id: '/_authenticated/consolidado'
+      path: '/consolidado'
+      fullPath: '/consolidado'
+      preLoaderRoute: typeof AuthenticatedConsolidadoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/acessos': {
       id: '/_authenticated/acessos'
       path: '/acessos'
@@ -306,6 +326,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAcessosRoute: typeof AuthenticatedAcessosRoute
+  AuthenticatedConsolidadoRoute: typeof AuthenticatedConsolidadoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedNotasFiscaisRoute: typeof AuthenticatedNotasFiscaisRoute
@@ -321,6 +342,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAcessosRoute: AuthenticatedAcessosRoute,
+  AuthenticatedConsolidadoRoute: AuthenticatedConsolidadoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedNotasFiscaisRoute: AuthenticatedNotasFiscaisRoute,
