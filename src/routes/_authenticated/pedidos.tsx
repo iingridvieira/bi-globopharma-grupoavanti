@@ -245,19 +245,14 @@ function PedidosPage() {
           <option value="Paulo">Paulo</option>
         </select>
         <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="bi-input-sm"
+          value=""
+          onChange={() => {}}
+          className="bi-input-sm hidden"
           style={{ width: 240 }}
-          title="Ordenar"
         >
-          <option value="data_desc">Data: mais recente → antiga</option>
-          <option value="data_asc">Data: antiga → mais recente</option>
-          <option value="cliente_asc">Cliente: A → Z</option>
-          <option value="cliente_desc">Cliente: Z → A</option>
-          <option value="valor_asc">Valor: menor → maior</option>
-          <option value="valor_desc">Valor: maior → menor</option>
+          <option value="">—</option>
         </select>
+
 
         <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
           <Download className="h-4 w-4" /> Exportar
