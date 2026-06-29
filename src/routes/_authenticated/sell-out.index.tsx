@@ -159,6 +159,4 @@ function SellOutTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellOut
     </div>
   );
 }
-    </div>
-  );
-}
+
