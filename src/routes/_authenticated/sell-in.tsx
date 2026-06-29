@@ -209,3 +209,89 @@ function DescCard({ d, canEdit, onDelete, onSave }: { d: DescItem; canEdit: bool
     </div>
   );
 }
+
+type SellInRow = { nome: string; meses: number[]; total: number; media: number; repr: number };
+
+function SellInTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellInRow[]; totaisMes: number[]; totalGeral: number; mesAtual: number }) {
+  const getters = useMemo(() => {
+    const g: Record<string, (r: SellInRow) => string> = { cliente: (r) => r.nome };
+    MESES_BR_SHORT.forEach((m, i) => { g[`m${i}`] = (r) => String(r.meses[i] ?? 0); });
+    g.total = (r) => String(r.total);
+    g.media = (r) => String(r.media);
+    g.repr = (r) => String(r.repr);
+    return g;
+  }, []);
+  const types = useMemo(() => {
+    const t: Record<string, "text" | "number"> = { cliente: "text", total: "number", media: "number", repr: "number" };
+    MESES_BR_SHORT.forEach((_, i) => { t[`m${i}`] = "number"; });
+    return t;
+  }, []);
+  const labels = useMemo(() => {
+    const l: Record<string, string> = { cliente: "Cliente" };
+    MESES_BR_SHORT.forEach((m, i) => { l[`m${i}`] = m; });
+    l.total = "Total"; l.media = "Média"; l.repr = "Rep.";
+    return l;
+  }, []);
+  const fmt = (k: string, v: string) => {
+    if (k === "cliente") return v;
+    if (k === "repr") return `${Number(v).toFixed(1).replace(".", ",")}%`;
+    return Number(v) ? formatBRL(Number(v)) : "—";
+  };
+  const { view, distinct, filters, sorts, setFilter, setSort } = useColumnFilters(rows, getters, types);
+
+  return (
+    <div className="bi-card overflow-x-auto">
+      <table className="bi-table">
+        <thead>
+          <tr>
+            {Object.keys(getters).map((k) => (
+              <th key={k} className={k === "cliente" ? "bi-col-sticky" : "text-right"}>
+                <ColumnFilterHeader
+                  label={labels[k]}
+                  values={distinct[k] ?? []}
+                  selected={filters[k] ?? []}
+                  onChange={(v) => setFilter(k, v)}
+                  sort={sorts[k] ?? null}
+                  onSortChange={(s) => setSort(k, s)}
+                  type={types[k] ?? "text"}
+                  align={k === "cliente" ? "left" : "right"}
+                />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {view.map((r) => (
+            <tr key={r.nome}>
+              <td className="font-medium bi-col-sticky">{r.nome}</td>
+              {r.meses.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
+              <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(r.total)}</td>
+              <td className="text-right tabular-nums text-xs text-muted-foreground">{formatBRL(r.media)}</td>
+              <td className="text-right">
+                <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                  r.repr <= 5 ? "bg-red-500/20 text-red-400" :
+                  r.repr <= 10 ? "bg-yellow-500/20 text-yellow-400" :
+                  "bg-emerald-500/20 text-emerald-400"
+                }`}>
+                  {r.repr.toFixed(1).replace(".", ",")}%
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td className="bi-col-sticky">TOTAL</td>
+            {totaisMes.map((v, i) => <td key={i} className="text-right text-xs">{formatBRL(v)}</td>)}
+            <td className="text-right text-primary">{formatBRL(totalGeral)}</td>
+            <td className="text-right text-xs text-muted-foreground">
+              {totalGeral && mesAtual ? formatBRL(totalGeral / mesAtual) : formatBRL(0)}
+            </td>
+            <td className="text-right text-xs font-semibold">100%</td>
+          </tr>
+        </tfoot>
+      </table>
+      <span className="hidden">{fmt("", "")}</span>
+    </div>
+  );
+}
