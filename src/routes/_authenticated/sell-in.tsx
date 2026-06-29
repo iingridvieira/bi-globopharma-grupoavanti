@@ -7,7 +7,7 @@ import { exportToExcel } from "@/lib/excel";
 import { Download, Plus, Trash2, Save } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { ColumnFilterHeader, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 
 export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
 
@@ -232,10 +232,13 @@ function SellInTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellInRo
     l.total = "Total"; l.media = "Média"; l.repr = "Rep.";
     return l;
   }, []);
-  const { view, distinct, filters, sorts, setFilter, setSort } = useColumnFilters(rows, getters, types);
+  const { view, distinct, filters, sorts, setFilter, setSort, reset } = useColumnFilters(rows, getters, types);
 
   return (
     <div className="bi-card overflow-x-auto">
+      <div className="flex justify-end px-3 py-1.5">
+        <ClearFiltersButton filters={filters} sorts={sorts} onReset={reset} />
+      </div>
       <table className="bi-table">
         <thead>
           <tr>

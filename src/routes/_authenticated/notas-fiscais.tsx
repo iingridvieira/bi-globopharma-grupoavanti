@@ -6,6 +6,7 @@ import { useState, useMemo } from "react";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
 import { toast } from "sonner";
@@ -316,6 +317,36 @@ function NFsPage() {
   const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
   const totalBonif = useMemo(() => filtradas.filter((n) => Number(n.valor) <= 0).length, [filtradas]);
 
+  // Enriched rows + column-level Excel-style filters
+  type NfRow = typeof filtradas[number];
+  const colGetters = useMemo(() => ({
+    data: (n: NfRow) => formatDateBR(n.data),
+    numero: (n: NfRow) => String(n.numero ?? ""),
+    cliente: (n: NfRow) => n.clientes?.nome ?? "",
+    status: (n: NfRow) => entregasMap?.[n.numero]?.status ?? "Não Coletada",
+    lead: (n: NfRow) => {
+      const e = entregasMap?.[n.numero];
+      const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+      if (!d || !n.data) return "";
+      const ms = new Date(d).getTime() - new Date(n.data).getTime();
+      return Number.isFinite(ms) ? String(Math.round(ms / 86400000)) : "";
+    },
+    dataEntrega: (n: NfRow) => {
+      const e = entregasMap?.[n.numero];
+      const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+      return d ? formatDateBR(d) : "";
+    },
+    operacao: (n: NfRow) => (Number(n.valor) > 0 ? "Venda" : "Bonificação"),
+    valor: (n: NfRow) => String(n.valor ?? 0),
+  }), [entregasMap]);
+  const colTypes = useMemo(() => ({
+    data: "date" as const, numero: "text" as const, cliente: "text" as const,
+    status: "text" as const, lead: "number" as const, dataEntrega: "date" as const,
+    operacao: "text" as const, valor: "number" as const,
+  }), []);
+  const { view, distinct, filters: colFilters, sorts: colSorts, setFilter: setColFilter, setSort: setColSort, reset: resetColFilters } =
+    useColumnFilters(filtradas, colGetters, colTypes);
+
   function toggle(id: string) {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
@@ -324,17 +355,18 @@ function NFsPage() {
     setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
 
-  const allVisibleSelected = filtradas.length > 0 && filtradas.every((n) => selectedIds.has(n.id));
-  const someVisibleSelected = filtradas.some((n) => selectedIds.has(n.id));
+  const allVisibleSelected = view.length > 0 && view.every((n) => selectedIds.has(n.id));
+  const someVisibleSelected = view.some((n) => selectedIds.has(n.id));
 
   function toggleSelectAllVisible() {
     setSelectedIds((prev) => {
       const n = new Set(prev);
-      if (allVisibleSelected) filtradas.forEach((f) => n.delete(f.id));
-      else filtradas.forEach((f) => n.add(f.id));
+      if (allVisibleSelected) view.forEach((f) => n.delete(f.id));
+      else view.forEach((f) => n.add(f.id));
       return n;
     });
   }
+
 
   async function exportarSelecionadas() {
     const selecionadas = filtradas.filter((n) => selectedIds.has(n.id));
@@ -524,6 +556,9 @@ function NFsPage() {
       </div>
 
       <div className="bi-card mt-4 overflow-hidden">
+        <div className="flex justify-end px-3 py-1.5">
+          <ClearFiltersButton filters={colFilters} sorts={colSorts} onReset={resetColFilters} />
+        </div>
         <table className="bi-table">
           <thead>
             <tr>
@@ -538,18 +573,20 @@ function NFsPage() {
                 />
               </th>
               <th style={{ width: 38 }}></th>
-              <th>Data</th><th>Número</th><th>Cliente</th>
-              <th className="text-center">Status Entrega</th>
-              <th className="text-center">Lead Time</th>
-              <th className="text-center">Data Entrega</th>
-              <th className="text-center">Operação</th>
-              <th className="text-right">Valor</th>
+              <th><ColumnFilterHeader label="Data" type="date" values={distinct.data ?? []} selected={colFilters.data ?? []} onChange={(v) => setColFilter("data", v)} sort={colSorts.data ?? null} onSortChange={(s) => setColSort("data", s)} /></th>
+              <th><ColumnFilterHeader label="Número" values={distinct.numero ?? []} selected={colFilters.numero ?? []} onChange={(v) => setColFilter("numero", v)} sort={colSorts.numero ?? null} onSortChange={(s) => setColSort("numero", s)} /></th>
+              <th><ColumnFilterHeader label="Cliente" values={distinct.cliente ?? []} selected={colFilters.cliente ?? []} onChange={(v) => setColFilter("cliente", v)} sort={colSorts.cliente ?? null} onSortChange={(s) => setColSort("cliente", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Status Entrega" align="center" values={distinct.status ?? []} selected={colFilters.status ?? []} onChange={(v) => setColFilter("status", v)} sort={colSorts.status ?? null} onSortChange={(s) => setColSort("status", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Lead Time" align="center" type="number" values={distinct.lead ?? []} selected={colFilters.lead ?? []} onChange={(v) => setColFilter("lead", v)} sort={colSorts.lead ?? null} onSortChange={(s) => setColSort("lead", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Data Entrega" align="center" type="date" values={distinct.dataEntrega ?? []} selected={colFilters.dataEntrega ?? []} onChange={(v) => setColFilter("dataEntrega", v)} sort={colSorts.dataEntrega ?? null} onSortChange={(s) => setColSort("dataEntrega", s)} /></th>
+              <th className="text-center"><ColumnFilterHeader label="Operação" align="center" values={distinct.operacao ?? []} selected={colFilters.operacao ?? []} onChange={(v) => setColFilter("operacao", v)} sort={colSorts.operacao ?? null} onSortChange={(s) => setColSort("operacao", s)} /></th>
+              <th className="text-right"><ColumnFilterHeader label="Valor" align="right" type="number" values={distinct.valor ?? []} selected={colFilters.valor ?? []} onChange={(v) => setColFilter("valor", v)} sort={colSorts.valor ?? null} onSortChange={(s) => setColSort("valor", s)} /></th>
               <th style={{ width: 60 }}></th>
             </tr>
           </thead>
           <tbody>
             {isLoading && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
-            {!isLoading && filtradas.map((n) => {
+            {!isLoading && view.map((n) => {
               const open = expanded.has(n.id);
               const isVenda = Number(n.valor) > 0;
               const entrega = entregasMap?.[n.numero];
@@ -662,7 +699,7 @@ function NFsPage() {
                 </>
               );
             })}
-            {!isLoading && filtradas.length === 0 && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+            {!isLoading && view.length === 0 && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
           </tbody>
           <tfoot>
             <tr>
@@ -692,7 +729,7 @@ function NFsPage() {
   );
 }
 
-const STATUS_OPCOES = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada"] as const;
+const STATUS_OPCOES = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada", "Devolvida"] as const;
 
 function statusClasses(s: string): string {
   switch (s) {
@@ -700,6 +737,7 @@ function statusClasses(s: string): string {
     case "Agendada": return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
     case "Com Previsão": return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
     case "Extraviada": return "bg-red-500/20 text-red-400 border border-red-500/30";
+    case "Devolvida": return "bg-violet-500/20 text-violet-400 border border-violet-500/30";
     default: return "bg-muted text-muted-foreground border border-border";
   }
 }

@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { exportToExcel } from "@/lib/excel";
 import { Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { ColumnFilterHeader, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 
 export const Route = createFileRoute("/_authenticated/sell-out/")({ component: SellOutPage });
 
@@ -102,10 +102,13 @@ function SellOutTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellOut
     l.total = "Total"; l.media = "Média"; l.repr = "Rep.";
     return l;
   }, []);
-  const { view, distinct, filters, sorts, setFilter, setSort } = useColumnFilters(rows, getters, types);
+  const { view, distinct, filters, sorts, setFilter, setSort, reset } = useColumnFilters(rows, getters, types);
 
   return (
     <div className="bi-card overflow-x-auto">
+      <div className="flex justify-end px-3 py-1.5">
+        <ClearFiltersButton filters={filters} sorts={sorts} onReset={reset} />
+      </div>
       <table className="bi-table">
         <thead>
           <tr>

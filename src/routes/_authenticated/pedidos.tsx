@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
 import { Download, Send, Pencil, Trash2, Check, X } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 
 export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
 
@@ -31,7 +32,8 @@ function PedidosPage() {
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [responsavel, setResponsavel] = useState<string>("");
-  const [sortBy, setSortBy] = useState<"data_desc" | "data_asc" | "cliente_asc" | "cliente_desc" | "valor_asc" | "valor_desc">("data_desc");
+  
+
   
 
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
@@ -133,17 +135,20 @@ function PedidosPage() {
   const porResponsavel = responsavel
     ? baseFiltrados.filter((p) => clientesPorResponsavel[responsavel]?.has(p.cliente_id))
     : baseFiltrados;
-  const filtrados = [...porResponsavel].sort((a, b) => {
-    switch (sortBy) {
-      case "data_asc": return String(a.data).localeCompare(String(b.data));
-      case "data_desc": return String(b.data).localeCompare(String(a.data));
-      case "cliente_asc": return (a.clientes?.nome ?? "").localeCompare(b.clientes?.nome ?? "", "pt-BR");
-      case "cliente_desc": return (b.clientes?.nome ?? "").localeCompare(a.clientes?.nome ?? "", "pt-BR");
-      case "valor_asc": return Number(a.valor) - Number(b.valor);
-      case "valor_desc": return Number(b.valor) - Number(a.valor);
-    }
-  });
-  const total = filtrados.reduce((a, p) => a + Number(p.valor), 0);
+  const filtrados = porResponsavel;
+
+  type PedRow = typeof filtrados[number];
+  const pedGetters = useMemo(() => ({
+    data: (p: PedRow) => formatDateBR(p.data),
+    cliente: (p: PedRow) => p.clientes?.nome ?? "",
+    valor: (p: PedRow) => String(p.valor),
+    status: (p: PedRow) => (p.status === "aprovado" ? "APROVADO" : "AGUARDANDO"),
+  }), []);
+  const pedTypes = useMemo(() => ({ data: "date" as const, cliente: "text" as const, valor: "number" as const, status: "text" as const }), []);
+  const { view: pedView, distinct: pedDistinct, filters: pedFilters, sorts: pedSorts, setFilter: setPedFilter, setSort: setPedSort, reset: resetPed } =
+    useColumnFilters(filtrados, pedGetters, pedTypes);
+
+  const total = pedView.reduce((a, p) => a + Number(p.valor), 0);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -239,20 +244,7 @@ function PedidosPage() {
           <option value="Eduardo">Eduardo</option>
           <option value="Paulo">Paulo</option>
         </select>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="bi-input-sm"
-          style={{ width: 240 }}
-          title="Ordenar"
-        >
-          <option value="data_desc">Data: mais recente → antiga</option>
-          <option value="data_asc">Data: antiga → mais recente</option>
-          <option value="cliente_asc">Cliente: A → Z</option>
-          <option value="cliente_desc">Cliente: Z → A</option>
-          <option value="valor_asc">Valor: menor → maior</option>
-          <option value="valor_desc">Valor: maior → menor</option>
-        </select>
+
 
         <button onClick={handleExport} className="h-10 px-4 rounded-md bg-secondary text-secondary-foreground text-sm font-semibold flex items-center gap-2">
           <Download className="h-4 w-4" /> Exportar
@@ -263,16 +255,22 @@ function PedidosPage() {
 
 
       <div className="bi-card mt-6 overflow-hidden">
+        <div className="flex justify-end px-3 py-1.5">
+          <ClearFiltersButton filters={pedFilters} sorts={pedSorts} onReset={resetPed} />
+        </div>
         <div className="overflow-x-auto">
           <table className="bi-table">
             <thead>
               <tr>
-                <th>Data</th><th>Cliente</th><th className="text-right">Valor</th><th className="text-center">Status</th>
+                <th><ColumnFilterHeader label="Data" type="date" values={pedDistinct.data ?? []} selected={pedFilters.data ?? []} onChange={(v) => setPedFilter("data", v)} sort={pedSorts.data ?? null} onSortChange={(s) => setPedSort("data", s)} /></th>
+                <th><ColumnFilterHeader label="Cliente" values={pedDistinct.cliente ?? []} selected={pedFilters.cliente ?? []} onChange={(v) => setPedFilter("cliente", v)} sort={pedSorts.cliente ?? null} onSortChange={(s) => setPedSort("cliente", s)} /></th>
+                <th className="text-right"><ColumnFilterHeader label="Valor" align="right" type="number" values={pedDistinct.valor ?? []} selected={pedFilters.valor ?? []} onChange={(v) => setPedFilter("valor", v)} sort={pedSorts.valor ?? null} onSortChange={(s) => setPedSort("valor", s)} /></th>
+                <th className="text-center"><ColumnFilterHeader label="Status" align="center" values={pedDistinct.status ?? []} selected={pedFilters.status ?? []} onChange={(v) => setPedFilter("status", v)} sort={pedSorts.status ?? null} onSortChange={(s) => setPedSort("status", s)} /></th>
                 {canEdit && <th className="text-center">Ações</th>}
               </tr>
             </thead>
             <tbody>
-              {filtrados.map((p) => {
+              {pedView.map((p) => {
                 const aprovado = p.status === "aprovado";
                 const isEditing = editId === p.id;
                 if (isEditing) {

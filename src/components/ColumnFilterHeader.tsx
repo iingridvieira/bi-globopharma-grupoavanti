@@ -184,6 +184,36 @@ export function ColumnFilterHeader({
   );
 }
 
+/** Botão discreto para limpar todos os filtros/ordenações da tabela. */
+export function ClearFiltersButton({
+  filters,
+  sorts,
+  onReset,
+  className = "",
+  label = "Limpar filtros",
+}: {
+  filters: Record<string, string[]>;
+  sorts: Record<string, ColumnSort>;
+  onReset: () => void;
+  className?: string;
+  label?: string;
+}) {
+  const active =
+    Object.values(filters).some((f) => (f?.length ?? 0) > 0) ||
+    Object.values(sorts).some((s) => !!s);
+  if (!active) return null;
+  return (
+    <button
+      type="button"
+      onClick={onReset}
+      className={`text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline inline-flex items-center gap-1 ${className}`}
+      title="Limpar todos os filtros e ordenações desta tabela"
+    >
+      <X className="h-3 w-3" /> {label}
+    </button>
+  );
+}
+
 function parseBRNum(s: string): number {
   if (!s) return 0;
   const n = Number(String(s).replace(/[^\d,-]/g, "").replace(",", "."));
