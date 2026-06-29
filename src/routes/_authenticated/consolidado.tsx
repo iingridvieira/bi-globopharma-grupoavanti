@@ -107,7 +107,7 @@ function Consolidado() {
         const pendMaisEnviado = pendAntV + enviado;
         linhas.push({
           ano, mes: m, encerrado,
-          metaGlobo, metaAvanti, pendAnt: pendAntV, captado, enviado,
+          metaGlobo, metaAvanti, pendAnt: pendAntV, enviado,
           pendMaisEnviado, faturado,
           atGlobo: metaGlobo > 0 ? faturado / metaGlobo : 0,
           atAvanti: metaAvanti > 0 ? faturado / metaAvanti : 0,
