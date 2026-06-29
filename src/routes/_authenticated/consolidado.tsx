@@ -126,7 +126,7 @@ function Consolidado() {
         )}
       </div>
       <p className="text-xs text-muted-foreground mt-3">
-        Todos os valores são calculados automaticamente a partir dos dados do sistema. A Pendência Anterior é o saldo pendente que sobrou do mês anterior (Pendência Anterior + Enviado − Faturado).
+        Todos os valores são calculados automaticamente a partir dos dados do sistema. A Pendência Anterior é o total importado de Pendências Anteriores do mês.
       </p>
     </div>
   );
