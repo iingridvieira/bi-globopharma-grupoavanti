@@ -47,16 +47,16 @@ function Consolidado() {
     queryFn: async () => {
       const start = `${ano}-01-01`;
       const end = `${ano}-12-31`;
-      const [metasGlobo, pedidos, nfs, pendAntJan] = await Promise.all([
+      const [metasGlobo, pedidos, nfs, pendAnt] = await Promise.all([
         supabase.from("metas_globo").select("mes,valor").eq("ano", ano),
         supabase.from("pedidos_enviados").select("data,valor").gte("data", start).lte("data", end),
         supabase.from("notas_fiscais").select("data,valor").gte("data", start).lte("data", end),
-        (supabase.from("pendencias_anteriores_produtos").select("mes,valor") as unknown as { eq: (c: string, v: number) => { eq: (c: string, v: number) => Promise<{ data: { mes: number; valor: number }[] | null }> } })
-          .eq("ano", ano).eq("mes", 1),
+        (supabase.from("pendencias_anteriores_produtos").select("mes,valor") as unknown as { eq: (c: string, v: number) => Promise<{ data: { mes: number; valor: number }[] | null }> })
+          .eq("ano", ano),
       ]);
 
-      const base: Record<number, { metaGlobo: number; enviado: number; faturado: number }> = {};
-      for (let m = 1; m <= 12; m++) base[m] = { metaGlobo: 0, enviado: 0, faturado: 0 };
+      const base: Record<number, { metaGlobo: number; enviado: number; faturado: number; pendAnt: number }> = {};
+      for (let m = 1; m <= 12; m++) base[m] = { metaGlobo: 0, enviado: 0, faturado: 0, pendAnt: 0 };
       (metasGlobo.data ?? []).forEach((r) => { base[r.mes].metaGlobo += Number(r.valor); });
       (pedidos.data ?? []).forEach((r) => {
         const m = Number(r.data.slice(5, 7));
@@ -66,12 +66,11 @@ function Consolidado() {
         const m = Number(r.data.slice(5, 7));
         base[m].faturado += Number(r.valor);
       });
-
-      // Pendência Anterior de Janeiro: saldo importado do ano anterior
-      const pendAntInicial = (pendAntJan.data ?? []).reduce((a, r) => a + Number(r.valor), 0);
+      (pendAnt.data ?? []).forEach((r) => {
+        if (r.mes >= 1 && r.mes <= 12) base[r.mes].pendAnt += Number(r.valor);
+      });
 
       const linhas: LinhaMes[] = [];
-      let pendAntCascata = pendAntInicial;
       for (let m = 1; m <= 12; m++) {
         const b = base[m];
         const encerrado = ano < ANO_ATUAL || (ano === ANO_ATUAL && m < MES_ATUAL);
@@ -79,7 +78,7 @@ function Consolidado() {
         const captado = b.enviado;
         const enviado = b.enviado;
         const faturado = b.faturado;
-        const pendAntV = Math.max(0, pendAntCascata);
+        const pendAntV = b.pendAnt;
         const metaAvanti = metaGlobo * 1.2;
         const pendMaisEnviado = pendAntV + enviado;
         linhas.push({
@@ -90,12 +89,11 @@ function Consolidado() {
           atAvanti: metaAvanti > 0 ? faturado / metaAvanti : 0,
           nivelServico: pendMaisEnviado > 0 ? faturado / pendMaisEnviado : 0,
         });
-        // Saldo que carrega para o próximo mês = (Pend Ant + Enviado) - Faturado
-        pendAntCascata = pendMaisEnviado - faturado;
       }
       return linhas;
     },
   });
+
 
   return (
     <div className="p-8 max-w-[1800px] mx-auto">
