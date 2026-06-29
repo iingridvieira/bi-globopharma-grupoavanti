@@ -1,11 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import React, { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, parseBRNumber } from "@/lib/format";
-import { useAuth } from "@/hooks/use-auth";
-import { toast } from "sonner";
-import { ArrowLeft, Pencil, Check, X } from "lucide-react";
+import { formatBRL } from "@/lib/format";
+import { ArrowLeft } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/consolidado")({
   component: Consolidado,
@@ -22,13 +20,10 @@ const TRIMESTRES = [
   { label: "4° TRI", meses: [10, 11, 12] },
 ];
 
-type Campo = "metaGlobo" | "pendAnt" | "captado" | "enviado" | "faturado";
-
 type LinhaMes = {
   ano: number;
   mes: number;
   encerrado: boolean;
-  editavel: boolean;
   metaGlobo: number;
   metaAvanti: number;
   pendAnt: number;
@@ -45,25 +40,23 @@ const ANO_ATUAL = new Date().getFullYear();
 const MES_ATUAL = new Date().getMonth() + 1;
 
 function Consolidado() {
-  const { canEdit } = useAuth();
-  const qc = useQueryClient();
-  const [ano, setAno] = useState(ANO_ATUAL);
+  const [ano, setAno] = React.useState(ANO_ATUAL);
 
   const { data, isLoading } = useQuery({
     queryKey: ["consolidado", ano],
     queryFn: async () => {
       const start = `${ano}-01-01`;
       const end = `${ano}-12-31`;
-      const [metasGlobo, pedidos, nfs, pendAnt, overrides] = await Promise.all([
+      const [metasGlobo, pedidos, nfs, pendAntJan] = await Promise.all([
         supabase.from("metas_globo").select("mes,valor").eq("ano", ano),
         supabase.from("pedidos_enviados").select("data,valor").gte("data", start).lte("data", end),
         supabase.from("notas_fiscais").select("data,valor").gte("data", start).lte("data", end),
-        (supabase.from("pendencias_anteriores_produtos").select("mes,valor") as unknown as { eq: (c: string, v: number) => Promise<{ data: { mes: number; valor: number }[] | null }> }).eq("ano", ano),
-        supabase.from("consolidado_overrides").select("mes,campo,valor").eq("ano", ano),
+        (supabase.from("pendencias_anteriores_produtos").select("mes,valor") as unknown as { eq: (c: string, v: number) => { eq: (c: string, v: number) => Promise<{ data: { mes: number; valor: number }[] | null }> } })
+          .eq("ano", ano).eq("mes", 1),
       ]);
 
-      const base: Record<number, { metaGlobo: number; pendAnt: number; enviado: number; faturado: number }> = {};
-      for (let m = 1; m <= 12; m++) base[m] = { metaGlobo: 0, pendAnt: 0, enviado: 0, faturado: 0 };
+      const base: Record<number, { metaGlobo: number; enviado: number; faturado: number }> = {};
+      for (let m = 1; m <= 12; m++) base[m] = { metaGlobo: 0, enviado: 0, faturado: 0 };
       (metasGlobo.data ?? []).forEach((r) => { base[r.mes].metaGlobo += Number(r.valor); });
       (pedidos.data ?? []).forEach((r) => {
         const m = Number(r.data.slice(5, 7));
@@ -73,66 +66,34 @@ function Consolidado() {
         const m = Number(r.data.slice(5, 7));
         base[m].faturado += Number(r.valor);
       });
-      (pendAnt.data ?? []).forEach((r) => { base[r.mes].pendAnt += Number(r.valor); });
 
-      const ov: Record<string, number> = {};
-      (overrides.data ?? []).forEach((r) => { ov[`${r.mes}:${r.campo}`] = Number(r.valor); });
+      // Pendência Anterior de Janeiro: saldo importado do ano anterior
+      const pendAntInicial = (pendAntJan.data ?? []).reduce((a, r) => a + Number(r.valor), 0);
 
       const linhas: LinhaMes[] = [];
+      let pendAntCascata = pendAntInicial;
       for (let m = 1; m <= 12; m++) {
         const b = base[m];
         const encerrado = ano < ANO_ATUAL || (ano === ANO_ATUAL && m < MES_ATUAL);
-        // Edição liberada apenas no mês atual e nos futuros (meses encerrados ficam bloqueados)
-        const editavel = !encerrado;
-        const get = (campo: Campo, fallback: number) => {
-          const k = `${m}:${campo}`;
-          return ov[k] !== undefined ? ov[k] : fallback;
-        };
-        const metaGlobo = get("metaGlobo", b.metaGlobo);
-        const pendAntV = get("pendAnt", b.pendAnt);
-        const captado = get("captado", b.enviado);
-        const enviado = get("enviado", b.enviado);
-        const faturado = get("faturado", b.faturado);
+        const metaGlobo = b.metaGlobo;
+        const captado = b.enviado;
+        const enviado = b.enviado;
+        const faturado = b.faturado;
+        const pendAntV = Math.max(0, pendAntCascata);
         const metaAvanti = metaGlobo * 1.2;
         const pendMaisEnviado = pendAntV + enviado;
         linhas.push({
-          ano, mes: m, encerrado, editavel,
+          ano, mes: m, encerrado,
           metaGlobo, metaAvanti, pendAnt: pendAntV, captado, enviado,
           pendMaisEnviado, faturado,
           atGlobo: metaGlobo > 0 ? faturado / metaGlobo : 0,
           atAvanti: metaAvanti > 0 ? faturado / metaAvanti : 0,
           nivelServico: pendMaisEnviado > 0 ? faturado / pendMaisEnviado : 0,
         });
+        // Saldo que carrega para o próximo mês = (Pend Ant + Enviado) - Faturado
+        pendAntCascata = pendMaisEnviado - faturado;
       }
       return linhas;
-    },
-  });
-
-  const saveOverride = useMutation({
-    mutationFn: async ({ mes, campo, valor }: { mes: number; campo: Campo; valor: number }) => {
-      const { error } = await supabase
-        .from("consolidado_overrides")
-        .upsert({ ano, mes, campo, valor }, { onConflict: "ano,mes,campo" });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Valor atualizado");
-      qc.invalidateQueries({ queryKey: ["consolidado", ano] });
-    },
-    onError: (e: Error) => toast.error("Erro: " + e.message),
-  });
-
-  const clearOverride = useMutation({
-    mutationFn: async ({ mes, campo }: { mes: number; campo: Campo }) => {
-      const { error } = await supabase
-        .from("consolidado_overrides")
-        .delete()
-        .eq("ano", ano).eq("mes", mes).eq("campo", campo);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Override removido");
-      qc.invalidateQueries({ queryKey: ["consolidado", ano] });
     },
   });
 
@@ -163,29 +124,17 @@ function Consolidado() {
         {isLoading ? (
           <div className="p-10 text-center text-muted-foreground">Carregando…</div>
         ) : (
-          <TabelaConsolidado
-            linhas={data ?? []}
-            canEdit={canEdit}
-            onSave={(mes, campo, valor) => saveOverride.mutate({ mes, campo, valor })}
-            onClear={(mes, campo) => clearOverride.mutate({ mes, campo })}
-          />
+          <TabelaConsolidado linhas={data ?? []} />
         )}
       </div>
       <p className="text-xs text-muted-foreground mt-3">
-        Edição manual disponível apenas para o mês atual e meses futuros. Meses encerrados ficam bloqueados e usam exclusivamente os valores automáticos.
+        Todos os valores são calculados automaticamente a partir dos dados do sistema. A Pendência Anterior é o saldo pendente que sobrou do mês anterior (Pendência Anterior + Enviado − Faturado).
       </p>
     </div>
   );
 }
 
-function TabelaConsolidado({
-  linhas, canEdit, onSave, onClear,
-}: {
-  linhas: LinhaMes[];
-  canEdit: boolean;
-  onSave: (mes: number, campo: Campo, valor: number) => void;
-  onClear: (mes: number, campo: Campo) => void;
-}) {
+function TabelaConsolidado({ linhas }: { linhas: LinhaMes[] }) {
   const porMes = useMemo(() => Object.fromEntries(linhas.map((l) => [l.mes, l])), [linhas]);
 
   function totalTri(meses: number[]) {
@@ -208,7 +157,6 @@ function TabelaConsolidado({
     };
   }
 
-  // Oculta 3º/4º TRI quando não há movimentação
   const trisVisiveis = useMemo(() => {
     return TRIMESTRES.filter((tri, idx) => {
       if (idx < 2) return true;
@@ -227,7 +175,7 @@ function TabelaConsolidado({
     key: string;
     label: string;
     derived?: keyof LinhaMes;
-    render: (r: LinhaMes, m: number) => React.ReactNode;
+    render: (r: LinhaMes) => React.ReactNode;
     renderTotal: (t: ReturnType<typeof totalTri>) => React.ReactNode;
     headClass?: string;
   };
@@ -239,7 +187,7 @@ function TabelaConsolidado({
   const allCols: Col[] = [
     {
       key: "metaGlobo", label: "Meta Trimestral Globo", derived: "metaGlobo",
-      render: (r, m) => <EditableCell value={r.metaGlobo} editable={canEdit && r.editavel} onSave={(v) => onSave(m, "metaGlobo", v)} onClear={() => onClear(m, "metaGlobo")} />,
+      render: (r) => <td className={cellNum}>{formatBRL(r.metaGlobo)}</td>,
       renderTotal: (t) => <td className={totalNum}>{formatBRL(t.metaGlobo)}</td>,
     },
     {
@@ -249,17 +197,17 @@ function TabelaConsolidado({
     },
     {
       key: "pendAnt", label: "Pendência Anterior", derived: "pendAnt",
-      render: (r, m) => <EditableCell value={r.pendAnt} editable={canEdit && r.editavel} onSave={(v) => onSave(m, "pendAnt", v)} onClear={() => onClear(m, "pendAnt")} />,
+      render: (r) => <td className={cellNum}>{formatBRL(r.pendAnt)}</td>,
       renderTotal: (t) => <td className={totalNum}>{formatBRL(t.pendAnt)}</td>,
     },
     {
       key: "captado", label: "Total Captado", derived: "captado",
-      render: (r, m) => <EditableCell value={r.captado} editable={canEdit && r.editavel} onSave={(v) => onSave(m, "captado", v)} onClear={() => onClear(m, "captado")} />,
+      render: (r) => <td className={cellNum}>{formatBRL(r.captado)}</td>,
       renderTotal: (t) => <td className={totalNum}>{formatBRL(t.captado)}</td>,
     },
     {
       key: "enviado", label: "Valor Enviado", derived: "enviado",
-      render: (r, m) => <EditableCell value={r.enviado} editable={canEdit && r.editavel} onSave={(v) => onSave(m, "enviado", v)} onClear={() => onClear(m, "enviado")} />,
+      render: (r) => <td className={cellNum}>{formatBRL(r.enviado)}</td>,
       renderTotal: (t) => <td className={totalNum}>{formatBRL(t.enviado)}</td>,
     },
     {
@@ -269,7 +217,7 @@ function TabelaConsolidado({
     },
     {
       key: "faturado", label: "Valor Faturado", derived: "faturado",
-      render: (r, m) => <EditableCell value={r.faturado} editable={canEdit && r.editavel} onSave={(v) => onSave(m, "faturado", v)} onClear={() => onClear(m, "faturado")} />,
+      render: (r) => <td className={cellNum}>{formatBRL(r.faturado)}</td>,
       renderTotal: (t) => <td className={totalNum}>{formatBRL(t.faturado)}</td>,
     },
     {
@@ -295,7 +243,6 @@ function TabelaConsolidado({
     return linhas.some((l) => Number(l[c.derived as keyof LinhaMes]) !== 0);
   });
 
-  // Colunas fixas: Tri (sticky left=0, w=56) + Mês (sticky left=56, w=120)
   const stickyTri = "sticky left-0 z-20";
   const stickyMes = "sticky left-14 z-20";
 
@@ -339,12 +286,9 @@ function TabelaConsolidado({
                       )}
                       <td className={`${stickyMes} ${zebra} px-2.5 py-2 font-semibold text-foreground border-b border-r border-border/40`}>
                         {MESES[m - 1]}
-                        {!r.editavel && (
-                          <span className="ml-1.5 text-[9px] uppercase tracking-wider text-muted-foreground/70">enc.</span>
-                        )}
                       </td>
                       {cols.map((c) => (
-                        <React.Fragment key={c.key}>{c.render(r, m)}</React.Fragment>
+                        <React.Fragment key={c.key}>{c.render(r)}</React.Fragment>
                       ))}
                     </tr>
                   );
@@ -365,60 +309,5 @@ function TabelaConsolidado({
         </tbody>
       </table>
     </div>
-  );
-}
-
-function EditableCell({
-  value, editable, onSave, onClear,
-}: { value: number; editable: boolean; onSave: (v: number) => void; onClear: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const base = "px-2.5 py-2 text-right tabular-nums border-l border-border/40";
-  if (editing) {
-    return (
-      <td className={base}>
-        <div className="flex items-center gap-1 justify-end">
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") { onSave(parseBRNumber(draft)); setEditing(false); }
-              if (e.key === "Escape") setEditing(false);
-            }}
-            className="w-24 rounded border border-border bg-background px-1.5 py-0.5 text-right tabular-nums"
-          />
-          <button className="text-emerald-600" onClick={() => { onSave(parseBRNumber(draft)); setEditing(false); }} aria-label="Salvar"><Check className="h-3.5 w-3.5" /></button>
-          <button className="text-muted-foreground" onClick={() => setEditing(false)} aria-label="Cancelar"><X className="h-3.5 w-3.5" /></button>
-        </div>
-      </td>
-    );
-  }
-  return (
-    <td className={`${base} group`}>
-      <div className="flex items-center justify-end gap-1">
-        <span>{formatBRL(value)}</span>
-        {editable && (
-          <>
-            <button
-              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground"
-              onClick={() => { setDraft(String(value).replace(".", ",")); setEditing(true); }}
-              aria-label="Editar"
-              title="Editar valor"
-            >
-              <Pencil className="h-3 w-3" />
-            </button>
-            <button
-              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-warning"
-              onClick={onClear}
-              aria-label="Restaurar automático"
-              title="Restaurar valor automático"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </>
-        )}
-      </div>
-    </td>
   );
 }
