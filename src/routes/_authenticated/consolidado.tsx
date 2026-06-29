@@ -47,13 +47,38 @@ function Consolidado() {
     queryFn: async () => {
       const start = `${ano}-01-01`;
       const end = `${ano}-12-31`;
-      const [metasGlobo, pedidos, nfs, pendAnt] = await Promise.all([
+
+      async function fetchAll<T>(build: () => any): Promise<T[]> {
+        const PAGE = 1000;
+        let from = 0;
+        const out: T[] = [];
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data, error } = await build().range(from, from + PAGE - 1);
+          if (error) throw error;
+          const rows = (data ?? []) as T[];
+          out.push(...rows);
+          if (rows.length < PAGE) break;
+          from += PAGE;
+        }
+        return out;
+      }
+
+      const [metasGlobo, pedidosRows, nfsRows, pendAntRows] = await Promise.all([
         supabase.from("metas_globo").select("mes,valor").eq("ano", ano),
-        supabase.from("pedidos_enviados").select("data,valor").gte("data", start).lte("data", end),
-        supabase.from("notas_fiscais").select("data,valor").gte("data", start).lte("data", end),
-        (supabase.from("pendencias_anteriores_produtos").select("mes,valor") as unknown as { eq: (c: string, v: number) => Promise<{ data: { mes: number; valor: number }[] | null }> })
-          .eq("ano", ano),
+        fetchAll<{ data: string; valor: number }>(() =>
+          supabase.from("pedidos_enviados").select("data,valor").gte("data", start).lte("data", end)
+        ),
+        fetchAll<{ data: string; valor: number }>(() =>
+          supabase.from("notas_fiscais").select("data,valor").gte("data", start).lte("data", end)
+        ),
+        fetchAll<{ mes: number; valor: number }>(() =>
+          (supabase.from("pendencias_anteriores_produtos").select("mes,valor") as any).eq("ano", ano)
+        ),
       ]);
+      const pedidos = { data: pedidosRows };
+      const nfs = { data: nfsRows };
+      const pendAnt = { data: pendAntRows };
 
       const base: Record<number, { metaGlobo: number; enviado: number; faturado: number; pendAnt: number }> = {};
       for (let m = 1; m <= 12; m++) base[m] = { metaGlobo: 0, enviado: 0, faturado: 0, pendAnt: 0 };
