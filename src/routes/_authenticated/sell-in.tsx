@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR_SHORT } from "@/lib/format";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { exportToExcel } from "@/lib/excel";
 import { Download, Plus, Trash2, Save } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { ColumnFilterHeader, useColumnFilters } from "@/components/ColumnFilterHeader";
 
 export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
 
