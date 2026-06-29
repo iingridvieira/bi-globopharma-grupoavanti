@@ -345,22 +345,7 @@ function TabelaConsolidado({
   );
 }
 
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.pendAnt)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.captado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.enviado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.pendMaisEnviado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{formatBRL(tot.faturado)}</td>
-                <td className="px-2 py-2 text-right tabular-nums">{(tot.atGlobo * 100).toFixed(1).replace(".", ",")}%</td>
-                <td className="px-2 py-2 text-right tabular-nums bg-[#095E11] text-white">{(tot.atAvanti * 100).toFixed(1).replace(".", ",")}%</td>
-                <td className="px-2 py-2 text-right tabular-nums">{(tot.nivelServico * 100).toFixed(1).replace(".", ",")}%</td>
-              </tr>
-            </ReactFragmentTri>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
+
 
 function ReactFragmentTri({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
