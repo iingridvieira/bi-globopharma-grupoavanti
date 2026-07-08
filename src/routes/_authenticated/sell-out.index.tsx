@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, MESES_BR_SHORT } from "@/lib/format";
 import { useMemo, useState } from "react";
 import { exportToExcel } from "@/lib/excel";
-import { Download } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 
@@ -14,8 +14,10 @@ const normNomeSO = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u
 
 function SellOutPage() {
   const [ano, setAno] = useState(new Date().getFullYear());
-  const { restrictedClientes } = useAuth();
+  const { restrictedClientes, isAdmin } = useAuth();
   const allowedSet = restrictedClientes ? new Set(restrictedClientes.map(normNomeSO)) : null;
+  const queryClient = useQueryClient();
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ["sell-out-consolidado", ano, restrictedClientes?.join("|") ?? "all"],
@@ -24,11 +26,11 @@ function SellOutPage() {
         supabase.from("clientes").select("id,nome").order("nome"),
         supabase.from("sell_out").select("cliente_id,mes,valor").eq("ano", ano),
       ]);
-      const matrix = new Map<string, { nome: string; meses: number[]; total: number; media: number; repr: number }>();
+      const matrix = new Map<string, { id: string; nome: string; meses: number[]; total: number; media: number; repr: number }>();
       const clientesFiltrados = allowedSet
         ? (clientes.data ?? []).filter((c) => allowedSet.has(normNomeSO(c.nome)))
         : (clientes.data ?? []);
-      clientesFiltrados.forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
+      clientesFiltrados.forEach((c) => matrix.set(c.id, { id: c.id, nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
       (sellOut.data ?? []).forEach((s) => {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
@@ -58,12 +60,39 @@ function SellOutPage() {
     exportToExcel(rows, `sell-out-${ano}.xlsx`, "Sell Out");
   }
 
+  async function handleDeleteCell(clienteId: string, nome: string, mesIdx: number, valor: number) {
+    const mesLabel = MESES_BR_SHORT[mesIdx];
+    const ok = window.confirm(
+      `Remover o Sell Out de ${nome} em ${mesLabel}/${ano}?\nValor atual: ${formatBRL(valor)}\n\nEsta ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+    const key = `${clienteId}-${mesIdx}`;
+    setDeletingKey(key);
+    const { error } = await supabase
+      .from("sell_out")
+      .delete()
+      .eq("cliente_id", clienteId)
+      .eq("ano", ano)
+      .eq("mes", mesIdx + 1);
+    setDeletingKey(null);
+    if (error) {
+      window.alert(`Erro ao remover: ${error.message}`);
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["sell-out-consolidado"] });
+  }
+
   return (
     <div className="p-8 max-w-[1600px] mx-auto">
       <header className="flex items-end justify-between mb-6">
         <div>
           <div className="bi-stat-label">Consolidado anual</div>
           <h1 className="font-display text-3xl font-bold mt-1">Sell Out · {ano}</h1>
+          {isAdmin && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Passe o mouse sobre um valor e clique no × para removê-lo (apenas admin).
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md">
@@ -75,14 +104,32 @@ function SellOutPage() {
         </div>
       </header>
 
-      <SellOutTable rows={data?.rows ?? []} totaisMes={data?.totaisMes ?? Array(12).fill(0)} totalGeral={data?.totalGeral ?? 0} mesAtual={data?.mesAtual ?? 0} />
+      <SellOutTable
+        rows={data?.rows ?? []}
+        totaisMes={data?.totaisMes ?? Array(12).fill(0)}
+        totalGeral={data?.totalGeral ?? 0}
+        mesAtual={data?.mesAtual ?? 0}
+        canDelete={isAdmin}
+        deletingKey={deletingKey}
+        onDeleteCell={handleDeleteCell}
+      />
     </div>
   );
 }
 
-type SellOutRow = { nome: string; meses: number[]; total: number; media: number; repr: number };
+type SellOutRow = { id: string; nome: string; meses: number[]; total: number; media: number; repr: number };
 
-function SellOutTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellOutRow[]; totaisMes: number[]; totalGeral: number; mesAtual: number }) {
+function SellOutTable({
+  rows, totaisMes, totalGeral, mesAtual, canDelete, deletingKey, onDeleteCell,
+}: {
+  rows: SellOutRow[];
+  totaisMes: number[];
+  totalGeral: number;
+  mesAtual: number;
+  canDelete: boolean;
+  deletingKey: string | null;
+  onDeleteCell: (clienteId: string, nome: string, mesIdx: number, valor: number) => void;
+}) {
   const getters = useMemo(() => {
     const g: Record<string, (r: SellOutRow) => string> = { cliente: (r) => r.nome };
     MESES_BR_SHORT.forEach((_, i) => { g[`m${i}`] = (r) => String(r.meses[i] ?? 0); });
@@ -130,9 +177,32 @@ function SellOutTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellOut
         </thead>
         <tbody>
           {view.map((r) => (
-            <tr key={r.nome}>
+            <tr key={r.id} className="group/row">
               <td className="font-medium bi-col-sticky">{r.nome}</td>
-              {r.meses.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
+              {r.meses.map((v, i) => {
+                const key = `${r.id}-${i}`;
+                const isDeleting = deletingKey === key;
+                return (
+                  <td key={i} className="text-right tabular-nums text-xs relative group/cell">
+                    {v ? (
+                      <span className="inline-flex items-center gap-1">
+                        {canDelete && (
+                          <button
+                            type="button"
+                            title={`Remover ${MESES_BR_SHORT[i]}`}
+                            onClick={() => onDeleteCell(r.id, r.nome, i, v)}
+                            disabled={isDeleting}
+                            className="opacity-0 group-hover/cell:opacity-100 transition-opacity text-red-500 hover:text-red-600 disabled:opacity-40"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                        <span>{formatBRL(v)}</span>
+                      </span>
+                    ) : "—"}
+                  </td>
+                );
+              })}
               <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(r.total)}</td>
               <td className="text-right tabular-nums text-xs text-muted-foreground">{formatBRL(r.media)}</td>
               <td className="text-right">
@@ -162,4 +232,3 @@ function SellOutTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellOut
     </div>
   );
 }
-
