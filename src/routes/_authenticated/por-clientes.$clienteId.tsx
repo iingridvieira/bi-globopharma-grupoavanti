@@ -246,7 +246,29 @@ function ClienteDetalhe() {
         </>
       )}
 
-      <PositivacaoSection clienteId={clienteId} ano={anoSel === ALL ? currentYear : anoSel} />
+      {(() => {
+        const nomeNorm = (cliente?.nome ?? "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .trim();
+        if (nomeNorm === "NAVARRO INTER") {
+          return (
+            <section className="bi-card mb-6 overflow-hidden">
+              <header className="px-6 py-4 border-b border-border">
+                <h2 className="font-display text-lg font-semibold">Positivação</h2>
+              </header>
+              <div className="px-6 py-5">
+                <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground leading-relaxed">
+                  A Positivação da <span className="font-semibold text-foreground">NAVARRO INTER</span> não é apresentada de forma individual, pois seus resultados são consolidados juntamente com a <span className="font-semibold text-foreground">NAVARRO SP</span>. Para análise de positivação, considere os dados exibidos no card da NAVARRO SP.
+                </div>
+              </div>
+            </section>
+          );
+        }
+        return <PositivacaoSection clienteId={clienteId} ano={anoSel === ALL ? currentYear : anoSel} />;
+      })()}
+
 
 
       <section className="bi-card mb-6 overflow-hidden">
