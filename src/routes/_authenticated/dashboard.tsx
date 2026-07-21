@@ -280,38 +280,24 @@ function Dashboard() {
   );
 }
 
-function ProgressBar({ pct, accent }: { pct: number; accent?: boolean }) {
+function CardFill({ pct }: { pct: number }) {
   const [w, setW] = useState(0);
   const clamped = Math.max(0, Math.min(100, pct));
   useEffect(() => {
     const id = requestAnimationFrame(() => setW(clamped));
     return () => cancelAnimationFrame(id);
   }, [clamped]);
-  const barColor = accent
-    ? "rgba(255,255,255,0.95)"
-    : clamped >= 100
-    ? "var(--color-success)"
-    : clamped >= 70
-    ? "var(--color-primary)"
-    : "var(--color-warning)";
-  const trackBg = accent ? "rgba(255,255,255,0.20)" : "var(--color-muted)";
   return (
     <div
-      className="mt-2 h-1.5 w-full rounded-full overflow-hidden"
-      style={{ background: trackBg }}
-      role="progressbar"
-      aria-valuenow={Math.round(clamped)}
-      aria-valuemin={0}
-      aria-valuemax={100}
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
     >
+      {/* Área não atingida — laranja com opacidade reduzida */}
+      <div className="absolute inset-0 bg-primary/10" />
+      {/* Área atingida — laranja sólido, com animação suave */}
       <div
-        style={{
-          width: `${w}%`,
-          height: "100%",
-          background: barColor,
-          borderRadius: 999,
-          transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
+        className="absolute inset-y-0 left-0 bg-primary/85"
+        style={{ width: `${w}%`, transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
       />
     </div>
   );
