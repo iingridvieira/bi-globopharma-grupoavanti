@@ -20,6 +20,8 @@ const MESES_BR = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "J
 function Dashboard() {
   const { isAdmin, restrictedClientes } = useAuth();
   const queryClient = useQueryClient();
+  const shareRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
   const [ANO, setAno] = useState(ANO_ATUAL);
   const [MES, setMes] = useState(MES_ATUAL);
   const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
