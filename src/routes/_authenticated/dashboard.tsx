@@ -449,18 +449,27 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
             { label: "PREVISÃO SELL IN", value: previsao, pct: pctProjecao },
           ].map((m) => {
             const clamped = Math.max(0, Math.min(100, m.pct));
-            const barColor = m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct);
-            const trackBg = m.accent ? "rgba(255,255,255,0.25)" : "#3a3f34";
+            const hasFill = m.value > 0;
             return (
-              <div key={m.label} style={{ background: m.accent ? "#F26A1F" : "#2A2E26", borderRadius: 8, padding: 20, border: m.accent ? "none" : "1px solid #3a3f34" }}>
-                <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: m.accent ? "rgba(255,255,255,0.85)" : "#9ca39a" }}>{m.label}</div>
-                <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: m.accent ? "#fff" : "#E5E7E1", fontVariantNumeric: "tabular-nums" }}>{formatBRLSmart(m.value)}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct) }}>{m.value > 0 ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
-                {m.value > 0 && (
-                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: trackBg, overflow: "hidden" }}>
-                    <div style={{ width: `${clamped}%`, height: "100%", background: barColor, borderRadius: 999 }} />
-                  </div>
+              <div
+                key={m.label}
+                style={{
+                  position: "relative",
+                  background: "rgba(242,106,31,0.10)",
+                  borderRadius: 8,
+                  padding: 20,
+                  border: "1px solid #3a3f34",
+                  overflow: "hidden",
+                }}
+              >
+                {hasFill && (
+                  <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${clamped}%`, background: "rgba(242,106,31,0.85)" }} />
                 )}
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: "#E5E7E1" }}>{m.label}</div>
+                  <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{formatBRLSmart(m.value)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: hasFill ? "#fff" : pctColor(m.pct) }}>{hasFill ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
+                </div>
               </div>
             );
           })}
@@ -469,20 +478,34 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
           {[
-            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#E5E7E1", pct: previsao > 0 ? (enviado / previsao) * 100 : undefined },
-            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981", pct: previsao > 0 ? (faturado / previsao) * 100 : undefined },
+            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#fff", pct: previsao > 0 ? (enviado / previsao) * 100 : undefined },
+            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981", pct: undefined as number | undefined },
             { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981", pct: undefined as number | undefined },
           ].map((s) => {
-            const clamped = typeof s.pct === "number" ? Math.max(0, Math.min(100, s.pct)) : 0;
+            const hasFill = typeof s.pct === "number";
+            const clamped = hasFill ? Math.max(0, Math.min(100, s.pct!)) : 0;
             return (
-              <div key={s.label} style={{ background: "#2A2E26", borderRadius: 8, padding: 18, border: "1px solid #3a3f34" }}>
-                <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>{s.label}</div>
-                <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
-                {typeof s.pct === "number" && (
-                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: "#3a3f34", overflow: "hidden" }}>
-                    <div style={{ width: `${clamped}%`, height: "100%", background: pctColor(s.pct), borderRadius: 999 }} />
-                  </div>
+              <div
+                key={s.label}
+                style={{
+                  position: "relative",
+                  background: hasFill ? "rgba(242,106,31,0.10)" : "#2A2E26",
+                  borderRadius: 8,
+                  padding: 18,
+                  border: "1px solid #3a3f34",
+                  overflow: "hidden",
+                }}
+              >
+                {hasFill && (
+                  <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${clamped}%`, background: "rgba(242,106,31,0.85)" }} />
                 )}
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: hasFill ? "#E5E7E1" : "#9ca39a" }}>{s.label}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: hasFill ? "#fff" : s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
+                  {hasFill && (
+                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4, color: "#fff" }}>{fmtPct(s.pct!)} da previsão</div>
+                  )}
+                </div>
               </div>
             );
           })}
