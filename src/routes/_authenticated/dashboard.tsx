@@ -382,9 +382,7 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
   );
 }
 
-const ShareCard = ((): React.ForwardRefExoticComponent<ShareCardProps & React.RefAttributes<HTMLDivElement>> => {
-  const { forwardRef } = require("react") as typeof import("react");
-  return forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardImpl(props, ref) {
+const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardImpl(props, ref) {
     const { mes, ano, metaGlobo, metaAvanti, previsao, enviado, faturado, pendencia, pendAnt, gap, pctGlobo, pctAvanti, pctProjecao, rows } = props;
     const mesNome = MESES_BR[mes - 1];
     const sorted = [...rows].sort((a, b) => b.faturado - a.faturado);
