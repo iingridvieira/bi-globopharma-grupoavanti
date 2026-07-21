@@ -332,60 +332,62 @@ function MetaCard({
   }
 
   return (
-    <div className={accent ? "bi-card-accent p-5 relative" : "bi-card p-5 relative"}>
-      <div className="flex items-start justify-between">
-        <div className={accent ? "text-primary-foreground/80 bi-stat-label" : "bi-stat-label"}>{label}</div>
-        <Icon className={"h-5 w-5 " + (accent ? "text-primary-foreground/80" : "text-primary")} strokeWidth={2} />
-      </div>
-
-      {editing ? (
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            autoFocus
-            className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-lg font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="0,00"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); if (e.key === "Escape") setEditing(false); }}
-          />
-          <button
-            className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 disabled:opacity-50"
-            onClick={() => void handleSave()}
-            disabled={saving}
-            aria-label="Salvar"
-          >
-            <Check className="h-4 w-4" />
-          </button>
-          <button
-            className="p-1.5 rounded-md bg-muted text-muted-foreground hover:bg-muted/80"
-            onClick={() => setEditing(false)}
-            aria-label="Cancelar"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <div className={"bi-card p-5 relative overflow-hidden " + (accent ? "ring-1 ring-primary/60" : "")}>
+      {value > 0 && <CardFill pct={pct} />}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between">
+          <div className="bi-stat-label">{label}</div>
+          <Icon className="h-5 w-5 text-primary" strokeWidth={2} />
         </div>
-      ) : (
-        <div className="mt-3 flex items-center gap-2">
-          <div className="bi-stat-value text-3xl">{formatBRLSmart(value)}</div>
-          {editable && (
+
+        {editing ? (
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              autoFocus
+              className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-lg font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="0,00"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); if (e.key === "Escape") setEditing(false); }}
+            />
             <button
-              className={"p-1.5 rounded-md transition-colors " + (accent ? "text-primary-foreground/70 hover:bg-primary-foreground/10" : "text-muted-foreground hover:bg-muted")}
-              onClick={() => { setDraft(value > 0 ? String(value).replace(".", ",") : ""); setEditing(true); }}
-              aria-label="Editar"
+              className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 disabled:opacity-50"
+              onClick={() => void handleSave()}
+              disabled={saving}
+              aria-label="Salvar"
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Check className="h-4 w-4" />
             </button>
-          )}
-        </div>
-      )}
+            <button
+              className="p-1.5 rounded-md bg-muted text-muted-foreground hover:bg-muted/80"
+              onClick={() => setEditing(false)}
+              aria-label="Cancelar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-2">
+            <div className="bi-stat-value text-3xl">{formatBRLSmart(value)}</div>
+            {editable && (
+              <button
+                className="p-1.5 rounded-md transition-colors text-muted-foreground hover:bg-muted"
+                onClick={() => { setDraft(value > 0 ? String(value).replace(".", ",") : ""); setEditing(true); }}
+                aria-label="Editar"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
 
-      <div className={"text-xs mt-2 font-medium " + (accent ? "text-primary-foreground/90" : pctColor)}>
-        {value > 0 ? pctStr : "Sem meta definida"}
+        <div className={"text-xs mt-2 font-medium " + pctColor}>
+          {value > 0 ? pctStr : "Sem meta definida"}
+        </div>
+        {sub && (
+          <div className="text-[10px] mt-1 text-muted-foreground">{sub}</div>
+        )}
       </div>
-      {value > 0 && <ProgressBar pct={pct} accent={accent} />}
-      {sub && (
-        <div className={"text-[10px] mt-1 " + (accent ? "text-primary-foreground/70" : "text-muted-foreground")}>{sub}</div>
-      )}
     </div>
   );
 }
@@ -394,15 +396,18 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative, pct }: {
   label: string; value: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   accent?: boolean; sub?: string; negative?: boolean; pct?: number;
 }) {
+  const showFill = typeof pct === "number";
   return (
-    <div className={accent ? "bi-card-accent p-5" : "bi-card p-5"}>
-      <div className="flex items-start justify-between">
-        <div className={accent ? "text-primary-foreground/80 bi-stat-label" : "bi-stat-label"}>{label}</div>
-        <Icon className={"h-5 w-5 " + (accent ? "text-primary-foreground/80" : "text-primary")} strokeWidth={2} />
+    <div className={(accent && !showFill ? "bi-card-accent" : "bi-card") + " p-5 relative overflow-hidden"}>
+      {showFill && <CardFill pct={pct!} />}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between">
+          <div className={accent && !showFill ? "text-primary-foreground/80 bi-stat-label" : "bi-stat-label"}>{label}</div>
+          <Icon className={"h-5 w-5 " + (accent && !showFill ? "text-primary-foreground/80" : "text-primary")} strokeWidth={2} />
+        </div>
+        <div className={"bi-stat-value mt-3 text-3xl " + (negative ? "text-warning" : "")}>{value}</div>
+        {sub && <div className={"text-xs mt-1 " + (accent && !showFill ? "text-primary-foreground/75" : "text-muted-foreground")}>{sub}</div>}
       </div>
-      <div className={"bi-stat-value mt-3 text-3xl " + (negative ? "text-warning" : "")}>{value}</div>
-      {sub && <div className={"text-xs mt-1 " + (accent ? "text-primary-foreground/75" : "text-muted-foreground")}>{sub}</div>}
-      {typeof pct === "number" && <ProgressBar pct={pct} accent={accent} />}
     </div>
   );
 }
