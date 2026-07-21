@@ -456,27 +456,45 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
             { label: "META GLOBO", value: metaGlobo, pct: pctGlobo, accent: true },
             { label: "META AVANTI (+20%)", value: metaAvanti, pct: pctAvanti },
             { label: "PREVISÃO SELL IN", value: previsao, pct: pctProjecao },
-          ].map((m) => (
-            <div key={m.label} style={{ background: m.accent ? "#F26A1F" : "#2A2E26", borderRadius: 8, padding: 20, border: m.accent ? "none" : "1px solid #3a3f34" }}>
-              <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: m.accent ? "rgba(255,255,255,0.85)" : "#9ca39a" }}>{m.label}</div>
-              <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: m.accent ? "#fff" : "#E5E7E1", fontVariantNumeric: "tabular-nums" }}>{formatBRL(m.value)}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct) }}>{m.value > 0 ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
-            </div>
-          ))}
+          ].map((m) => {
+            const clamped = Math.max(0, Math.min(100, m.pct));
+            const barColor = m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct);
+            const trackBg = m.accent ? "rgba(255,255,255,0.25)" : "#3a3f34";
+            return (
+              <div key={m.label} style={{ background: m.accent ? "#F26A1F" : "#2A2E26", borderRadius: 8, padding: 20, border: m.accent ? "none" : "1px solid #3a3f34" }}>
+                <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: m.accent ? "rgba(255,255,255,0.85)" : "#9ca39a" }}>{m.label}</div>
+                <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: m.accent ? "#fff" : "#E5E7E1", fontVariantNumeric: "tabular-nums" }}>{formatBRLSmart(m.value)}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct) }}>{m.value > 0 ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
+                {m.value > 0 && (
+                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: trackBg, overflow: "hidden" }}>
+                    <div style={{ width: `${clamped}%`, height: "100%", background: barColor, borderRadius: 999 }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
           {[
-            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#E5E7E1" },
-            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981" },
-            { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981" },
-          ].map((s) => (
-            <div key={s.label} style={{ background: "#2A2E26", borderRadius: 8, padding: 18, border: "1px solid #3a3f34" }}>
-              <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>{s.label}</div>
-              <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
-            </div>
-          ))}
+            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#E5E7E1", pct: previsao > 0 ? (enviado / previsao) * 100 : undefined },
+            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981", pct: previsao > 0 ? (faturado / previsao) * 100 : undefined },
+            { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981", pct: undefined as number | undefined },
+          ].map((s) => {
+            const clamped = typeof s.pct === "number" ? Math.max(0, Math.min(100, s.pct)) : 0;
+            return (
+              <div key={s.label} style={{ background: "#2A2E26", borderRadius: 8, padding: 18, border: "1px solid #3a3f34" }}>
+                <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>{s.label}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
+                {typeof s.pct === "number" && (
+                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: "#3a3f34", overflow: "hidden" }}>
+                    <div style={{ width: `${clamped}%`, height: "100%", background: pctColor(s.pct), borderRadius: 999 }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Tabela clientes */}
