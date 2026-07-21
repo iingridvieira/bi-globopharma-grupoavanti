@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { forwardRef, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, parseBRNumber } from "@/lib/format";
+import { formatBRL, formatBRLSmart, parseBRNumber } from "@/lib/format";
 import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X, Table2, ImageDown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -187,8 +187,8 @@ function Dashboard() {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Pedidos enviados" value={formatBRL(t.enviado)} icon={Send} sub={t.meta > 0 ? `${((t.enviado / t.meta) * 100).toFixed(1).replace(".", ",")}% da previsão` : undefined} />
-        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} sub={`${pctFat.toFixed(1).replace(".", ",")}% da previsão`} accent />
+        <StatCard label="Pedidos enviados" value={formatBRL(t.enviado)} icon={Send} pct={t.meta > 0 ? (t.enviado / t.meta) * 100 : undefined} sub={t.meta > 0 ? `${((t.enviado / t.meta) * 100).toFixed(1).replace(".", ",")}% da previsão` : undefined} />
+        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} pct={pctFat} sub={`${pctFat.toFixed(1).replace(".", ",")}% da previsão`} accent />
         <StatCard label="GAP (Previsão - Faturado)" value={formatBRL(gap)} icon={TrendingDown} negative={gap > 0} />
       </section>
 
@@ -280,6 +280,43 @@ function Dashboard() {
   );
 }
 
+function ProgressBar({ pct, accent }: { pct: number; accent?: boolean }) {
+  const [w, setW] = useState(0);
+  const clamped = Math.max(0, Math.min(100, pct));
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setW(clamped));
+    return () => cancelAnimationFrame(id);
+  }, [clamped]);
+  const barColor = accent
+    ? "rgba(255,255,255,0.95)"
+    : clamped >= 100
+    ? "var(--color-success)"
+    : clamped >= 70
+    ? "var(--color-primary)"
+    : "var(--color-warning)";
+  const trackBg = accent ? "rgba(255,255,255,0.20)" : "var(--color-muted)";
+  return (
+    <div
+      className="mt-2 h-1.5 w-full rounded-full overflow-hidden"
+      style={{ background: trackBg }}
+      role="progressbar"
+      aria-valuenow={Math.round(clamped)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        style={{
+          width: `${w}%`,
+          height: "100%",
+          background: barColor,
+          borderRadius: 999,
+          transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+      />
+    </div>
+  );
+}
+
 function MetaCard({
   label, value, pct, faturado, icon: Icon, accent, sub, editable, onSave,
 }: {
@@ -343,7 +380,7 @@ function MetaCard({
         </div>
       ) : (
         <div className="mt-3 flex items-center gap-2">
-          <div className="bi-stat-value text-3xl">{formatBRL(value)}</div>
+          <div className="bi-stat-value text-3xl">{formatBRLSmart(value)}</div>
           {editable && (
             <button
               className={"p-1.5 rounded-md transition-colors " + (accent ? "text-primary-foreground/70 hover:bg-primary-foreground/10" : "text-muted-foreground hover:bg-muted")}
@@ -359,16 +396,17 @@ function MetaCard({
       <div className={"text-xs mt-2 font-medium " + (accent ? "text-primary-foreground/90" : pctColor)}>
         {value > 0 ? pctStr : "Sem meta definida"}
       </div>
+      {value > 0 && <ProgressBar pct={pct} accent={accent} />}
       {sub && (
-        <div className={"text-[10px] mt-0.5 " + (accent ? "text-primary-foreground/70" : "text-muted-foreground")}>{sub}</div>
+        <div className={"text-[10px] mt-1 " + (accent ? "text-primary-foreground/70" : "text-muted-foreground")}>{sub}</div>
       )}
     </div>
   );
 }
 
-function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
+function StatCard({ label, value, icon: Icon, accent, sub, negative, pct }: {
   label: string; value: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  accent?: boolean; sub?: string; negative?: boolean;
+  accent?: boolean; sub?: string; negative?: boolean; pct?: number;
 }) {
   return (
     <div className={accent ? "bi-card-accent p-5" : "bi-card p-5"}>
@@ -378,6 +416,7 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
       </div>
       <div className={"bi-stat-value mt-3 text-3xl " + (negative ? "text-warning" : "")}>{value}</div>
       {sub && <div className={"text-xs mt-1 " + (accent ? "text-primary-foreground/75" : "text-muted-foreground")}>{sub}</div>}
+      {typeof pct === "number" && <ProgressBar pct={pct} accent={accent} />}
     </div>
   );
 }
@@ -417,27 +456,45 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
             { label: "META GLOBO", value: metaGlobo, pct: pctGlobo, accent: true },
             { label: "META AVANTI (+20%)", value: metaAvanti, pct: pctAvanti },
             { label: "PREVISÃO SELL IN", value: previsao, pct: pctProjecao },
-          ].map((m) => (
-            <div key={m.label} style={{ background: m.accent ? "#F26A1F" : "#2A2E26", borderRadius: 8, padding: 20, border: m.accent ? "none" : "1px solid #3a3f34" }}>
-              <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: m.accent ? "rgba(255,255,255,0.85)" : "#9ca39a" }}>{m.label}</div>
-              <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: m.accent ? "#fff" : "#E5E7E1", fontVariantNumeric: "tabular-nums" }}>{formatBRL(m.value)}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct) }}>{m.value > 0 ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
-            </div>
-          ))}
+          ].map((m) => {
+            const clamped = Math.max(0, Math.min(100, m.pct));
+            const barColor = m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct);
+            const trackBg = m.accent ? "rgba(255,255,255,0.25)" : "#3a3f34";
+            return (
+              <div key={m.label} style={{ background: m.accent ? "#F26A1F" : "#2A2E26", borderRadius: 8, padding: 20, border: m.accent ? "none" : "1px solid #3a3f34" }}>
+                <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: m.accent ? "rgba(255,255,255,0.85)" : "#9ca39a" }}>{m.label}</div>
+                <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: m.accent ? "#fff" : "#E5E7E1", fontVariantNumeric: "tabular-nums" }}>{formatBRLSmart(m.value)}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct) }}>{m.value > 0 ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
+                {m.value > 0 && (
+                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: trackBg, overflow: "hidden" }}>
+                    <div style={{ width: `${clamped}%`, height: "100%", background: barColor, borderRadius: 999 }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
           {[
-            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#E5E7E1" },
-            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981" },
-            { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981" },
-          ].map((s) => (
-            <div key={s.label} style={{ background: "#2A2E26", borderRadius: 8, padding: 18, border: "1px solid #3a3f34" }}>
-              <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>{s.label}</div>
-              <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
-            </div>
-          ))}
+            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#E5E7E1", pct: previsao > 0 ? (enviado / previsao) * 100 : undefined },
+            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981", pct: previsao > 0 ? (faturado / previsao) * 100 : undefined },
+            { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981", pct: undefined as number | undefined },
+          ].map((s) => {
+            const clamped = typeof s.pct === "number" ? Math.max(0, Math.min(100, s.pct)) : 0;
+            return (
+              <div key={s.label} style={{ background: "#2A2E26", borderRadius: 8, padding: 18, border: "1px solid #3a3f34" }}>
+                <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>{s.label}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
+                {typeof s.pct === "number" && (
+                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: "#3a3f34", overflow: "hidden" }}>
+                    <div style={{ width: `${clamped}%`, height: "100%", background: pctColor(s.pct), borderRadius: 999 }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Tabela clientes */}
