@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { forwardRef, useRef, useState } from "react";
+import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, parseBRNumber } from "@/lib/format";
-import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X, Table2 } from "lucide-react";
+import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X, Table2, ImageDown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -19,6 +20,8 @@ const MESES_BR = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "J
 function Dashboard() {
   const { isAdmin, restrictedClientes } = useAuth();
   const queryClient = useQueryClient();
+  const shareRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
   const [ANO, setAno] = useState(ANO_ATUAL);
   const [MES, setMes] = useState(MES_ATUAL);
   const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
@@ -84,6 +87,29 @@ function Dashboard() {
     return true;
   }
 
+  async function exportarPNG() {
+    if (!shareRef.current) return;
+    setExporting(true);
+    try {
+      // Wait a frame so the off-screen card is fully laid out
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const dataUrl = await toPng(shareRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "#0E0F0C",
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `dashboard-${String(MES).padStart(2, "0")}-${ANO}.png`;
+      a.click();
+      toast.success("Imagem gerada");
+    } catch (e) {
+      toast.error("Erro ao gerar imagem: " + (e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="p-8 max-w-[1600px] mx-auto">
       <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
@@ -92,6 +118,15 @@ function Dashboard() {
           <h1 className="font-display text-3xl font-bold mt-1">Dashboard Executivo</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void exportarPNG()}
+            disabled={exporting || isLoading}
+            className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+            title="Exportar imagem do mês (PNG) para WhatsApp"
+          >
+            <ImageDown className="h-4 w-4" /> {exporting ? "Gerando…" : "Exportar PNG"}
+          </button>
           <Link
             to="/consolidado"
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90"
@@ -221,6 +256,26 @@ function Dashboard() {
         </div>
       </section>
 
+      {/* Off-screen share card for PNG export (WhatsApp) */}
+      <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
+        <ShareCard
+          ref={shareRef}
+          mes={MES}
+          ano={ANO}
+          metaGlobo={metaGlobo}
+          metaAvanti={metaAvanti}
+          previsao={t.meta}
+          enviado={t.enviado}
+          faturado={t.faturado}
+          pendencia={t.pendencia}
+          pendAnt={t.pendAnt}
+          gap={gap}
+          pctGlobo={pctGlobo}
+          pctAvanti={pctAvanti}
+          pctProjecao={pctProjecao}
+          rows={data?.rows ?? []}
+        />
+      </div>
     </div>
   );
 }
@@ -326,4 +381,130 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
     </div>
   );
 }
+
+const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardImpl(props, ref) {
+    const { mes, ano, metaGlobo, metaAvanti, previsao, enviado, faturado, pendencia, pendAnt, gap, pctGlobo, pctAvanti, pctProjecao, rows } = props;
+    const mesNome = MESES_BR[mes - 1];
+    const sorted = [...rows].sort((a, b) => b.faturado - a.faturado);
+    const fmtPct = (p: number) => `${p.toFixed(1).replace(".", ",")}%`;
+    const pctColor = (p: number) => p >= 100 ? "#10b981" : p >= 70 ? "#F26A1F" : "#eab308";
+    return (
+      <div
+        ref={ref}
+        style={{
+          width: 1080,
+          background: "linear-gradient(180deg, #0E0F0C 0%, #1A1D17 100%)",
+          color: "#E5E7E1",
+          fontFamily: "'Inter', system-ui, sans-serif",
+          padding: 48,
+          boxSizing: "border-box",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: "2px solid #F26A1F", paddingBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 14, letterSpacing: 3, color: "#F26A1F", fontWeight: 700, textTransform: "uppercase" }}>BI Globo Pharma · Dashboard Executivo</div>
+            <div style={{ fontSize: 44, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{mesNome} <span style={{ color: "#F26A1F" }}>{ano}</span></div>
+          </div>
+          <div style={{ textAlign: "right", fontSize: 13, color: "#9ca39a" }}>
+            <div>Gerado em</div>
+            <div style={{ fontSize: 18, color: "#E5E7E1", fontWeight: 600 }}>{new Date().toLocaleDateString("pt-BR")}</div>
+          </div>
+        </div>
+
+        {/* Metas */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+          {[
+            { label: "META GLOBO", value: metaGlobo, pct: pctGlobo, accent: true },
+            { label: "META AVANTI (+20%)", value: metaAvanti, pct: pctAvanti },
+            { label: "PREVISÃO SELL IN", value: previsao, pct: pctProjecao },
+          ].map((m) => (
+            <div key={m.label} style={{ background: m.accent ? "#F26A1F" : "#2A2E26", borderRadius: 8, padding: 20, border: m.accent ? "none" : "1px solid #3a3f34" }}>
+              <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: m.accent ? "rgba(255,255,255,0.85)" : "#9ca39a" }}>{m.label}</div>
+              <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: m.accent ? "#fff" : "#E5E7E1", fontVariantNumeric: "tabular-nums" }}>{formatBRL(m.value)}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct) }}>{m.value > 0 ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+          {[
+            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#E5E7E1" },
+            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981" },
+            { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981" },
+          ].map((s) => (
+            <div key={s.label} style={{ background: "#2A2E26", borderRadius: 8, padding: 18, border: "1px solid #3a3f34" }}>
+              <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>{s.label}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tabela clientes */}
+        <div style={{ background: "#141612", borderRadius: 8, border: "1px solid #3a3f34", overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: "1px solid #3a3f34", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: "#F26A1F", textTransform: "uppercase" }}>
+            Resumo por cliente
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
+            <thead>
+              <tr style={{ background: "#1A1D17", color: "#9ca39a", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+                <th style={{ textAlign: "left", padding: "10px 14px", fontWeight: 700 }}>Cliente</th>
+                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Pend. Ant.</th>
+                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Enviado</th>
+                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Previsão</th>
+                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Faturado</th>
+                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((r, i) => {
+                const p = r.meta > 0 ? (r.faturado / r.meta) * 100 : 0;
+                return (
+                  <tr key={r.nome} style={{ background: i % 2 ? "#161915" : "transparent", borderTop: "1px solid #262a22" }}>
+                    <td style={{ padding: "9px 14px", fontWeight: 600 }}>{r.nome}</td>
+                    <td style={{ padding: "9px 14px", textAlign: "right" }}>{r.pendAnt > 0 ? formatBRL(r.pendAnt) : "—"}</td>
+                    <td style={{ padding: "9px 14px", textAlign: "right" }}>{formatBRL(r.enviado)}</td>
+                    <td style={{ padding: "9px 14px", textAlign: "right" }}>{formatBRL(r.meta)}</td>
+                    <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700 }}>{formatBRL(r.faturado)}</td>
+                    <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.meta > 0 ? pctColor(p) : "#5a5f52" }}>{r.meta > 0 ? fmtPct(p) : "—"}</td>
+                  </tr>
+                );
+              })}
+              <tr style={{ background: "#F26A1F", color: "#fff", fontWeight: 800 }}>
+                <td style={{ padding: "12px 14px" }}>TOTAL GERAL</td>
+                <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(pendAnt)}</td>
+                <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(enviado)}</td>
+                <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(previsao)}</td>
+                <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(faturado)}</td>
+                <td style={{ padding: "12px 14px", textAlign: "right" }}>{previsao > 0 ? fmtPct((faturado / previsao) * 100) : "—"}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: "#5a5f52", letterSpacing: 2, textTransform: "uppercase" }}>
+          Pendência total do mês: <span style={{ color: "#F26A1F", fontWeight: 700 }}>{formatBRL(pendencia)}</span>
+        </div>
+      </div>
+    );
+  });
+
+
+type ShareCardProps = {
+  mes: number;
+  ano: number;
+  metaGlobo: number;
+  metaAvanti: number;
+  previsao: number;
+  enviado: number;
+  faturado: number;
+  pendencia: number;
+  pendAnt: number;
+  gap: number;
+  pctGlobo: number;
+  pctAvanti: number;
+  pctProjecao: number;
+  rows: { nome: string; pendencia: number; pendAnt: number; enviado: number; meta: number; faturado: number }[];
+};
+
 
