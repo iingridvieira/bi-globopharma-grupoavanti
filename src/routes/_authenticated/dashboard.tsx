@@ -188,7 +188,7 @@ function Dashboard() {
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <StatCard label="Pedidos enviados" value={formatBRL(t.enviado)} icon={Send} pct={t.meta > 0 ? (t.enviado / t.meta) * 100 : undefined} sub={t.meta > 0 ? `${((t.enviado / t.meta) * 100).toFixed(1).replace(".", ",")}% da previsão` : undefined} />
-        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} pct={pctFat} sub={`${pctFat.toFixed(1).replace(".", ",")}% da previsão`} accent />
+        <StatCard label="Pedidos faturados" value={formatBRL(t.faturado)} icon={FileCheck} sub={`${pctFat.toFixed(1).replace(".", ",")}% da previsão`} accent />
         <StatCard label="GAP (Previsão - Faturado)" value={formatBRL(gap)} icon={TrendingDown} negative={gap > 0} />
       </section>
 
@@ -280,38 +280,24 @@ function Dashboard() {
   );
 }
 
-function ProgressBar({ pct, accent }: { pct: number; accent?: boolean }) {
+function CardFill({ pct }: { pct: number }) {
   const [w, setW] = useState(0);
   const clamped = Math.max(0, Math.min(100, pct));
   useEffect(() => {
     const id = requestAnimationFrame(() => setW(clamped));
     return () => cancelAnimationFrame(id);
   }, [clamped]);
-  const barColor = accent
-    ? "rgba(255,255,255,0.95)"
-    : clamped >= 100
-    ? "var(--color-success)"
-    : clamped >= 70
-    ? "var(--color-primary)"
-    : "var(--color-warning)";
-  const trackBg = accent ? "rgba(255,255,255,0.20)" : "var(--color-muted)";
   return (
     <div
-      className="mt-2 h-1.5 w-full rounded-full overflow-hidden"
-      style={{ background: trackBg }}
-      role="progressbar"
-      aria-valuenow={Math.round(clamped)}
-      aria-valuemin={0}
-      aria-valuemax={100}
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
     >
+      {/* Área não atingida — laranja com opacidade reduzida */}
+      <div className="absolute inset-0 bg-primary/10" />
+      {/* Área atingida — laranja sólido, com animação suave */}
       <div
-        style={{
-          width: `${w}%`,
-          height: "100%",
-          background: barColor,
-          borderRadius: 999,
-          transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
+        className="absolute inset-y-0 left-0 bg-primary/85"
+        style={{ width: `${w}%`, transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
       />
     </div>
   );
@@ -346,60 +332,62 @@ function MetaCard({
   }
 
   return (
-    <div className={accent ? "bi-card-accent p-5 relative" : "bi-card p-5 relative"}>
-      <div className="flex items-start justify-between">
-        <div className={accent ? "text-primary-foreground/80 bi-stat-label" : "bi-stat-label"}>{label}</div>
-        <Icon className={"h-5 w-5 " + (accent ? "text-primary-foreground/80" : "text-primary")} strokeWidth={2} />
-      </div>
-
-      {editing ? (
-        <div className="mt-3 flex items-center gap-2">
-          <input
-            autoFocus
-            className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-lg font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="0,00"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); if (e.key === "Escape") setEditing(false); }}
-          />
-          <button
-            className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 disabled:opacity-50"
-            onClick={() => void handleSave()}
-            disabled={saving}
-            aria-label="Salvar"
-          >
-            <Check className="h-4 w-4" />
-          </button>
-          <button
-            className="p-1.5 rounded-md bg-muted text-muted-foreground hover:bg-muted/80"
-            onClick={() => setEditing(false)}
-            aria-label="Cancelar"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <div className={"bi-card p-5 relative overflow-hidden " + (accent ? "ring-1 ring-primary/60" : "")}>
+      {value > 0 && <CardFill pct={pct} />}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between">
+          <div className="bi-stat-label">{label}</div>
+          <Icon className="h-5 w-5 text-primary" strokeWidth={2} />
         </div>
-      ) : (
-        <div className="mt-3 flex items-center gap-2">
-          <div className="bi-stat-value text-3xl">{formatBRLSmart(value)}</div>
-          {editable && (
+
+        {editing ? (
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              autoFocus
+              className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-lg font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="0,00"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void handleSave(); if (e.key === "Escape") setEditing(false); }}
+            />
             <button
-              className={"p-1.5 rounded-md transition-colors " + (accent ? "text-primary-foreground/70 hover:bg-primary-foreground/10" : "text-muted-foreground hover:bg-muted")}
-              onClick={() => { setDraft(value > 0 ? String(value).replace(".", ",") : ""); setEditing(true); }}
-              aria-label="Editar"
+              className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 disabled:opacity-50"
+              onClick={() => void handleSave()}
+              disabled={saving}
+              aria-label="Salvar"
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Check className="h-4 w-4" />
             </button>
-          )}
-        </div>
-      )}
+            <button
+              className="p-1.5 rounded-md bg-muted text-muted-foreground hover:bg-muted/80"
+              onClick={() => setEditing(false)}
+              aria-label="Cancelar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-center gap-2">
+            <div className="bi-stat-value text-3xl">{formatBRLSmart(value)}</div>
+            {editable && (
+              <button
+                className="p-1.5 rounded-md transition-colors text-muted-foreground hover:bg-muted"
+                onClick={() => { setDraft(value > 0 ? String(value).replace(".", ",") : ""); setEditing(true); }}
+                aria-label="Editar"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
 
-      <div className={"text-xs mt-2 font-medium " + (accent ? "text-primary-foreground/90" : pctColor)}>
-        {value > 0 ? pctStr : "Sem meta definida"}
+        <div className={"text-xs mt-2 font-medium " + pctColor}>
+          {value > 0 ? pctStr : "Sem meta definida"}
+        </div>
+        {sub && (
+          <div className="text-[10px] mt-1 text-muted-foreground">{sub}</div>
+        )}
       </div>
-      {value > 0 && <ProgressBar pct={pct} accent={accent} />}
-      {sub && (
-        <div className={"text-[10px] mt-1 " + (accent ? "text-primary-foreground/70" : "text-muted-foreground")}>{sub}</div>
-      )}
     </div>
   );
 }
@@ -408,15 +396,18 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative, pct }: {
   label: string; value: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   accent?: boolean; sub?: string; negative?: boolean; pct?: number;
 }) {
+  const showFill = typeof pct === "number";
   return (
-    <div className={accent ? "bi-card-accent p-5" : "bi-card p-5"}>
-      <div className="flex items-start justify-between">
-        <div className={accent ? "text-primary-foreground/80 bi-stat-label" : "bi-stat-label"}>{label}</div>
-        <Icon className={"h-5 w-5 " + (accent ? "text-primary-foreground/80" : "text-primary")} strokeWidth={2} />
+    <div className={(accent && !showFill ? "bi-card-accent" : "bi-card") + " p-5 relative overflow-hidden"}>
+      {showFill && <CardFill pct={pct!} />}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between">
+          <div className={accent && !showFill ? "text-primary-foreground/80 bi-stat-label" : "bi-stat-label"}>{label}</div>
+          <Icon className={"h-5 w-5 " + (accent && !showFill ? "text-primary-foreground/80" : "text-primary")} strokeWidth={2} />
+        </div>
+        <div className={"bi-stat-value mt-3 text-3xl " + (negative ? "text-warning" : "")}>{value}</div>
+        {sub && <div className={"text-xs mt-1 " + (accent && !showFill ? "text-primary-foreground/75" : "text-muted-foreground")}>{sub}</div>}
       </div>
-      <div className={"bi-stat-value mt-3 text-3xl " + (negative ? "text-warning" : "")}>{value}</div>
-      {sub && <div className={"text-xs mt-1 " + (accent ? "text-primary-foreground/75" : "text-muted-foreground")}>{sub}</div>}
-      {typeof pct === "number" && <ProgressBar pct={pct} accent={accent} />}
     </div>
   );
 }
@@ -458,18 +449,27 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
             { label: "PREVISÃO SELL IN", value: previsao, pct: pctProjecao },
           ].map((m) => {
             const clamped = Math.max(0, Math.min(100, m.pct));
-            const barColor = m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct);
-            const trackBg = m.accent ? "rgba(255,255,255,0.25)" : "#3a3f34";
+            const hasFill = m.value > 0;
             return (
-              <div key={m.label} style={{ background: m.accent ? "#F26A1F" : "#2A2E26", borderRadius: 8, padding: 20, border: m.accent ? "none" : "1px solid #3a3f34" }}>
-                <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: m.accent ? "rgba(255,255,255,0.85)" : "#9ca39a" }}>{m.label}</div>
-                <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: m.accent ? "#fff" : "#E5E7E1", fontVariantNumeric: "tabular-nums" }}>{formatBRLSmart(m.value)}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: m.accent ? "rgba(255,255,255,0.95)" : pctColor(m.pct) }}>{m.value > 0 ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
-                {m.value > 0 && (
-                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: trackBg, overflow: "hidden" }}>
-                    <div style={{ width: `${clamped}%`, height: "100%", background: barColor, borderRadius: 999 }} />
-                  </div>
+              <div
+                key={m.label}
+                style={{
+                  position: "relative",
+                  background: "rgba(242,106,31,0.10)",
+                  borderRadius: 8,
+                  padding: 20,
+                  border: "1px solid #3a3f34",
+                  overflow: "hidden",
+                }}
+              >
+                {hasFill && (
+                  <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${clamped}%`, background: "rgba(242,106,31,0.85)" }} />
                 )}
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: "#E5E7E1" }}>{m.label}</div>
+                  <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{formatBRLSmart(m.value)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: hasFill ? "#fff" : pctColor(m.pct) }}>{hasFill ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
+                </div>
               </div>
             );
           })}
@@ -478,20 +478,34 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
           {[
-            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#E5E7E1", pct: previsao > 0 ? (enviado / previsao) * 100 : undefined },
-            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981", pct: previsao > 0 ? (faturado / previsao) * 100 : undefined },
+            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#fff", pct: previsao > 0 ? (enviado / previsao) * 100 : undefined },
+            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981", pct: undefined as number | undefined },
             { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981", pct: undefined as number | undefined },
           ].map((s) => {
-            const clamped = typeof s.pct === "number" ? Math.max(0, Math.min(100, s.pct)) : 0;
+            const hasFill = typeof s.pct === "number";
+            const clamped = hasFill ? Math.max(0, Math.min(100, s.pct!)) : 0;
             return (
-              <div key={s.label} style={{ background: "#2A2E26", borderRadius: 8, padding: 18, border: "1px solid #3a3f34" }}>
-                <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>{s.label}</div>
-                <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
-                {typeof s.pct === "number" && (
-                  <div style={{ marginTop: 10, height: 8, width: "100%", borderRadius: 999, background: "#3a3f34", overflow: "hidden" }}>
-                    <div style={{ width: `${clamped}%`, height: "100%", background: pctColor(s.pct), borderRadius: 999 }} />
-                  </div>
+              <div
+                key={s.label}
+                style={{
+                  position: "relative",
+                  background: hasFill ? "rgba(242,106,31,0.10)" : "#2A2E26",
+                  borderRadius: 8,
+                  padding: 18,
+                  border: "1px solid #3a3f34",
+                  overflow: "hidden",
+                }}
+              >
+                {hasFill && (
+                  <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${clamped}%`, background: "rgba(242,106,31,0.85)" }} />
                 )}
+                <div style={{ position: "relative", zIndex: 1 }}>
+                  <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: hasFill ? "#E5E7E1" : "#9ca39a" }}>{s.label}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: hasFill ? "#fff" : s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
+                  {hasFill && (
+                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4, color: "#fff" }}>{fmtPct(s.pct!)} da previsão</div>
+                  )}
+                </div>
               </div>
             );
           })}
