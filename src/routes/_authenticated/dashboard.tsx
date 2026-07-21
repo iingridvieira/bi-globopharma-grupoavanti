@@ -87,6 +87,29 @@ function Dashboard() {
     return true;
   }
 
+  async function exportarPNG() {
+    if (!shareRef.current) return;
+    setExporting(true);
+    try {
+      // Wait a frame so the off-screen card is fully laid out
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const dataUrl = await toPng(shareRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "#0E0F0C",
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `dashboard-${String(MES).padStart(2, "0")}-${ANO}.png`;
+      a.click();
+      toast.success("Imagem gerada");
+    } catch (e) {
+      toast.error("Erro ao gerar imagem: " + (e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="p-8 max-w-[1600px] mx-auto">
       <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
