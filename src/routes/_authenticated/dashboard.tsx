@@ -454,6 +454,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
                 <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Previsão</th>
                 <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Faturado</th>
                 <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>%</th>
+                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Pendência</th>
               </tr>
             </thead>
             <tbody>
@@ -467,6 +468,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
                     <td style={{ padding: "9px 14px", textAlign: "right" }}>{formatBRL(r.meta)}</td>
                     <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700 }}>{formatBRL(r.faturado)}</td>
                     <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.meta > 0 ? pctColor(p) : "#5a5f52" }}>{r.meta > 0 ? fmtPct(p) : "—"}</td>
+                    <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.pendencia > 0 ? "#F2B90C" : "#5a5f52" }}>{r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}</td>
                   </tr>
                 );
               })}
@@ -477,8 +479,10 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
                 <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(previsao)}</td>
                 <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(faturado)}</td>
                 <td style={{ padding: "12px 14px", textAlign: "right" }}>{previsao > 0 ? fmtPct((faturado / previsao) * 100) : "—"}</td>
+                <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(pendencia)}</td>
               </tr>
             </tbody>
+
           </table>
         </div>
 
