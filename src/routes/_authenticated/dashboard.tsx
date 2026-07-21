@@ -488,7 +488,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
       </div>
     );
   });
-})();
+
 
 type ShareCardProps = {
   mes: number;
