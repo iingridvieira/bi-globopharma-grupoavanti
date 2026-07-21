@@ -22,6 +22,14 @@ export function formatBRL(value: number | string | null | undefined): string {
   return brl.format(n);
 }
 
+/** Como formatBRL, mas omite ",00" quando não há centavos. */
+export function formatBRLSmart(value: number | string | null | undefined): string {
+  const n = typeof value === "string" ? Number(value) : value;
+  if (n == null || Number.isNaN(n)) return "R$ 0";
+  const s = brl.format(n);
+  return s.replace(/,00$/, "");
+}
+
 export function formatNumberBR(value: number | string | null | undefined): string {
   const n = typeof value === "string" ? Number(value) : value;
   if (n == null || Number.isNaN(n)) return "0,00";
