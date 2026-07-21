@@ -280,6 +280,43 @@ function Dashboard() {
   );
 }
 
+function ProgressBar({ pct, accent }: { pct: number; accent?: boolean }) {
+  const [w, setW] = useState(0);
+  const clamped = Math.max(0, Math.min(100, pct));
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setW(clamped));
+    return () => cancelAnimationFrame(id);
+  }, [clamped]);
+  const barColor = accent
+    ? "rgba(255,255,255,0.95)"
+    : clamped >= 100
+    ? "var(--color-success)"
+    : clamped >= 70
+    ? "var(--color-primary)"
+    : "var(--color-warning)";
+  const trackBg = accent ? "rgba(255,255,255,0.20)" : "var(--color-muted)";
+  return (
+    <div
+      className="mt-2 h-1.5 w-full rounded-full overflow-hidden"
+      style={{ background: trackBg }}
+      role="progressbar"
+      aria-valuenow={Math.round(clamped)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        style={{
+          width: `${w}%`,
+          height: "100%",
+          background: barColor,
+          borderRadius: 999,
+          transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+      />
+    </div>
+  );
+}
+
 function MetaCard({
   label, value, pct, faturado, icon: Icon, accent, sub, editable, onSave,
 }: {
@@ -343,7 +380,7 @@ function MetaCard({
         </div>
       ) : (
         <div className="mt-3 flex items-center gap-2">
-          <div className="bi-stat-value text-3xl">{formatBRL(value)}</div>
+          <div className="bi-stat-value text-3xl">{formatBRLSmart(value)}</div>
           {editable && (
             <button
               className={"p-1.5 rounded-md transition-colors " + (accent ? "text-primary-foreground/70 hover:bg-primary-foreground/10" : "text-muted-foreground hover:bg-muted")}
@@ -359,16 +396,17 @@ function MetaCard({
       <div className={"text-xs mt-2 font-medium " + (accent ? "text-primary-foreground/90" : pctColor)}>
         {value > 0 ? pctStr : "Sem meta definida"}
       </div>
+      {value > 0 && <ProgressBar pct={pct} accent={accent} />}
       {sub && (
-        <div className={"text-[10px] mt-0.5 " + (accent ? "text-primary-foreground/70" : "text-muted-foreground")}>{sub}</div>
+        <div className={"text-[10px] mt-1 " + (accent ? "text-primary-foreground/70" : "text-muted-foreground")}>{sub}</div>
       )}
     </div>
   );
 }
 
-function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
+function StatCard({ label, value, icon: Icon, accent, sub, negative, pct }: {
   label: string; value: string; icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  accent?: boolean; sub?: string; negative?: boolean;
+  accent?: boolean; sub?: string; negative?: boolean; pct?: number;
 }) {
   return (
     <div className={accent ? "bi-card-accent p-5" : "bi-card p-5"}>
@@ -378,6 +416,7 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative }: {
       </div>
       <div className={"bi-stat-value mt-3 text-3xl " + (negative ? "text-warning" : "")}>{value}</div>
       {sub && <div className={"text-xs mt-1 " + (accent ? "text-primary-foreground/75" : "text-muted-foreground")}>{sub}</div>}
+      {typeof pct === "number" && <ProgressBar pct={pct} accent={accent} />}
     </div>
   );
 }
