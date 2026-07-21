@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 type Role = "admin" | "representante" | "viewer" | "editor";
@@ -26,14 +27,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<Role[]>([]);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((evt, s) => {
       setSession(s);
       if (s?.user) {
         setTimeout(() => { void fetchRoles(s.user.id); }, 0);
       } else {
         setRoles([]);
+      }
+      // Sempre que o token renovar ou o usuário logar novamente, invalida
+      // os caches para refazer leituras protegidas por RLS — evita tabelas
+      // vazias por requisições que rodaram antes da sessão estar pronta.
+      if (evt === "SIGNED_IN" || evt === "TOKEN_REFRESHED" || evt === "USER_UPDATED") {
+        void queryClient.invalidateQueries();
       }
     });
     supabase.auth.getSession().then(({ data }) => {
@@ -42,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   async function fetchRoles(userId: string) {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
@@ -55,6 +63,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = roles.includes("admin");
   const canEdit = roles.includes("admin") || roles.includes("editor");
   const restrictedClientes = isEduardoOnly ? EDUARDO_CLIENTES : null;
+
+  // Enquanto a sessão inicial não resolveu, não renderiza filhos: assim
+  // nenhuma query dispara sem Authorization e cai em cache vazio pela RLS.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Carregando…
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{
