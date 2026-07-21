@@ -256,6 +256,26 @@ function Dashboard() {
         </div>
       </section>
 
+      {/* Off-screen share card for PNG export (WhatsApp) */}
+      <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
+        <ShareCard
+          ref={shareRef}
+          mes={MES}
+          ano={ANO}
+          metaGlobo={metaGlobo}
+          metaAvanti={metaAvanti}
+          previsao={t.meta}
+          enviado={t.enviado}
+          faturado={t.faturado}
+          pendencia={t.pendencia}
+          pendAnt={t.pendAnt}
+          gap={gap}
+          pctGlobo={pctGlobo}
+          pctAvanti={pctAvanti}
+          pctProjecao={pctProjecao}
+          rows={data?.rows ?? []}
+        />
+      </div>
     </div>
   );
 }
