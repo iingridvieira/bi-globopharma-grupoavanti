@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, parseBRNumber } from "@/lib/format";
-import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X, Table2 } from "lucide-react";
+import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X, Table2, ImageDown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
