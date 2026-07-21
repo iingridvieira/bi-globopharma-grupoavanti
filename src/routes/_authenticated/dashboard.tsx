@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, parseBRNumber } from "@/lib/format";
