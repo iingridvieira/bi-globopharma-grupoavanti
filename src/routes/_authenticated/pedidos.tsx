@@ -60,18 +60,23 @@ function parseBulkText(text: string): { ean: string; quantidade: number; preco: 
 }
 
 async function lookupDescricoes(eans: string[]): Promise<Map<string, string>> {
+  // itens_nf tem muitas linhas por EAN (histórico de notas). Buscar em lote com
+  // `.in()` estoura o teto de 1000 linhas do PostgREST e faz EANs sumirem do
+  // resultado. Fazemos uma consulta por EAN pegando só a 1ª descrição não-nula
+  // — em paralelo, com concorrência limitada.
   const map = new Map<string, string>();
-  const unique = Array.from(new Set(eans));
-  const BATCH = 200;
-  for (let i = 0; i < unique.length; i += BATCH) {
-    const slice = unique.slice(i, i + BATCH);
-    const { data: byEan } = await supabase.from("itens_nf").select("ean,produto").in("ean", slice);
-    (byEan ?? []).forEach((r) => { if (r.ean && r.produto && !map.has(r.ean)) map.set(r.ean, r.produto); });
-    const missing = slice.filter((e) => !map.has(e));
-    if (missing.length > 0) {
-      const { data: byCod } = await supabase.from("itens_nf").select("codigo_produto,produto").in("codigo_produto", missing);
-      (byCod ?? []).forEach((r) => { if (r.codigo_produto && r.produto && !map.has(r.codigo_produto)) map.set(r.codigo_produto, r.produto); });
-    }
+  const unique = Array.from(new Set(eans.filter(Boolean)));
+  const CONC = 8;
+  async function fetchOne(ean: string) {
+    const byEan = await supabase
+      .from("itens_nf").select("produto").eq("ean", ean).not("produto", "is", null).limit(1).maybeSingle();
+    if (byEan.data?.produto) { map.set(ean, byEan.data.produto); return; }
+    const byCod = await supabase
+      .from("itens_nf").select("produto").eq("codigo_produto", ean).not("produto", "is", null).limit(1).maybeSingle();
+    if (byCod.data?.produto) map.set(ean, byCod.data.produto);
+  }
+  for (let i = 0; i < unique.length; i += CONC) {
+    await Promise.all(unique.slice(i, i + CONC).map(fetchOne));
   }
   return map;
 }
