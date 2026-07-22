@@ -1,0 +1,1 @@
+ALTER TABLE public.pedidos_enviados ALTER COLUMN prazo TYPE text USING prazo::text;
