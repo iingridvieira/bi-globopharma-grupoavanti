@@ -58,7 +58,7 @@ function ClienteDetalhe() {
     queryFn: async () =>
       (await supabase
         .from("pendencias_produtos")
-        .select("data_lancamento,ean,codigo_produto,produto,preco_unitario,quantidade,valor")
+        .select("data_lancamento,ean,codigo_produto,produto,preco_unitario,quantidade,valor,operacao")
         .eq("cliente_id", clienteId)
         .order("valor", { ascending: false })).data ?? [],
   });
