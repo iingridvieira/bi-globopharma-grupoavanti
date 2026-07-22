@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
@@ -748,6 +749,23 @@ function StatusEntregaBadge({
 }: { numero: string; status: string; canEdit: boolean; onChanged: () => void }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 4, left: r.left + r.width / 2 });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open]);
 
   async function change(novo: string) {
     setSaving(true);
@@ -777,6 +795,7 @@ function StatusEntregaBadge({
   return (
     <div className="relative inline-block">
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={saving}
@@ -786,10 +805,13 @@ function StatusEntregaBadge({
         {status}
         <ChevronDown className="h-3 w-3 opacity-60" />
       </button>
-      {open && (
+      {open && pos && createPortal(
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute z-50 mt-1 left-1/2 -translate-x-1/2 bg-popover border border-border rounded-md shadow-lg overflow-hidden min-w-[160px]">
+          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg overflow-hidden min-w-[160px] -translate-x-1/2"
+            style={{ top: pos.top, left: pos.left }}
+          >
             {STATUS_OPCOES.map((s) => (
               <button
                 key={s}
@@ -801,7 +823,8 @@ function StatusEntregaBadge({
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
