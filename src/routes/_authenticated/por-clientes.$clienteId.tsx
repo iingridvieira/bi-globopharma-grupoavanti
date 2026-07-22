@@ -300,6 +300,7 @@ function ClienteDetalhe() {
                   "Data de Lançamento": p.data_lancamento ? formatDateBR(p.data_lancamento) : "",
                   "EAN": p.ean ?? "",
                   "Produto": p.produto ?? "",
+                  "Operação": Number(p.valor ?? 0) > 0 ? "Venda" : "Bonificação",
                   "Preço (R$/und)": Number(p.preco_unitario ?? 0),
                   "Pend em aberto (VOL)": Number(p.quantidade ?? 0),
                   "Pend em aberto (R$)": Number(p.valor ?? 0),
@@ -320,28 +321,38 @@ function ClienteDetalhe() {
                 <th>Data de Lançamento</th>
                 <th>EAN</th>
                 <th>Produto</th>
+                <th>Operação</th>
                 <th className="text-right">Preço (R$/und)</th>
                 <th className="text-right">Pend em aberto (VOL)</th>
                 <th className="text-right">Pend em aberto (R$)</th>
               </tr>
             </thead>
             <tbody>
-              {pendFiltradas.map((p, i) => (
-                <tr key={i}>
-                  <td className="text-xs tabular-nums">{p.data_lancamento ? formatDateBR(p.data_lancamento) : "—"}</td>
-                  <td className="text-xs text-muted-foreground tabular-nums">{p.ean || "—"}</td>
-                  <td className="font-medium">{p.produto || "—"}</td>
-                  <td className="text-right tabular-nums">{p.preco_unitario ? formatBRL(Number(p.preco_unitario)) : "—"}</td>
-                  <td className="text-right tabular-nums">{Number(p.quantidade).toLocaleString("pt-BR")}</td>
-                  <td className="text-right tabular-nums font-semibold">{formatBRL(Number(p.valor))}</td>
-                </tr>
-              ))}
+              {pendFiltradas.map((p, i) => {
+                const isVenda = Number(p.valor ?? 0) > 0;
+                return (
+                  <tr key={i}>
+                    <td className="text-xs tabular-nums">{p.data_lancamento ? formatDateBR(p.data_lancamento) : "—"}</td>
+                    <td className="text-xs text-muted-foreground tabular-nums">{p.ean || "—"}</td>
+                    <td className="font-medium">{p.produto || "—"}</td>
+                    <td>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide ${isVenda ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-500"}`}>
+                        {isVenda ? "Venda" : "Bonificação"}
+                      </span>
+                    </td>
+                    <td className="text-right tabular-nums">{p.preco_unitario ? formatBRL(Number(p.preco_unitario)) : "—"}</td>
+                    <td className="text-right tabular-nums">{Number(p.quantidade).toLocaleString("pt-BR")}</td>
+                    <td className="text-right tabular-nums font-semibold">{formatBRL(Number(p.valor))}</td>
+                  </tr>
+                );
+              })}
               {pendFiltradas.length === 0 && (
-                <tr><td colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma pendência registrada.</td></tr>
+                <tr><td colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma pendência registrada.</td></tr>
               )}
             </tbody>
           </table>
         </div>
+
       </section>
 
 
