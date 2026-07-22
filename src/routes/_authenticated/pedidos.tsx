@@ -216,7 +216,7 @@ function PedidosPage() {
       Cliente: p.clientes?.nome ?? "",
       Valor: Number(p.valor),
       "Ordem de compra": p.ordem_compra ?? "",
-      Prazo: p.prazo ? formatDateBR(p.prazo) : "",
+      Prazo: p.prazo ?? "",
       Status: p.status === "aprovado" ? "APROVADO" : "AGUARDANDO",
     }));
     exportToExcel(rows, `pedidos-${anos.join("_")}-${meses.join("_")}.xlsx`, "Pedidos");
