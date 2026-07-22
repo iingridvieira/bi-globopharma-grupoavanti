@@ -72,9 +72,9 @@ function GeralPage() {
         <p className="text-sm text-muted-foreground mt-1">Compilado anual de Sell In e Sell Out de todos os clientes.</p>
       </header>
 
-      <PositivacaoConsolidada rows={positivacao ?? []} />
       <MultiYearSection title="Sell In" rows={sellIn ?? []} anos={anos} colorVar="var(--color-chart-1)" />
       <MultiYearSection title="Sell Out" rows={sellOut ?? []} anos={anos} colorVar="var(--color-chart-2)" />
+      <PositivacaoConsolidada rows={positivacao ?? []} />
     </div>
   );
 }
