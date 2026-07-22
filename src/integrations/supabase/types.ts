@@ -609,6 +609,7 @@ export type Database = {
           data_lancamento: string | null
           ean: string | null
           id: string
+          operacao: string | null
           preco_unitario: number
           produto: string
           quantidade: number
@@ -621,6 +622,7 @@ export type Database = {
           data_lancamento?: string | null
           ean?: string | null
           id?: string
+          operacao?: string | null
           preco_unitario?: number
           produto?: string
           quantidade?: number
@@ -633,6 +635,7 @@ export type Database = {
           data_lancamento?: string | null
           ean?: string | null
           id?: string
+          operacao?: string | null
           preco_unitario?: number
           produto?: string
           quantidade?: number
