@@ -8,6 +8,7 @@ import { Download, Plus, Trash2, Save } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { ClienteLink } from "@/components/ClienteLink";
 
 export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
 
@@ -26,11 +27,11 @@ function SellInPage() {
         supabase.from("clientes").select("id,nome").order("nome"),
         supabase.from("sell_in").select("cliente_id,mes,valor").eq("ano", ano),
       ]);
-      const matrix = new Map<string, { nome: string; meses: number[]; total: number; media: number; repr: number }>();
+      const matrix = new Map<string, { id: string; nome: string; meses: number[]; total: number; media: number; repr: number }>();
       const clientesFiltrados = allowedSet
         ? (clientes.data ?? []).filter((c) => allowedSet.has(normNomeSI(c.nome)))
         : (clientes.data ?? []);
-      clientesFiltrados.forEach((c) => matrix.set(c.id, { nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
+      clientesFiltrados.forEach((c) => matrix.set(c.id, { id: c.id, nome: c.nome, meses: Array(12).fill(0), total: 0, media: 0, repr: 0 }));
       (sellIn.data ?? []).forEach((s) => {
         const r = matrix.get(s.cliente_id); if (!r) return;
         r.meses[s.mes - 1] = Number(s.valor); r.total += Number(s.valor);
@@ -260,8 +261,8 @@ function SellInTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellInRo
         </thead>
         <tbody>
           {view.map((r) => (
-            <tr key={r.nome}>
-              <td className="font-medium bi-col-sticky">{r.nome}</td>
+            <tr key={r.id}>
+              <td className="font-medium bi-col-sticky"><ClienteLink id={r.id} nome={r.nome} /></td>
               {r.meses.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
               <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(r.total)}</td>
               <td className="text-right tabular-nums text-xs text-muted-foreground">{formatBRL(r.media)}</td>

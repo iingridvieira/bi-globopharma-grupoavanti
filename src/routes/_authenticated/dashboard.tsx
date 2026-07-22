@@ -47,8 +47,8 @@ function Dashboard() {
         ? (clientes.data ?? []).filter((c) => allowedSet.has(norm(c.nome)))
         : (clientes.data ?? []);
 
-      const map = new Map<string, { nome: string; pendencia: number; pendAnt: number; enviado: number; meta: number; faturado: number }>();
-      clientesFiltrados.forEach((c) => map.set(c.id, { nome: c.nome, pendencia: 0, pendAnt: 0, enviado: 0, meta: 0, faturado: 0 }));
+      const map = new Map<string, { id: string; nome: string; pendencia: number; pendAnt: number; enviado: number; meta: number; faturado: number }>();
+      clientesFiltrados.forEach((c) => map.set(c.id, { id: c.id, nome: c.nome, pendencia: 0, pendAnt: 0, enviado: 0, meta: 0, faturado: 0 }));
       (metas.data ?? []).forEach((m) => { const r = map.get(m.cliente_id); if (r) r.meta = Number(m.valor); });
       (pedidos.data ?? []).forEach((p) => { const r = map.get(p.cliente_id); if (r) r.enviado += Number(p.valor); });
       (nfs.data ?? []).forEach((n) => { const r = map.get(n.cliente_id); if (r) r.faturado += Number(n.valor); });
@@ -220,8 +220,8 @@ function Dashboard() {
                 const pctCliente = r.meta > 0 ? (r.faturado / r.meta) * 100 : 0;
                 const pctColor = pctCliente >= 100 ? "text-emerald-500" : pctCliente >= 70 ? "text-primary" : "text-warning";
                 return (
-                  <tr key={r.nome}>
-                    <td className="font-medium">{r.nome}</td>
+                  <tr key={r.id}>
+                    <td className="font-medium"><ClienteLink id={r.id} nome={r.nome} /></td>
                     <td className="text-right tabular-nums">{r.pendAnt > 0 ? formatBRL(r.pendAnt) : "—"}</td>
                     <td className="text-right tabular-nums">{formatBRL(r.enviado)}</td>
                     <td className="text-right tabular-nums font-medium">{formatBRL(r.pendAnt + r.enviado)}</td>

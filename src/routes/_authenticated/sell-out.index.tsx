@@ -7,6 +7,7 @@ import { exportToExcel } from "@/lib/excel";
 import { Download, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { ClienteLink } from "@/components/ClienteLink";
 
 export const Route = createFileRoute("/_authenticated/sell-out/")({ component: SellOutPage });
 
@@ -178,7 +179,7 @@ function SellOutTable({
         <tbody>
           {view.map((r) => (
             <tr key={r.id} className="group/row">
-              <td className="font-medium bi-col-sticky">{r.nome}</td>
+              <td className="font-medium bi-col-sticky"><ClienteLink id={r.id} nome={r.nome} /></td>
               {r.meses.map((v, i) => {
                 const key = `${r.id}-${i}`;
                 const isDeleting = deletingKey === key;
