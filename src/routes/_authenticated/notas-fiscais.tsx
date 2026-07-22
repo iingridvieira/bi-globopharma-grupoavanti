@@ -7,6 +7,7 @@ import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { ClienteLink } from "@/components/ClienteLink";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
 import { toast } from "sonner";
@@ -633,7 +634,7 @@ function NFsPage() {
                         )}
                       </span>
                     </td>
-                    <td>{n.clientes?.nome ?? "—"}</td>
+                    <td><ClienteLink id={n.cliente_id} nome={n.clientes?.nome} /></td>
                     <td className="text-center" onClick={(e) => e.stopPropagation()}>
                       <StatusEntregaBadge
                         numero={n.numero}
