@@ -175,10 +175,10 @@ function PedidosPage() {
     cliente: (p: PedRow) => p.clientes?.nome ?? "",
     valor: (p: PedRow) => String(p.valor),
     ordem: (p: PedRow) => p.ordem_compra ?? "",
-    prazo: (p: PedRow) => (p.prazo ? formatDateBR(p.prazo) : ""),
+    prazo: (p: PedRow) => p.prazo ?? "",
     status: (p: PedRow) => (p.status === "aprovado" ? "APROVADO" : "AGUARDANDO"),
   }), []);
-  const pedTypes = useMemo(() => ({ data: "date" as const, cliente: "text" as const, valor: "number" as const, ordem: "text" as const, prazo: "date" as const, status: "text" as const }), []);
+  const pedTypes = useMemo(() => ({ data: "date" as const, cliente: "text" as const, valor: "number" as const, ordem: "text" as const, prazo: "text" as const, status: "text" as const }), []);
   const { view: pedView, distinct: pedDistinct, filters: pedFilters, sorts: pedSorts, setFilter: setPedFilter, setSort: setPedSort, reset: resetPed } =
     useColumnFilters(filtrados, pedGetters, pedTypes);
 
