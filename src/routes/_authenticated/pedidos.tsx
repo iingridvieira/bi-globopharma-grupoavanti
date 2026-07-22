@@ -187,16 +187,22 @@ function PedidosPage() {
   const create = useMutation({
     mutationFn: async () => {
       const v = parseBRNumber(valor);
-      const { error } = await supabase.from("pedidos_enviados").insert({
+      const { data: inserted, error } = await supabase.from("pedidos_enviados").insert({
         data,
         cliente_id: clienteId,
         valor: v,
         ordem_compra: ordemCompra.trim() || null,
-        prazo: prazo || null,
-      });
+        prazo: prazo.trim() || null,
+      }).select("id").single();
       if (error) throw error;
+      return inserted?.id as string | undefined;
     },
-    onSuccess: () => { toast.success("Pedido registrado"); setValor(""); setOrdemCompra(""); setPrazo(""); void qc.invalidateQueries(); },
+    onSuccess: (newId) => {
+      toast.success("Pedido registrado — adicione os itens abaixo");
+      setValor(""); setOrdemCompra(""); setPrazo("");
+      if (newId) setExpanded((prev) => { const n = new Set(prev); n.add(newId); return n; });
+      void qc.invalidateQueries();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
