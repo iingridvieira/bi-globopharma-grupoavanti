@@ -253,8 +253,8 @@ function PedidosPage() {
               {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Field>
-          <Field label="Valor (R$)">
-            <input value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" className="bi-input-sm" />
+          <Field label="Valor (auto)">
+            <input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Calculado pelos itens" className="bi-input-sm" />
           </Field>
           <Field label="Ordem de compra">
             <input value={ordemCompra} onChange={(e) => setOrdemCompra(e.target.value)} placeholder="Nº OC" className="bi-input-sm" />
@@ -268,7 +268,7 @@ function PedidosPage() {
             </button>
           </div>
           <div className="md:col-span-6 text-xs text-muted-foreground">
-            Depois de criar o pedido, clique na seta ao lado para adicionar os itens (EAN, descrição, preço passado e quantidade).
+            O valor total é calculado automaticamente pelos itens. Use "Colar em massa" para cadastrar vários produtos de uma vez.
           </div>
         </form>
       )}
