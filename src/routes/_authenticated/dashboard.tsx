@@ -7,6 +7,7 @@ import { formatBRL, formatBRLSmart, parseBRNumber } from "@/lib/format";
 import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check, X, Table2, ImageDown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { ClienteLink } from "@/components/ClienteLink";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,

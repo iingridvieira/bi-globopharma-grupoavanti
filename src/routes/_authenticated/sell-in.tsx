@@ -211,7 +211,7 @@ function DescCard({ d, canEdit, onDelete, onSave }: { d: DescItem; canEdit: bool
   );
 }
 
-type SellInRow = { nome: string; meses: number[]; total: number; media: number; repr: number };
+type SellInRow = { id: string; nome: string; meses: number[]; total: number; media: number; repr: number };
 
 function SellInTable({ rows, totaisMes, totalGeral, mesAtual }: { rows: SellInRow[]; totaisMes: number[]; totalGeral: number; mesAtual: number }) {
   const getters = useMemo(() => {
