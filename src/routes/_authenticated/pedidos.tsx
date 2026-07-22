@@ -358,7 +358,7 @@ function PedidosPage() {
                       </td>
                       <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
                       <td>{p.ordem_compra ?? "—"}</td>
-                      <td>{p.prazo ? formatDateBR(p.prazo) : "—"}</td>
+                      <td>{p.prazo ?? "—"}</td>
                       <td className="text-center">
                         <button
                           type="button"
