@@ -430,6 +430,50 @@ export type Database = {
           },
         ]
       }
+      pedido_itens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descricao: string
+          ean: string | null
+          id: string
+          pedido_id: string
+          preco_passado: number
+          quantidade: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descricao: string
+          ean?: string | null
+          id?: string
+          pedido_id: string
+          preco_passado?: number
+          quantidade?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          ean?: string | null
+          id?: string
+          pedido_id?: string
+          preco_passado?: number
+          quantidade?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos_enviados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos_enviados: {
         Row: {
           cliente_id: string
@@ -437,6 +481,8 @@ export type Database = {
           created_by: string | null
           data: string
           id: string
+          ordem_compra: string | null
+          prazo: string | null
           status: string
           valor: number
         }
@@ -446,6 +492,8 @@ export type Database = {
           created_by?: string | null
           data: string
           id?: string
+          ordem_compra?: string | null
+          prazo?: string | null
           status?: string
           valor: number
         }
@@ -455,6 +503,8 @@ export type Database = {
           created_by?: string | null
           data?: string
           id?: string
+          ordem_compra?: string | null
+          prazo?: string | null
           status?: string
           valor?: number
         }
