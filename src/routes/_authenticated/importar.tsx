@@ -298,10 +298,11 @@ function ImportarPage() {
           preco_unitario: number;
           quantidade: number;
           valor: number;
+          operacao?: string;
           ano?: number;
           mes?: number;
         };
-        const agg = new Map<string, PendProd>();
+        const rows: PendProd[] = [];
         for (const r of firstSheet) {
           const nome = String(pickCol(r, "Cliente", "Razão Social", "Razao Social") ?? "").trim();
           const cliente_id = clienteIdFromRazao(nome, idx);
@@ -314,18 +315,13 @@ function ImportarPage() {
           const vol = rowToBRNumber(pickCol(r, "Pend em aberto (VOL)", "Pend em aberto VOL", "Pendencia VOL", "VOL", "Quantidade", "Qtd"));
           const valor = rowToBRNumber(pickCol(r, "Pend em aberto (R$)", "Pend em aberto R$", "Pendencia (R$)", "Pendencia", "Pendência", "Valor"));
           if (!vol && !valor) continue;
-          const k = `${cliente_id}|${ean ?? ""}|${codigo}|${produto}|${dataLanc ?? ""}`;
-          const cur = agg.get(k) ?? {
+          const operacao = preco > 0 ? "Venda" : "Bonificação";
+          rows.push({
             cliente_id, codigo_produto: codigo, ean, data_lancamento: dataLanc,
-            produto, preco_unitario: preco, quantidade: 0, valor: 0,
-            ...(isAnterior ? { ano: metaAno, mes: metaMes } : {}),
-          };
-          cur.quantidade += vol;
-          cur.valor += valor;
-          if (!cur.preco_unitario && preco) cur.preco_unitario = preco;
-          agg.set(k, cur);
+            produto, preco_unitario: preco, quantidade: vol, valor,
+            ...(isAnterior ? { ano: metaAno, mes: metaMes } : { operacao }),
+          });
         }
-        const rows = Array.from(agg.values());
         if (rows.length === 0) throw new Error("Nenhuma pendência válida encontrada.");
         if (isAnterior) {
           const { error: delErr } = await (supabase.from(tabela).delete() as unknown as { eq: (c: string, v: number) => { eq: (c: string, v: number) => Promise<{ error: unknown }> } }).eq("ano", metaAno).eq("mes", metaMes);

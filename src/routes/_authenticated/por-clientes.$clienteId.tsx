@@ -58,7 +58,7 @@ function ClienteDetalhe() {
     queryFn: async () =>
       (await supabase
         .from("pendencias_produtos")
-        .select("data_lancamento,ean,codigo_produto,produto,preco_unitario,quantidade,valor")
+        .select("data_lancamento,ean,codigo_produto,produto,preco_unitario,quantidade,valor,operacao")
         .eq("cliente_id", clienteId)
         .order("valor", { ascending: false })).data ?? [],
   });
@@ -300,7 +300,7 @@ function ClienteDetalhe() {
                   "Data de Lançamento": p.data_lancamento ? formatDateBR(p.data_lancamento) : "",
                   "EAN": p.ean ?? "",
                   "Produto": p.produto ?? "",
-                  "Operação": Number(p.valor ?? 0) > 0 ? "Venda" : "Bonificação",
+                  "Operação": (p as { operacao?: string | null }).operacao ?? (Number(p.preco_unitario ?? 0) > 0 ? "Venda" : "Bonificação"),
                   "Preço (R$/und)": Number(p.preco_unitario ?? 0),
                   "Pend em aberto (VOL)": Number(p.quantidade ?? 0),
                   "Pend em aberto (R$)": Number(p.valor ?? 0),
@@ -329,7 +329,8 @@ function ClienteDetalhe() {
             </thead>
             <tbody>
               {pendFiltradas.map((p, i) => {
-                const isVenda = Number(p.valor ?? 0) > 0;
+                const op = (p as { operacao?: string | null }).operacao ?? (Number(p.preco_unitario ?? 0) > 0 ? "Venda" : "Bonificação");
+                const isVenda = op === "Venda";
                 return (
                   <tr key={i}>
                     <td className="text-xs tabular-nums">{p.data_lancamento ? formatDateBR(p.data_lancamento) : "—"}</td>
@@ -337,7 +338,7 @@ function ClienteDetalhe() {
                     <td className="font-medium">{p.produto || "—"}</td>
                     <td>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide ${isVenda ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-500"}`}>
-                        {isVenda ? "Venda" : "Bonificação"}
+                        {op}
                       </span>
                     </td>
                     <td className="text-right tabular-nums">{p.preco_unitario ? formatBRL(Number(p.preco_unitario)) : "—"}</td>

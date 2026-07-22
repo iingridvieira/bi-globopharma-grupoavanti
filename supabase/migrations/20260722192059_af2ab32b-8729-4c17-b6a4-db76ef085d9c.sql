@@ -1,0 +1,1 @@
+ALTER TABLE public.pendencias_produtos ADD COLUMN IF NOT EXISTS operacao text;
