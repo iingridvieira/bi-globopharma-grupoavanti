@@ -175,10 +175,10 @@ function PedidosPage() {
     cliente: (p: PedRow) => p.clientes?.nome ?? "",
     valor: (p: PedRow) => String(p.valor),
     ordem: (p: PedRow) => p.ordem_compra ?? "",
-    prazo: (p: PedRow) => (p.prazo ? formatDateBR(p.prazo) : ""),
+    prazo: (p: PedRow) => p.prazo ?? "",
     status: (p: PedRow) => (p.status === "aprovado" ? "APROVADO" : "AGUARDANDO"),
   }), []);
-  const pedTypes = useMemo(() => ({ data: "date" as const, cliente: "text" as const, valor: "number" as const, ordem: "text" as const, prazo: "date" as const, status: "text" as const }), []);
+  const pedTypes = useMemo(() => ({ data: "date" as const, cliente: "text" as const, valor: "number" as const, ordem: "text" as const, prazo: "text" as const, status: "text" as const }), []);
   const { view: pedView, distinct: pedDistinct, filters: pedFilters, sorts: pedSorts, setFilter: setPedFilter, setSort: setPedSort, reset: resetPed } =
     useColumnFilters(filtrados, pedGetters, pedTypes);
 
@@ -187,16 +187,22 @@ function PedidosPage() {
   const create = useMutation({
     mutationFn: async () => {
       const v = parseBRNumber(valor);
-      const { error } = await supabase.from("pedidos_enviados").insert({
+      const { data: inserted, error } = await supabase.from("pedidos_enviados").insert({
         data,
         cliente_id: clienteId,
         valor: v,
         ordem_compra: ordemCompra.trim() || null,
-        prazo: prazo || null,
-      });
+        prazo: prazo.trim() || null,
+      }).select("id").single();
       if (error) throw error;
+      return inserted?.id as string | undefined;
     },
-    onSuccess: () => { toast.success("Pedido registrado"); setValor(""); setOrdemCompra(""); setPrazo(""); void qc.invalidateQueries(); },
+    onSuccess: (newId) => {
+      toast.success("Pedido registrado — adicione os itens abaixo");
+      setValor(""); setOrdemCompra(""); setPrazo("");
+      if (newId) setExpanded((prev) => { const n = new Set(prev); n.add(newId); return n; });
+      void qc.invalidateQueries();
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -210,7 +216,7 @@ function PedidosPage() {
       Cliente: p.clientes?.nome ?? "",
       Valor: Number(p.valor),
       "Ordem de compra": p.ordem_compra ?? "",
-      Prazo: p.prazo ? formatDateBR(p.prazo) : "",
+      Prazo: p.prazo ?? "",
       Status: p.status === "aprovado" ? "APROVADO" : "AGUARDANDO",
     }));
     exportToExcel(rows, `pedidos-${anos.join("_")}-${meses.join("_")}.xlsx`, "Pedidos");
@@ -254,7 +260,7 @@ function PedidosPage() {
             <input value={ordemCompra} onChange={(e) => setOrdemCompra(e.target.value)} placeholder="Nº OC" className="bi-input-sm" />
           </Field>
           <Field label="Prazo">
-            <input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} className="bi-input-sm" />
+            <input value={prazo} onChange={(e) => setPrazo(e.target.value)} placeholder="Ex.: 7 dias, imediato" className="bi-input-sm" />
           </Field>
           <div className="flex items-end">
             <button disabled={create.isPending} className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-semibold uppercase text-xs tracking-wider hover:opacity-90 disabled:opacity-50 w-full">
@@ -318,11 +324,11 @@ function PedidosPage() {
                       </td>
                       <td className="text-right"><input value={editValor} onChange={(e) => setEditValor(e.target.value)} className="bi-input-sm text-right" /></td>
                       <td><input value={editOrdemCompra} onChange={(e) => setEditOrdemCompra(e.target.value)} className="bi-input-sm" placeholder="Nº OC" /></td>
-                      <td><input type="date" value={editPrazo} onChange={(e) => setEditPrazo(e.target.value)} className="bi-input-sm" /></td>
+                      <td><input value={editPrazo} onChange={(e) => setEditPrazo(e.target.value)} className="bi-input-sm" placeholder="Ex.: 7 dias" /></td>
                       <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
                       <td className="text-center">
                         <div className="inline-flex gap-1">
-                          <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, valor: parseBRNumber(editValor), ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo || null })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                          <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, valor: parseBRNumber(editValor), ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo.trim() || null })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                             <Check className="h-4 w-4" />
                           </button>
                           <button type="button" title="Cancelar" onClick={() => setEditId(null)} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
@@ -352,7 +358,7 @@ function PedidosPage() {
                       </td>
                       <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
                       <td>{p.ordem_compra ?? "—"}</td>
-                      <td>{p.prazo ? formatDateBR(p.prazo) : "—"}</td>
+                      <td>{p.prazo ?? "—"}</td>
                       <td className="text-center">
                         <button
                           type="button"
