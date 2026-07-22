@@ -324,7 +324,7 @@ function PedidosPage() {
                       </td>
                       <td className="text-right"><input value={editValor} onChange={(e) => setEditValor(e.target.value)} className="bi-input-sm text-right" /></td>
                       <td><input value={editOrdemCompra} onChange={(e) => setEditOrdemCompra(e.target.value)} className="bi-input-sm" placeholder="Nº OC" /></td>
-                      <td><input type="date" value={editPrazo} onChange={(e) => setEditPrazo(e.target.value)} className="bi-input-sm" /></td>
+                      <td><input value={editPrazo} onChange={(e) => setEditPrazo(e.target.value)} className="bi-input-sm" placeholder="Ex.: 7 dias" /></td>
                       <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
                       <td className="text-center">
                         <div className="inline-flex gap-1">
