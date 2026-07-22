@@ -186,7 +186,7 @@ function PedidosPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      const v = parseBRNumber(valor);
+      const v = valor.trim() ? parseBRNumber(valor) : 0;
       const { data: inserted, error } = await supabase.from("pedidos_enviados").insert({
         data,
         cliente_id: clienteId,
@@ -198,7 +198,7 @@ function PedidosPage() {
       return inserted?.id as string | undefined;
     },
     onSuccess: (newId) => {
-      toast.success("Pedido registrado — adicione os itens abaixo");
+      toast.success("Pedido criado — adicione ou cole os itens abaixo");
       setValor(""); setOrdemCompra(""); setPrazo("");
       if (newId) setExpanded((prev) => { const n = new Set(prev); n.add(newId); return n; });
       void qc.invalidateQueries();
