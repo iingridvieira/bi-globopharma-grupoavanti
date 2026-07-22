@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
-import { Download, Send, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, Plus, Package } from "lucide-react";
+import { Download, Send, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, Package, Plus } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
@@ -32,6 +32,50 @@ type PedidoItem = {
   quantidade: number | string;
 };
 
+type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number };
+
+function splitLine(l: string): string[] {
+  if (l.includes("\t")) return l.split("\t").map((c) => c.trim());
+  if (l.includes(";")) return l.split(";").map((c) => c.trim());
+  return l.split(/,(?!\d)/).map((c) => c.trim());
+}
+
+function parseBulkText(text: string): { ean: string; quantidade: number; preco: number }[] {
+  const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (rawLines.length === 0) return [];
+  const first = splitLine(rawLines[0]);
+  const looksHeader = first.some((c) => /ean|c[oó]digo|barra|qtd|quant|pre[cç]o/i.test(c));
+  const dataLines = looksHeader ? rawLines.slice(1) : rawLines;
+  const out: { ean: string; quantidade: number; preco: number }[] = [];
+  for (const l of dataLines) {
+    const cols = splitLine(l);
+    if (cols.length < 2) continue;
+    const ean = cols[0].replace(/\D/g, "");
+    const quantidade = parseBRNumber(cols[1] ?? "0");
+    const preco = parseBRNumber(cols[2] ?? "0");
+    if (!ean) continue;
+    out.push({ ean, quantidade, preco });
+  }
+  return out;
+}
+
+async function lookupDescricoes(eans: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const unique = Array.from(new Set(eans));
+  const BATCH = 200;
+  for (let i = 0; i < unique.length; i += BATCH) {
+    const slice = unique.slice(i, i + BATCH);
+    const { data: byEan } = await supabase.from("itens_nf").select("ean,produto").in("ean", slice);
+    (byEan ?? []).forEach((r) => { if (r.ean && r.produto && !map.has(r.ean)) map.set(r.ean, r.produto); });
+    const missing = slice.filter((e) => !map.has(e));
+    if (missing.length > 0) {
+      const { data: byCod } = await supabase.from("itens_nf").select("codigo_produto,produto").in("codigo_produto", missing);
+      (byCod ?? []).forEach((r) => { if (r.codigo_produto && r.produto && !map.has(r.codigo_produto)) map.set(r.codigo_produto, r.produto); });
+    }
+  }
+  return map;
+}
+
 function PedidosPage() {
   const { canEdit, restrictedClientes } = useAuth();
   const allowedNameSet = restrictedClientes ? new Set(restrictedClientes.map(normNome)) : null;
@@ -41,14 +85,8 @@ function PedidosPage() {
   const [anos, setAnos] = useState<string[]>([String(now.getFullYear())]);
   const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [responsavel, setResponsavel] = useState<string>("");
-
-  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
-  const [clienteId, setClienteId] = useState("");
-  const [valor, setValor] = useState("");
-  const [ordemCompra, setOrdemCompra] = useState("");
-  const [prazo, setPrazo] = useState("");
-
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [novoOpen, setNovoOpen] = useState(false);
 
   const { data: clientes } = useQuery({
     queryKey: ["clientes"],
@@ -96,7 +134,6 @@ function PedidosPage() {
     },
   });
 
-  // Contagem de itens por pedido (para exibir badge)
   const pedidoIds = useMemo(() => (pedidos ?? []).map((p) => p.id), [pedidos]);
   const { data: itensCount } = useQuery({
     queryKey: ["pedido-itens-count", pedidoIds.slice().sort().join("|")],
@@ -125,8 +162,8 @@ function PedidosPage() {
   });
 
   const updatePedido = useMutation({
-    mutationFn: async ({ id, data, cliente_id, valor, ordem_compra, prazo }: { id: string; data: string; cliente_id: string; valor: number; ordem_compra: string | null; prazo: string | null }) => {
-      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, valor, ordem_compra, prazo }).eq("id", id);
+    mutationFn: async ({ id, data, cliente_id, ordem_compra, prazo }: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null }) => {
+      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, ordem_compra, prazo }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pedido atualizado"); setEditId(null); void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
@@ -145,15 +182,13 @@ function PedidosPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState("");
   const [editClienteId, setEditClienteId] = useState("");
-  const [editValor, setEditValor] = useState("");
   const [editOrdemCompra, setEditOrdemCompra] = useState("");
   const [editPrazo, setEditPrazo] = useState("");
 
-  function startEdit(p: { id: string; data: string; cliente_id: string; valor: number | string; ordem_compra: string | null; prazo: string | null }) {
+  function startEdit(p: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null }) {
     setEditId(p.id);
     setEditData(p.data);
     setEditClienteId(p.cliente_id);
-    setEditValor(String(p.valor).replace(".", ","));
     setEditOrdemCompra(p.ordem_compra ?? "");
     setEditPrazo(p.prazo ?? "");
   }
@@ -184,28 +219,6 @@ function PedidosPage() {
 
   const total = pedView.reduce((a, p) => a + Number(p.valor), 0);
 
-  const create = useMutation({
-    mutationFn: async () => {
-      const v = valor.trim() ? parseBRNumber(valor) : 0;
-      const { data: inserted, error } = await supabase.from("pedidos_enviados").insert({
-        data,
-        cliente_id: clienteId,
-        valor: v,
-        ordem_compra: ordemCompra.trim() || null,
-        prazo: prazo.trim() || null,
-      }).select("id").single();
-      if (error) throw error;
-      return inserted?.id as string | undefined;
-    },
-    onSuccess: (newId) => {
-      toast.success("Pedido criado — adicione ou cole os itens abaixo");
-      setValor(""); setOrdemCompra(""); setPrazo("");
-      if (newId) setExpanded((prev) => { const n = new Set(prev); n.add(newId); return n; });
-      void qc.invalidateQueries();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   function toggleExpanded(id: string) {
     setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
@@ -226,8 +239,21 @@ function PedidosPage() {
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
-      <h1 className="font-display text-3xl font-bold">Pedidos Enviados</h1>
-      <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold">Pedidos Enviados</h1>
+          <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
+        </div>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => setNovoOpen(true)}
+            className="h-11 px-5 rounded-md bg-primary text-primary-foreground font-semibold uppercase text-xs tracking-wider hover:opacity-90 inline-flex items-center gap-2 shrink-0"
+          >
+            <Plus className="h-4 w-4" /> Novo pedido
+          </button>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         <div className="bi-card-accent p-5">
@@ -239,39 +265,6 @@ function PedidosPage() {
           <div className="text-xs mt-1 text-primary-foreground/75">{filtrados.length} pedido{filtrados.length === 1 ? "" : "s"} no período</div>
         </div>
       </div>
-
-      {canEdit && (
-        <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
-          className="bi-card p-5 grid grid-cols-1 md:grid-cols-6 gap-3 mt-6">
-          <div className="md:col-span-6 bi-stat-label">Adicionar Pedido</div>
-          <Field label="Data">
-            <input type="date" value={data} onChange={(e) => setData(e.target.value)} required className="bi-input-sm" />
-          </Field>
-          <Field label="Cliente">
-            <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} required className="bi-input-sm">
-              <option value="">Selecione...</option>
-              {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
-          </Field>
-          <Field label="Valor (auto)">
-            <input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Calculado pelos itens" className="bi-input-sm" />
-          </Field>
-          <Field label="Ordem de compra">
-            <input value={ordemCompra} onChange={(e) => setOrdemCompra(e.target.value)} placeholder="Nº OC" className="bi-input-sm" />
-          </Field>
-          <Field label="Prazo">
-            <input value={prazo} onChange={(e) => setPrazo(e.target.value)} placeholder="Ex.: 7 dias, imediato" className="bi-input-sm" />
-          </Field>
-          <div className="flex items-end">
-            <button disabled={create.isPending} className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-semibold uppercase text-xs tracking-wider hover:opacity-90 disabled:opacity-50 w-full">
-              Adicionar
-            </button>
-          </div>
-          <div className="md:col-span-6 text-xs text-muted-foreground">
-            O valor total é calculado automaticamente pelos itens. Use "Colar em massa" para cadastrar vários produtos de uma vez.
-          </div>
-        </form>
-      )}
 
       <div className="flex flex-wrap items-center gap-3 mt-5">
         <MultiSelect width={220} placeholder="Meses" options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))} selected={meses} onChange={setMeses} />
@@ -301,7 +294,7 @@ function PedidosPage() {
                 <th><ColumnFilterHeader label="Cliente" values={pedDistinct.cliente ?? []} selected={pedFilters.cliente ?? []} onChange={(v) => setPedFilter("cliente", v)} sort={pedSorts.cliente ?? null} onSortChange={(s) => setPedSort("cliente", s)} /></th>
                 <th className="text-right"><ColumnFilterHeader label="Valor" align="right" type="number" values={pedDistinct.valor ?? []} selected={pedFilters.valor ?? []} onChange={(v) => setPedFilter("valor", v)} sort={pedSorts.valor ?? null} onSortChange={(s) => setPedSort("valor", s)} /></th>
                 <th><ColumnFilterHeader label="Ordem de compra" values={pedDistinct.ordem ?? []} selected={pedFilters.ordem ?? []} onChange={(v) => setPedFilter("ordem", v)} sort={pedSorts.ordem ?? null} onSortChange={(s) => setPedSort("ordem", s)} /></th>
-                <th><ColumnFilterHeader label="Prazo" type="date" values={pedDistinct.prazo ?? []} selected={pedFilters.prazo ?? []} onChange={(v) => setPedFilter("prazo", v)} sort={pedSorts.prazo ?? null} onSortChange={(s) => setPedSort("prazo", s)} /></th>
+                <th><ColumnFilterHeader label="Prazo" values={pedDistinct.prazo ?? []} selected={pedFilters.prazo ?? []} onChange={(v) => setPedFilter("prazo", v)} sort={pedSorts.prazo ?? null} onSortChange={(s) => setPedSort("prazo", s)} /></th>
                 <th className="text-center"><ColumnFilterHeader label="Status" align="center" values={pedDistinct.status ?? []} selected={pedFilters.status ?? []} onChange={(v) => setPedFilter("status", v)} sort={pedSorts.status ?? null} onSortChange={(s) => setPedSort("status", s)} /></th>
                 {canEdit && <th className="text-center">Ações</th>}
               </tr>
@@ -322,13 +315,13 @@ function PedidosPage() {
                           {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
                       </td>
-                      <td className="text-right"><input value={editValor} onChange={(e) => setEditValor(e.target.value)} className="bi-input-sm text-right" /></td>
+                      <td className="text-right tabular-nums text-muted-foreground">{formatBRL(p.valor)}</td>
                       <td><input value={editOrdemCompra} onChange={(e) => setEditOrdemCompra(e.target.value)} className="bi-input-sm" placeholder="Nº OC" /></td>
                       <td><input value={editPrazo} onChange={(e) => setEditPrazo(e.target.value)} className="bi-input-sm" placeholder="Ex.: 7 dias" /></td>
                       <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
                       <td className="text-center">
                         <div className="inline-flex gap-1">
-                          <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, valor: parseBRNumber(editValor), ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo.trim() || null })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                          <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo.trim() || null })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                             <Check className="h-4 w-4" />
                           </button>
                           <button type="button" title="Cancelar" onClick={() => setEditId(null)} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
@@ -397,7 +390,7 @@ function PedidosPage() {
                     {isOpen && (
                       <tr key={p.id + "-itens"}>
                         <td colSpan={nColunas} className="bg-muted/20 border-t border-b border-border p-0">
-                          <ItensPedidoBlock pedidoId={p.id} canEdit={canEdit} />
+                          <ItensPedidoView pedidoId={p.id} />
                         </td>
                       </tr>
                     )}
@@ -413,22 +406,20 @@ function PedidosPage() {
         </div>
       </div>
 
+      {canEdit && novoOpen && (
+        <NovoPedidoModal
+          clientes={clientesVisiveis}
+          onClose={() => setNovoOpen(false)}
+          onCreated={() => { setNovoOpen(false); void qc.invalidateQueries(); }}
+        />
+      )}
+
       <SmallStyles />
     </div>
   );
 }
 
-function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: boolean }) {
-  const qc = useQueryClient();
-  const [ean, setEan] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [precoPassado, setPrecoPassado] = useState("");
-  const [quantidade, setQuantidade] = useState("");
-  const [lookingUp, setLookingUp] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkText, setBulkText] = useState("");
-  const [bulkBusy, setBulkBusy] = useState(false);
-
+function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   const { data: itens, isLoading } = useQuery({
     queryKey: ["pedido-itens", pedidoId],
     queryFn: async () => {
@@ -442,171 +433,11 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
     },
   });
 
-  async function recalcPedidoValor() {
-    const { data } = await supabase.from("pedido_itens").select("preco_passado,quantidade").eq("pedido_id", pedidoId);
-    const total = (data ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
-    await supabase.from("pedidos_enviados").update({ valor: total }).eq("id", pedidoId);
-    void qc.invalidateQueries({ queryKey: ["pedidos"] });
-  }
-
-  const add = useMutation({
-    mutationFn: async () => {
-      if (!descricao.trim()) throw new Error("Informe a descrição do produto");
-      const { error } = await supabase.from("pedido_itens").insert({
-        pedido_id: pedidoId,
-        ean: ean.trim() || null,
-        descricao: descricao.trim(),
-        preco_passado: parseBRNumber(precoPassado || "0"),
-        quantidade: parseBRNumber(quantidade || "0"),
-      });
-      if (error) throw error;
-      await recalcPedidoValor();
-    },
-    onSuccess: () => {
-      toast.success("Item adicionado");
-      setEan(""); setDescricao(""); setPrecoPassado(""); setQuantidade("");
-      void qc.invalidateQueries({ queryKey: ["pedido-itens", pedidoId] });
-      void qc.invalidateQueries({ queryKey: ["pedido-itens-count"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("pedido_itens").delete().eq("id", id);
-      if (error) throw error;
-      await recalcPedidoValor();
-    },
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["pedido-itens", pedidoId] });
-      void qc.invalidateQueries({ queryKey: ["pedido-itens-count"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  async function lookupEan(code: string) {
-    const clean = code.trim();
-    if (!clean) return;
-    setLookingUp(true);
-    try {
-      let hit = await supabase.from("itens_nf").select("produto").eq("ean", clean).limit(1).maybeSingle();
-      if (!hit.data) {
-        hit = await supabase.from("itens_nf").select("produto").eq("codigo_produto", clean).limit(1).maybeSingle();
-      }
-      if (hit.data?.produto) setDescricao(hit.data.produto);
-      else toast.info("EAN não encontrado. Informe a descrição manualmente.");
-    } finally {
-      setLookingUp(false);
-    }
-  }
-
-  const bulkImport = useMutation({
-    mutationFn: async () => {
-      setBulkBusy(true);
-      try {
-        // Parse: linhas com separador TAB/;/, — colunas: EAN, Qtd, Preço (com ou sem cabeçalho)
-        const rawLines = bulkText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-        if (rawLines.length === 0) throw new Error("Cole ao menos uma linha");
-        const splitLine = (l: string): string[] => {
-          if (l.includes("\t")) return l.split("\t").map((c) => c.trim());
-          if (l.includes(";")) return l.split(";").map((c) => c.trim());
-          // vírgula só se não parecer decimal BR (número com vírgula no meio)
-          return l.split(/,(?!\d)/).map((c) => c.trim());
-        };
-        const first = splitLine(rawLines[0]);
-        const looksHeader = first.some((c) => /ean|c[oó]digo|barra|qtd|quant|pre[cç]o/i.test(c));
-        const dataLines = looksHeader ? rawLines.slice(1) : rawLines;
-
-        type Parsed = { ean: string; quantidade: number; preco: number };
-        const parsed: Parsed[] = [];
-        for (const l of dataLines) {
-          const cols = splitLine(l);
-          if (cols.length < 2) continue;
-          const ean = cols[0].replace(/\D/g, "");
-          const quantidade = parseBRNumber(cols[1] ?? "0");
-          const preco = parseBRNumber(cols[2] ?? "0");
-          if (!ean) continue;
-          parsed.push({ ean, quantidade, preco });
-        }
-        if (parsed.length === 0) throw new Error("Nenhuma linha válida (esperado: EAN, Quantidade, Preço)");
-
-        // Lookup em lote — por EAN e por codigo_produto
-        const eans = Array.from(new Set(parsed.map((p) => p.ean)));
-        const descMap = new Map<string, string>();
-        const BATCH = 200;
-        for (let i = 0; i < eans.length; i += BATCH) {
-          const slice = eans.slice(i, i + BATCH);
-          const { data: byEan } = await supabase.from("itens_nf").select("ean,produto").in("ean", slice);
-          (byEan ?? []).forEach((r) => { if (r.ean && r.produto && !descMap.has(r.ean)) descMap.set(r.ean, r.produto); });
-          const missing = slice.filter((e) => !descMap.has(e));
-          if (missing.length > 0) {
-            const { data: byCod } = await supabase.from("itens_nf").select("codigo_produto,produto").in("codigo_produto", missing);
-            (byCod ?? []).forEach((r) => { if (r.codigo_produto && r.produto && !descMap.has(r.codigo_produto)) descMap.set(r.codigo_produto, r.produto); });
-          }
-        }
-
-        const rows = parsed.map((p) => ({
-          pedido_id: pedidoId,
-          ean: p.ean,
-          descricao: descMap.get(p.ean) ?? `(EAN ${p.ean})`,
-          preco_passado: p.preco,
-          quantidade: p.quantidade,
-        }));
-
-        for (let i = 0; i < rows.length; i += 500) {
-          const { error } = await supabase.from("pedido_itens").insert(rows.slice(i, i + 500));
-          if (error) throw error;
-        }
-        const semDesc = rows.filter((r) => r.descricao.startsWith("(EAN ")).length;
-        await recalcPedidoValor();
-        return { total: rows.length, semDesc };
-      } finally {
-        setBulkBusy(false);
-      }
-    },
-    onSuccess: (res) => {
-      toast.success(`${res.total} item(ns) importado(s)${res.semDesc ? ` — ${res.semDesc} sem descrição encontrada` : ""}`);
-      setBulkText(""); setBulkOpen(false);
-      void qc.invalidateQueries({ queryKey: ["pedido-itens", pedidoId] });
-      void qc.invalidateQueries({ queryKey: ["pedido-itens-count"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const totalItens = (itens ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
 
   return (
     <div className="p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do pedido</div>
-        {canEdit && (
-          <button type="button" onClick={() => setBulkOpen((v) => !v)} className="text-xs font-semibold text-primary hover:underline">
-            {bulkOpen ? "Fechar colagem em massa" : "Colar em massa (Excel)"}
-          </button>
-        )}
-      </div>
-
-      {canEdit && bulkOpen && (
-        <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
-          <div className="text-xs text-muted-foreground">
-            Cole direto do Excel: <b>EAN · Quantidade · Preço passado</b> (uma linha por item, colunas separadas por tabulação, ";" ou ","). Cabeçalho é detectado automaticamente. As descrições serão buscadas pelo EAN.
-          </div>
-          <textarea
-            value={bulkText}
-            onChange={(e) => setBulkText(e.target.value)}
-            rows={8}
-            placeholder={"7891234567890\t10\t12,50\n7899876543210\t5\t8,90"}
-            className="w-full font-mono text-xs bg-input border border-border rounded-md p-2 outline-none focus:border-primary"
-          />
-          <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={() => { setBulkText(""); setBulkOpen(false); }} className="h-9 px-3 rounded-md border border-border text-xs">Cancelar</button>
-            <button type="button" disabled={bulkBusy || !bulkText.trim()} onClick={() => bulkImport.mutate()} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
-              {bulkBusy ? "Importando..." : "Importar itens"}
-            </button>
-          </div>
-        </div>
-      )}
-
+      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do pedido</div>
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando itens...</div>
       ) : (
@@ -618,7 +449,6 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
               <th className="py-2 pr-3 text-right">Preço passado</th>
               <th className="py-2 pr-3 text-right">Quantidade</th>
               <th className="py-2 pr-3 text-right">Subtotal</th>
-              {canEdit && <th />}
             </tr>
           </thead>
           <tbody>
@@ -629,17 +459,10 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
                 <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{Number(it.quantidade).toLocaleString("pt-BR")}</td>
                 <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
-                {canEdit && (
-                  <td className="py-2 pr-3 text-right">
-                    <button type="button" title="Remover item" onClick={() => { if (confirm("Remover este item?")) remove.mutate(it.id); }} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                )}
               </tr>
             ))}
             {(itens ?? []).length === 0 && (
-              <tr><td colSpan={canEdit ? 6 : 5} className="py-3 text-center text-muted-foreground text-xs">Nenhum item cadastrado.</td></tr>
+              <tr><td colSpan={5} className="py-3 text-center text-muted-foreground text-xs">Nenhum item cadastrado neste pedido.</td></tr>
             )}
           </tbody>
           {(itens ?? []).length > 0 && (
@@ -647,56 +470,203 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
               <tr className="font-semibold">
                 <td colSpan={4} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total dos itens</td>
                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{formatBRL(totalItens)}</td>
-                {canEdit && <td />}
               </tr>
             </tfoot>
           )}
         </table>
       )}
+    </div>
+  );
+}
 
-      {canEdit && (
-        <form
-          onSubmit={(e) => { e.preventDefault(); add.mutate(); }}
-          className="grid grid-cols-1 md:grid-cols-12 gap-2 mt-2 pt-3 border-t border-border"
-        >
-          <div className="md:col-span-3">
-            <Field label="Cód. de barras (EAN)">
-              <input
-                value={ean}
-                onChange={(e) => setEan(e.target.value)}
-                onBlur={(e) => lookupEan(e.target.value)}
-                onPaste={(e) => {
-                  const v = e.clipboardData.getData("text");
-                  if (v) setTimeout(() => lookupEan(v), 0);
-                }}
-                placeholder="Cole o EAN"
-                className="bi-input-sm font-mono"
-              />
+function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: string; nome: string }[]; onClose: () => void; onCreated: () => void }) {
+  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [clienteId, setClienteId] = useState("");
+  const [ordemCompra, setOrdemCompra] = useState("");
+  const [prazo, setPrazo] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [itens, setItens] = useState<ParsedItem[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const totalPedido = itens.reduce((a, it) => a + it.preco * it.quantidade, 0);
+
+  async function importarItens() {
+    setBusy(true);
+    try {
+      const parsed = parseBulkText(bulkText);
+      if (parsed.length === 0) {
+        toast.error("Nenhuma linha válida (esperado: EAN, Quantidade, Preço)");
+        return;
+      }
+      const descMap = await lookupDescricoes(parsed.map((p) => p.ean));
+      const semDesc: string[] = [];
+      const novos: ParsedItem[] = parsed.map((p) => {
+        const d = descMap.get(p.ean);
+        if (!d) semDesc.push(p.ean);
+        return { ean: p.ean, descricao: d ?? `(EAN ${p.ean})`, quantidade: p.quantidade, preco: p.preco };
+      });
+      setItens((prev) => [...prev, ...novos]);
+      setBulkText("");
+      setBulkOpen(false);
+      toast.success(`${novos.length} item(ns) adicionado(s)${semDesc.length ? ` — ${semDesc.length} sem descrição encontrada` : ""}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function removerItem(idx: number) {
+    setItens((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  async function salvar() {
+    if (!clienteId) { toast.error("Selecione o cliente"); return; }
+    if (itens.length === 0) { toast.error("Importe ao menos um item"); return; }
+    setSaving(true);
+    try {
+      const { data: inserted, error } = await supabase.from("pedidos_enviados").insert({
+        data,
+        cliente_id: clienteId,
+        valor: totalPedido,
+        ordem_compra: ordemCompra.trim() || null,
+        prazo: prazo.trim() || null,
+      }).select("id").single();
+      if (error) throw error;
+      const pedidoId = inserted!.id as string;
+      const rows = itens.map((it) => ({
+        pedido_id: pedidoId,
+        ean: it.ean,
+        descricao: it.descricao,
+        preco_passado: it.preco,
+        quantidade: it.quantidade,
+      }));
+      for (let i = 0; i < rows.length; i += 500) {
+        const { error: er } = await supabase.from("pedido_itens").insert(rows.slice(i, i + 500));
+        if (er) throw er;
+      }
+      toast.success("Pedido criado com sucesso");
+      onCreated();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center overflow-y-auto p-4" onClick={onClose}>
+      <div className="bg-card border border-border rounded-lg w-full max-w-4xl my-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-border">
+          <h2 className="text-lg font-semibold">Novo Pedido Enviado</h2>
+          <button type="button" onClick={onClose} className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-accent">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <Field label="Data">
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="bi-input-sm" />
+            </Field>
+            <Field label="Cliente">
+              <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} className="bi-input-sm">
+                <option value="">Selecione...</option>
+                {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+            </Field>
+            <Field label="Ordem de compra">
+              <input value={ordemCompra} onChange={(e) => setOrdemCompra(e.target.value)} placeholder="Nº OC" className="bi-input-sm" />
+            </Field>
+            <Field label="Prazo">
+              <input value={prazo} onChange={(e) => setPrazo(e.target.value)} placeholder="Ex.: 7 dias, imediato" className="bi-input-sm" />
             </Field>
           </div>
-          <div className="md:col-span-5">
-            <Field label={"Descrição" + (lookingUp ? " (buscando...)" : "")}>
-              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} required placeholder="Nome do produto" className="bi-input-sm" />
-            </Field>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-semibold">Itens do pedido {itens.length > 0 && <span className="text-muted-foreground font-normal">({itens.length})</span>}</div>
+              <button type="button" onClick={() => setBulkOpen((v) => !v)} className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 hover:opacity-90">
+                <Plus className="h-4 w-4" /> Importar Itens em Massa
+              </button>
+            </div>
+
+            {bulkOpen && (
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2 mb-3">
+                <div className="text-xs text-muted-foreground">
+                  Cole direto do Excel: <b>EAN · Quantidade · Preço passado</b> (uma linha por item, colunas separadas por TAB, ";" ou ","). Cabeçalho é detectado automaticamente.
+                </div>
+                <textarea
+                  value={bulkText}
+                  onChange={(e) => setBulkText(e.target.value)}
+                  rows={8}
+                  autoFocus
+                  placeholder={"7891234567890\t10\t12,50\n7899876543210\t5\t8,90"}
+                  className="w-full font-mono text-xs bg-input border border-border rounded-md p-2 outline-none focus:border-primary"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => { setBulkText(""); setBulkOpen(false); }} className="h-9 px-3 rounded-md border border-border text-xs">Cancelar</button>
+                  <button type="button" disabled={busy || !bulkText.trim()} onClick={importarItens} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
+                    {busy ? "Processando..." : "Adicionar à lista"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="border border-border rounded-md overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase text-muted-foreground bg-muted/30 border-b border-border">
+                    <th className="py-2 px-3">EAN</th>
+                    <th className="py-2 px-3">Descrição</th>
+                    <th className="py-2 px-3 text-right">Preço</th>
+                    <th className="py-2 px-3 text-right">Qtd</th>
+                    <th className="py-2 px-3 text-right">Subtotal</th>
+                    <th className="w-10" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {itens.map((it, idx) => (
+                    <tr key={idx} className="border-b border-border/60">
+                      <td className="py-2 px-3 font-mono text-xs">{it.ean}</td>
+                      <td className="py-2 px-3">{it.descricao}</td>
+                      <td className="py-2 px-3 text-right tabular-nums">{formatBRL(it.preco)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums">{it.quantidade.toLocaleString("pt-BR")}</td>
+                      <td className="py-2 px-3 text-right tabular-nums">{formatBRL(it.preco * it.quantidade)}</td>
+                      <td className="py-2 px-2 text-right">
+                        <button type="button" title="Remover" onClick={() => removerItem(idx)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {itens.length === 0 && (
+                    <tr><td colSpan={6} className="py-8 text-center text-muted-foreground text-sm">Nenhum item ainda. Clique em <b>Importar Itens em Massa</b> para colar do Excel.</td></tr>
+                  )}
+                </tbody>
+                {itens.length > 0 && (
+                  <tfoot>
+                    <tr className="font-semibold bg-muted/30 border-t border-border">
+                      <td colSpan={4} className="py-2 px-3 text-right text-xs uppercase text-muted-foreground">Total do pedido</td>
+                      <td className="py-2 px-3 text-right tabular-nums text-primary text-base">{formatBRL(totalPedido)}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
           </div>
-          <div className="md:col-span-2">
-            <Field label="Preço passado">
-              <input value={precoPassado} onChange={(e) => setPrecoPassado(e.target.value)} placeholder="0,00" className="bi-input-sm text-right" />
-            </Field>
-          </div>
-          <div className="md:col-span-1">
-            <Field label="Qtd.">
-              <input value={quantidade} onChange={(e) => setQuantidade(e.target.value)} placeholder="0" className="bi-input-sm text-right" />
-            </Field>
-          </div>
-          <div className="md:col-span-1 flex items-end">
-            <button disabled={add.isPending} className="h-10 w-full inline-flex items-center justify-center gap-1 rounded-md bg-primary text-primary-foreground font-semibold text-xs uppercase tracking-wider hover:opacity-90 disabled:opacity-50">
-              <Plus className="h-4 w-4" />
-              Add
-            </button>
-          </div>
-        </form>
-      )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 p-5 border-t border-border bg-muted/10">
+          <button type="button" onClick={onClose} className="h-10 px-4 rounded-md border border-border text-sm">Cancelar</button>
+          <button type="button" disabled={saving || itens.length === 0 || !clienteId} onClick={salvar} className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-semibold text-sm uppercase tracking-wider hover:opacity-90 disabled:opacity-50">
+            {saving ? "Salvando..." : "Salvar pedido"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
