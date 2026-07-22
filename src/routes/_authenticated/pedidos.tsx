@@ -186,7 +186,7 @@ function PedidosPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      const v = parseBRNumber(valor);
+      const v = valor.trim() ? parseBRNumber(valor) : 0;
       const { data: inserted, error } = await supabase.from("pedidos_enviados").insert({
         data,
         cliente_id: clienteId,
@@ -198,7 +198,7 @@ function PedidosPage() {
       return inserted?.id as string | undefined;
     },
     onSuccess: (newId) => {
-      toast.success("Pedido registrado — adicione os itens abaixo");
+      toast.success("Pedido criado — adicione ou cole os itens abaixo");
       setValor(""); setOrdemCompra(""); setPrazo("");
       if (newId) setExpanded((prev) => { const n = new Set(prev); n.add(newId); return n; });
       void qc.invalidateQueries();
@@ -253,8 +253,8 @@ function PedidosPage() {
               {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </Field>
-          <Field label="Valor (R$)">
-            <input value={valor} onChange={(e) => setValor(e.target.value)} required placeholder="0,00" className="bi-input-sm" />
+          <Field label="Valor (auto)">
+            <input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Calculado pelos itens" className="bi-input-sm" />
           </Field>
           <Field label="Ordem de compra">
             <input value={ordemCompra} onChange={(e) => setOrdemCompra(e.target.value)} placeholder="Nº OC" className="bi-input-sm" />
@@ -268,7 +268,7 @@ function PedidosPage() {
             </button>
           </div>
           <div className="md:col-span-6 text-xs text-muted-foreground">
-            Depois de criar o pedido, clique na seta ao lado para adicionar os itens (EAN, descrição, preço passado e quantidade).
+            O valor total é calculado automaticamente pelos itens. Use "Colar em massa" para cadastrar vários produtos de uma vez.
           </div>
         </form>
       )}
@@ -425,6 +425,9 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
   const [precoPassado, setPrecoPassado] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const { data: itens, isLoading } = useQuery({
     queryKey: ["pedido-itens", pedidoId],
@@ -439,6 +442,13 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
     },
   });
 
+  async function recalcPedidoValor() {
+    const { data } = await supabase.from("pedido_itens").select("preco_passado,quantidade").eq("pedido_id", pedidoId);
+    const total = (data ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
+    await supabase.from("pedidos_enviados").update({ valor: total }).eq("id", pedidoId);
+    void qc.invalidateQueries({ queryKey: ["pedidos"] });
+  }
+
   const add = useMutation({
     mutationFn: async () => {
       if (!descricao.trim()) throw new Error("Informe a descrição do produto");
@@ -450,6 +460,7 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
         quantidade: parseBRNumber(quantidade || "0"),
       });
       if (error) throw error;
+      await recalcPedidoValor();
     },
     onSuccess: () => {
       toast.success("Item adicionado");
@@ -464,6 +475,7 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("pedido_itens").delete().eq("id", id);
       if (error) throw error;
+      await recalcPedidoValor();
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["pedido-itens", pedidoId] });
@@ -477,34 +489,123 @@ function ItensPedidoBlock({ pedidoId, canEdit }: { pedidoId: string; canEdit: bo
     if (!clean) return;
     setLookingUp(true);
     try {
-      // 1) itens_nf por EAN exato
       let hit = await supabase.from("itens_nf").select("produto").eq("ean", clean).limit(1).maybeSingle();
       if (!hit.data) {
-        // 2) itens_nf por codigo_produto
         hit = await supabase.from("itens_nf").select("produto").eq("codigo_produto", clean).limit(1).maybeSingle();
       }
-      if (!hit.data) {
-        // 3) descricoes_sell_in (fallback textual)
-        const alt = await supabase.from("descricoes_sell_in").select("titulo,texto").ilike("texto", `%${clean}%`).limit(1).maybeSingle();
-        if (alt.data) {
-          const t = (alt.data.titulo ?? alt.data.texto ?? "").toString().trim();
-          if (t) setDescricao(t);
-        }
-      } else if (hit.data.produto) {
-        setDescricao(hit.data.produto);
-      } else {
-        toast.info("EAN não encontrado. Informe a descrição manualmente.");
-      }
+      if (hit.data?.produto) setDescricao(hit.data.produto);
+      else toast.info("EAN não encontrado. Informe a descrição manualmente.");
     } finally {
       setLookingUp(false);
     }
   }
 
+  const bulkImport = useMutation({
+    mutationFn: async () => {
+      setBulkBusy(true);
+      try {
+        // Parse: linhas com separador TAB/;/, — colunas: EAN, Qtd, Preço (com ou sem cabeçalho)
+        const rawLines = bulkText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        if (rawLines.length === 0) throw new Error("Cole ao menos uma linha");
+        const splitLine = (l: string): string[] => {
+          if (l.includes("\t")) return l.split("\t").map((c) => c.trim());
+          if (l.includes(";")) return l.split(";").map((c) => c.trim());
+          // vírgula só se não parecer decimal BR (número com vírgula no meio)
+          return l.split(/,(?!\d)/).map((c) => c.trim());
+        };
+        const first = splitLine(rawLines[0]);
+        const looksHeader = first.some((c) => /ean|c[oó]digo|barra|qtd|quant|pre[cç]o/i.test(c));
+        const dataLines = looksHeader ? rawLines.slice(1) : rawLines;
+
+        type Parsed = { ean: string; quantidade: number; preco: number };
+        const parsed: Parsed[] = [];
+        for (const l of dataLines) {
+          const cols = splitLine(l);
+          if (cols.length < 2) continue;
+          const ean = cols[0].replace(/\D/g, "");
+          const quantidade = parseBRNumber(cols[1] ?? "0");
+          const preco = parseBRNumber(cols[2] ?? "0");
+          if (!ean) continue;
+          parsed.push({ ean, quantidade, preco });
+        }
+        if (parsed.length === 0) throw new Error("Nenhuma linha válida (esperado: EAN, Quantidade, Preço)");
+
+        // Lookup em lote — por EAN e por codigo_produto
+        const eans = Array.from(new Set(parsed.map((p) => p.ean)));
+        const descMap = new Map<string, string>();
+        const BATCH = 200;
+        for (let i = 0; i < eans.length; i += BATCH) {
+          const slice = eans.slice(i, i + BATCH);
+          const { data: byEan } = await supabase.from("itens_nf").select("ean,produto").in("ean", slice);
+          (byEan ?? []).forEach((r) => { if (r.ean && r.produto && !descMap.has(r.ean)) descMap.set(r.ean, r.produto); });
+          const missing = slice.filter((e) => !descMap.has(e));
+          if (missing.length > 0) {
+            const { data: byCod } = await supabase.from("itens_nf").select("codigo_produto,produto").in("codigo_produto", missing);
+            (byCod ?? []).forEach((r) => { if (r.codigo_produto && r.produto && !descMap.has(r.codigo_produto)) descMap.set(r.codigo_produto, r.produto); });
+          }
+        }
+
+        const rows = parsed.map((p) => ({
+          pedido_id: pedidoId,
+          ean: p.ean,
+          descricao: descMap.get(p.ean) ?? `(EAN ${p.ean})`,
+          preco_passado: p.preco,
+          quantidade: p.quantidade,
+        }));
+
+        for (let i = 0; i < rows.length; i += 500) {
+          const { error } = await supabase.from("pedido_itens").insert(rows.slice(i, i + 500));
+          if (error) throw error;
+        }
+        const semDesc = rows.filter((r) => r.descricao.startsWith("(EAN ")).length;
+        await recalcPedidoValor();
+        return { total: rows.length, semDesc };
+      } finally {
+        setBulkBusy(false);
+      }
+    },
+    onSuccess: (res) => {
+      toast.success(`${res.total} item(ns) importado(s)${res.semDesc ? ` — ${res.semDesc} sem descrição encontrada` : ""}`);
+      setBulkText(""); setBulkOpen(false);
+      void qc.invalidateQueries({ queryKey: ["pedido-itens", pedidoId] });
+      void qc.invalidateQueries({ queryKey: ["pedido-itens-count"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const totalItens = (itens ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
 
   return (
     <div className="p-4 space-y-3">
-      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do pedido</div>
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do pedido</div>
+        {canEdit && (
+          <button type="button" onClick={() => setBulkOpen((v) => !v)} className="text-xs font-semibold text-primary hover:underline">
+            {bulkOpen ? "Fechar colagem em massa" : "Colar em massa (Excel)"}
+          </button>
+        )}
+      </div>
+
+      {canEdit && bulkOpen && (
+        <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2">
+          <div className="text-xs text-muted-foreground">
+            Cole direto do Excel: <b>EAN · Quantidade · Preço passado</b> (uma linha por item, colunas separadas por tabulação, ";" ou ","). Cabeçalho é detectado automaticamente. As descrições serão buscadas pelo EAN.
+          </div>
+          <textarea
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+            rows={8}
+            placeholder={"7891234567890\t10\t12,50\n7899876543210\t5\t8,90"}
+            className="w-full font-mono text-xs bg-input border border-border rounded-md p-2 outline-none focus:border-primary"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button type="button" onClick={() => { setBulkText(""); setBulkOpen(false); }} className="h-9 px-3 rounded-md border border-border text-xs">Cancelar</button>
+            <button type="button" disabled={bulkBusy || !bulkText.trim()} onClick={() => bulkImport.mutate()} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
+              {bulkBusy ? "Importando..." : "Importar itens"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando itens...</div>
