@@ -260,7 +260,7 @@ function PedidosPage() {
             <input value={ordemCompra} onChange={(e) => setOrdemCompra(e.target.value)} placeholder="Nº OC" className="bi-input-sm" />
           </Field>
           <Field label="Prazo">
-            <input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} className="bi-input-sm" />
+            <input value={prazo} onChange={(e) => setPrazo(e.target.value)} placeholder="Ex.: 7 dias, imediato" className="bi-input-sm" />
           </Field>
           <div className="flex items-end">
             <button disabled={create.isPending} className="h-10 px-5 rounded-md bg-primary text-primary-foreground font-semibold uppercase text-xs tracking-wider hover:opacity-90 disabled:opacity-50 w-full">
