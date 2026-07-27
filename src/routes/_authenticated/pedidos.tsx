@@ -439,6 +439,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   });
 
   const totalItens = (itens ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
+  const totalQtd = (itens ?? []).reduce((a, it) => a + Number(it.quantidade), 0);
 
   return (
     <div className="p-4 space-y-3">
@@ -473,7 +474,8 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
           {(itens ?? []).length > 0 && (
             <tfoot>
               <tr className="font-semibold">
-                <td colSpan={4} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total dos itens</td>
+                <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total dos itens</td>
+                <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtd.toLocaleString("pt-BR")} un</td>
                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{formatBRL(totalItens)}</td>
               </tr>
             </tfoot>
