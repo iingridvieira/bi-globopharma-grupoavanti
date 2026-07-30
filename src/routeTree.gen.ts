@@ -9,29 +9,36 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedSellInRouteImport } from './routes/_authenticated/sell-in'
-import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
-import { Route as AuthenticatedNotasFiscaisRouteImport } from './routes/_authenticated/notas-fiscais'
-import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedConsolidadoRouteImport } from './routes/_authenticated/consolidado'
 import { Route as AuthenticatedAcessosRouteImport } from './routes/_authenticated/acessos'
-import { Route as AuthenticatedSellOutIndexRouteImport } from './routes/_authenticated/sell-out.index'
+import { Route as AuthenticatedBiRouteImport } from './routes/_authenticated/bi'
+import { Route as AuthenticatedConsolidadoRouteImport } from './routes/_authenticated/consolidado'
+import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedNotasFiscaisRouteImport } from './routes/_authenticated/notas-fiscais'
+import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
+import { Route as AuthenticatedSellInRouteImport } from './routes/_authenticated/sell-in'
+import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticated/crm/index'
+import { Route as AuthenticatedCrmClientesRouteImport } from './routes/_authenticated/crm/clientes'
+import { Route as AuthenticatedCrmConfiguracoesRouteImport } from './routes/_authenticated/crm/configuracoes'
+import { Route as AuthenticatedCrmConsolidadoRouteImport } from './routes/_authenticated/crm/consolidado'
 import { Route as AuthenticatedPorClientesIndexRouteImport } from './routes/_authenticated/por-clientes.index'
-import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_authenticated/sell-out.$clienteId'
-import { Route as AuthenticatedPorClientesGeralRouteImport } from './routes/_authenticated/por-clientes.geral'
 import { Route as AuthenticatedPorClientesClienteIdRouteImport } from './routes/_authenticated/por-clientes.$clienteId'
+import { Route as AuthenticatedPorClientesGeralRouteImport } from './routes/_authenticated/por-clientes.geral'
+import { Route as AuthenticatedSellOutIndexRouteImport } from './routes/_authenticated/sell-out.index'
+import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_authenticated/sell-out.$clienteId'
+import { Route as AuthenticatedCrmRepresentadaSlugRouteImport } from './routes/_authenticated/crm/representada.$slug'
 
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -39,30 +46,14 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedSellInRoute = AuthenticatedSellInRouteImport.update({
-  id: '/sell-in',
-  path: '/sell-in',
+const AuthenticatedAcessosRoute = AuthenticatedAcessosRouteImport.update({
+  id: '/acessos',
+  path: '/acessos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedPedidosRoute = AuthenticatedPedidosRouteImport.update({
-  id: '/pedidos',
-  path: '/pedidos',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedNotasFiscaisRoute =
-  AuthenticatedNotasFiscaisRouteImport.update({
-    id: '/notas-fiscais',
-    path: '/notas-fiscais',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
-  id: '/importar',
-  path: '/importar',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedBiRoute = AuthenticatedBiRouteImport.update({
+  id: '/bi',
+  path: '/bi',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedConsolidadoRoute =
@@ -71,33 +62,64 @@ const AuthenticatedConsolidadoRoute =
     path: '/consolidado',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAcessosRoute = AuthenticatedAcessosRouteImport.update({
-  id: '/acessos',
-  path: '/acessos',
+const AuthenticatedCrmRoute = AuthenticatedCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedSellOutIndexRoute =
-  AuthenticatedSellOutIndexRouteImport.update({
-    id: '/sell-out/',
-    path: '/sell-out/',
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
+  id: '/importar',
+  path: '/importar',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNotasFiscaisRoute =
+  AuthenticatedNotasFiscaisRouteImport.update({
+    id: '/notas-fiscais',
+    path: '/notas-fiscais',
     getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPedidosRoute = AuthenticatedPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSellInRoute = AuthenticatedSellInRouteImport.update({
+  id: '/sell-in',
+  path: '/sell-in',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCrmIndexRoute = AuthenticatedCrmIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedCrmRoute,
+} as any)
+const AuthenticatedCrmClientesRoute =
+  AuthenticatedCrmClientesRouteImport.update({
+    id: '/clientes',
+    path: '/clientes',
+    getParentRoute: () => AuthenticatedCrmRoute,
+  } as any)
+const AuthenticatedCrmConfiguracoesRoute =
+  AuthenticatedCrmConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedCrmRoute,
+  } as any)
+const AuthenticatedCrmConsolidadoRoute =
+  AuthenticatedCrmConsolidadoRouteImport.update({
+    id: '/consolidado',
+    path: '/consolidado',
+    getParentRoute: () => AuthenticatedCrmRoute,
   } as any)
 const AuthenticatedPorClientesIndexRoute =
   AuthenticatedPorClientesIndexRouteImport.update({
     id: '/por-clientes/',
     path: '/por-clientes/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedSellOutClienteIdRoute =
-  AuthenticatedSellOutClienteIdRouteImport.update({
-    id: '/sell-out/$clienteId',
-    path: '/sell-out/$clienteId',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedPorClientesGeralRoute =
-  AuthenticatedPorClientesGeralRouteImport.update({
-    id: '/por-clientes/geral',
-    path: '/por-clientes/geral',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedPorClientesClienteIdRoute =
@@ -106,26 +128,58 @@ const AuthenticatedPorClientesClienteIdRoute =
     path: '/por-clientes/$clienteId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedPorClientesGeralRoute =
+  AuthenticatedPorClientesGeralRouteImport.update({
+    id: '/por-clientes/geral',
+    path: '/por-clientes/geral',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSellOutIndexRoute =
+  AuthenticatedSellOutIndexRouteImport.update({
+    id: '/sell-out/',
+    path: '/sell-out/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedSellOutClienteIdRoute =
+  AuthenticatedSellOutClienteIdRouteImport.update({
+    id: '/sell-out/$clienteId',
+    path: '/sell-out/$clienteId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCrmRepresentadaSlugRoute =
+  AuthenticatedCrmRepresentadaSlugRouteImport.update({
+    id: '/representada/$slug',
+    path: '/representada/$slug',
+    getParentRoute: () => AuthenticatedCrmRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/acessos': typeof AuthenticatedAcessosRoute
+  '/bi': typeof AuthenticatedBiRoute
   '/consolidado': typeof AuthenticatedConsolidadoRoute
+  '/crm': typeof AuthenticatedCrmRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/importar': typeof AuthenticatedImportarRoute
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
+  '/crm/clientes': typeof AuthenticatedCrmClientesRoute
+  '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
+  '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/crm/': typeof AuthenticatedCrmIndexRoute
   '/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out/': typeof AuthenticatedSellOutIndexRoute
+  '/crm/representada/$slug': typeof AuthenticatedCrmRepresentadaSlugRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/acessos': typeof AuthenticatedAcessosRoute
+  '/bi': typeof AuthenticatedBiRoute
   '/consolidado': typeof AuthenticatedConsolidadoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/importar': typeof AuthenticatedImportarRoute
@@ -133,29 +187,41 @@ export interface FileRoutesByTo {
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
   '/': typeof AuthenticatedIndexRoute
+  '/crm/clientes': typeof AuthenticatedCrmClientesRoute
+  '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
+  '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/crm': typeof AuthenticatedCrmIndexRoute
   '/por-clientes': typeof AuthenticatedPorClientesIndexRoute
   '/sell-out': typeof AuthenticatedSellOutIndexRoute
+  '/crm/representada/$slug': typeof AuthenticatedCrmRepresentadaSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/acessos': typeof AuthenticatedAcessosRoute
+  '/_authenticated/bi': typeof AuthenticatedBiRoute
   '/_authenticated/consolidado': typeof AuthenticatedConsolidadoRoute
+  '/_authenticated/crm': typeof AuthenticatedCrmRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
   '/_authenticated/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
   '/_authenticated/sell-in': typeof AuthenticatedSellInRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/crm/clientes': typeof AuthenticatedCrmClientesRoute
+  '/_authenticated/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
+  '/_authenticated/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
   '/_authenticated/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/_authenticated/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/_authenticated/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
+  '/_authenticated/crm/': typeof AuthenticatedCrmIndexRoute
   '/_authenticated/por-clientes/': typeof AuthenticatedPorClientesIndexRoute
   '/_authenticated/sell-out/': typeof AuthenticatedSellOutIndexRoute
+  '/_authenticated/crm/representada/$slug': typeof AuthenticatedCrmRepresentadaSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -163,21 +229,29 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/acessos'
+    | '/bi'
     | '/consolidado'
+    | '/crm'
     | '/dashboard'
     | '/importar'
     | '/notas-fiscais'
     | '/pedidos'
     | '/sell-in'
+    | '/crm/clientes'
+    | '/crm/configuracoes'
+    | '/crm/consolidado'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
     | '/sell-out/$clienteId'
+    | '/crm/'
     | '/por-clientes/'
     | '/sell-out/'
+    | '/crm/representada/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
     | '/acessos'
+    | '/bi'
     | '/consolidado'
     | '/dashboard'
     | '/importar'
@@ -185,28 +259,40 @@ export interface FileRouteTypes {
     | '/pedidos'
     | '/sell-in'
     | '/'
+    | '/crm/clientes'
+    | '/crm/configuracoes'
+    | '/crm/consolidado'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
     | '/sell-out/$clienteId'
+    | '/crm'
     | '/por-clientes'
     | '/sell-out'
+    | '/crm/representada/$slug'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/acessos'
+    | '/_authenticated/bi'
     | '/_authenticated/consolidado'
+    | '/_authenticated/crm'
     | '/_authenticated/dashboard'
     | '/_authenticated/importar'
     | '/_authenticated/notas-fiscais'
     | '/_authenticated/pedidos'
     | '/_authenticated/sell-in'
     | '/_authenticated/'
+    | '/_authenticated/crm/clientes'
+    | '/_authenticated/crm/configuracoes'
+    | '/_authenticated/crm/consolidado'
     | '/_authenticated/por-clientes/$clienteId'
     | '/_authenticated/por-clientes/geral'
     | '/_authenticated/sell-out/$clienteId'
+    | '/_authenticated/crm/'
     | '/_authenticated/por-clientes/'
     | '/_authenticated/sell-out/'
+    | '/_authenticated/crm/representada/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -216,18 +302,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -237,39 +323,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/sell-in': {
-      id: '/_authenticated/sell-in'
-      path: '/sell-in'
-      fullPath: '/sell-in'
-      preLoaderRoute: typeof AuthenticatedSellInRouteImport
+    '/_authenticated/acessos': {
+      id: '/_authenticated/acessos'
+      path: '/acessos'
+      fullPath: '/acessos'
+      preLoaderRoute: typeof AuthenticatedAcessosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/pedidos': {
-      id: '/_authenticated/pedidos'
-      path: '/pedidos'
-      fullPath: '/pedidos'
-      preLoaderRoute: typeof AuthenticatedPedidosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/notas-fiscais': {
-      id: '/_authenticated/notas-fiscais'
-      path: '/notas-fiscais'
-      fullPath: '/notas-fiscais'
-      preLoaderRoute: typeof AuthenticatedNotasFiscaisRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/importar': {
-      id: '/_authenticated/importar'
-      path: '/importar'
-      fullPath: '/importar'
-      preLoaderRoute: typeof AuthenticatedImportarRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/bi': {
+      id: '/_authenticated/bi'
+      path: '/bi'
+      fullPath: '/bi'
+      preLoaderRoute: typeof AuthenticatedBiRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/consolidado': {
@@ -279,39 +344,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConsolidadoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/acessos': {
-      id: '/_authenticated/acessos'
-      path: '/acessos'
-      fullPath: '/acessos'
-      preLoaderRoute: typeof AuthenticatedAcessosRouteImport
+    '/_authenticated/crm': {
+      id: '/_authenticated/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof AuthenticatedCrmRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/sell-out/': {
-      id: '/_authenticated/sell-out/'
-      path: '/sell-out'
-      fullPath: '/sell-out/'
-      preLoaderRoute: typeof AuthenticatedSellOutIndexRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/importar': {
+      id: '/_authenticated/importar'
+      path: '/importar'
+      fullPath: '/importar'
+      preLoaderRoute: typeof AuthenticatedImportarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/notas-fiscais': {
+      id: '/_authenticated/notas-fiscais'
+      path: '/notas-fiscais'
+      fullPath: '/notas-fiscais'
+      preLoaderRoute: typeof AuthenticatedNotasFiscaisRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pedidos': {
+      id: '/_authenticated/pedidos'
+      path: '/pedidos'
+      fullPath: '/pedidos'
+      preLoaderRoute: typeof AuthenticatedPedidosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sell-in': {
+      id: '/_authenticated/sell-in'
+      path: '/sell-in'
+      fullPath: '/sell-in'
+      preLoaderRoute: typeof AuthenticatedSellInRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/': {
+      id: '/_authenticated/crm/'
+      path: '/'
+      fullPath: '/crm/'
+      preLoaderRoute: typeof AuthenticatedCrmIndexRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
+    '/_authenticated/crm/clientes': {
+      id: '/_authenticated/crm/clientes'
+      path: '/clientes'
+      fullPath: '/crm/clientes'
+      preLoaderRoute: typeof AuthenticatedCrmClientesRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
+    '/_authenticated/crm/configuracoes': {
+      id: '/_authenticated/crm/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/crm/configuracoes'
+      preLoaderRoute: typeof AuthenticatedCrmConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
+    '/_authenticated/crm/consolidado': {
+      id: '/_authenticated/crm/consolidado'
+      path: '/consolidado'
+      fullPath: '/crm/consolidado'
+      preLoaderRoute: typeof AuthenticatedCrmConsolidadoRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
     }
     '/_authenticated/por-clientes/': {
       id: '/_authenticated/por-clientes/'
       path: '/por-clientes'
       fullPath: '/por-clientes/'
       preLoaderRoute: typeof AuthenticatedPorClientesIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/sell-out/$clienteId': {
-      id: '/_authenticated/sell-out/$clienteId'
-      path: '/sell-out/$clienteId'
-      fullPath: '/sell-out/$clienteId'
-      preLoaderRoute: typeof AuthenticatedSellOutClienteIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/por-clientes/geral': {
-      id: '/_authenticated/por-clientes/geral'
-      path: '/por-clientes/geral'
-      fullPath: '/por-clientes/geral'
-      preLoaderRoute: typeof AuthenticatedPorClientesGeralRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/por-clientes/$clienteId': {
@@ -321,12 +428,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPorClientesClienteIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/por-clientes/geral': {
+      id: '/_authenticated/por-clientes/geral'
+      path: '/por-clientes/geral'
+      fullPath: '/por-clientes/geral'
+      preLoaderRoute: typeof AuthenticatedPorClientesGeralRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sell-out/': {
+      id: '/_authenticated/sell-out/'
+      path: '/sell-out'
+      fullPath: '/sell-out/'
+      preLoaderRoute: typeof AuthenticatedSellOutIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sell-out/$clienteId': {
+      id: '/_authenticated/sell-out/$clienteId'
+      path: '/sell-out/$clienteId'
+      fullPath: '/sell-out/$clienteId'
+      preLoaderRoute: typeof AuthenticatedSellOutClienteIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/crm/representada/$slug': {
+      id: '/_authenticated/crm/representada/$slug'
+      path: '/representada/$slug'
+      fullPath: '/crm/representada/$slug'
+      preLoaderRoute: typeof AuthenticatedCrmRepresentadaSlugRouteImport
+      parentRoute: typeof AuthenticatedCrmRoute
+    }
   }
 }
 
+interface AuthenticatedCrmRouteChildren {
+  AuthenticatedCrmClientesRoute: typeof AuthenticatedCrmClientesRoute
+  AuthenticatedCrmConfiguracoesRoute: typeof AuthenticatedCrmConfiguracoesRoute
+  AuthenticatedCrmConsolidadoRoute: typeof AuthenticatedCrmConsolidadoRoute
+  AuthenticatedCrmIndexRoute: typeof AuthenticatedCrmIndexRoute
+  AuthenticatedCrmRepresentadaSlugRoute: typeof AuthenticatedCrmRepresentadaSlugRoute
+}
+
+const AuthenticatedCrmRouteChildren: AuthenticatedCrmRouteChildren = {
+  AuthenticatedCrmClientesRoute: AuthenticatedCrmClientesRoute,
+  AuthenticatedCrmConfiguracoesRoute: AuthenticatedCrmConfiguracoesRoute,
+  AuthenticatedCrmConsolidadoRoute: AuthenticatedCrmConsolidadoRoute,
+  AuthenticatedCrmIndexRoute: AuthenticatedCrmIndexRoute,
+  AuthenticatedCrmRepresentadaSlugRoute: AuthenticatedCrmRepresentadaSlugRoute,
+}
+
+const AuthenticatedCrmRouteWithChildren =
+  AuthenticatedCrmRoute._addFileChildren(AuthenticatedCrmRouteChildren)
+
 interface AuthenticatedRouteChildren {
   AuthenticatedAcessosRoute: typeof AuthenticatedAcessosRoute
+  AuthenticatedBiRoute: typeof AuthenticatedBiRoute
   AuthenticatedConsolidadoRoute: typeof AuthenticatedConsolidadoRoute
+  AuthenticatedCrmRoute: typeof AuthenticatedCrmRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
   AuthenticatedNotasFiscaisRoute: typeof AuthenticatedNotasFiscaisRoute
@@ -342,7 +498,9 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAcessosRoute: AuthenticatedAcessosRoute,
+  AuthenticatedBiRoute: AuthenticatedBiRoute,
   AuthenticatedConsolidadoRoute: AuthenticatedConsolidadoRoute,
+  AuthenticatedCrmRoute: AuthenticatedCrmRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
   AuthenticatedNotasFiscaisRoute: AuthenticatedNotasFiscaisRoute,
@@ -368,3 +526,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
