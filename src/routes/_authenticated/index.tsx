@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowRight, LineChart, Users2 } from "lucide-react";
+import { Activity, ArrowRight, LineChart, Users2, Factory } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "BI Avanti Pharma" },
-      { name: "description", content: "Escolha um módulo para começar: BI Globo Pharma ou CRM." },
+      {
+        name: "description",
+        content: "Escolha um módulo para começar: BI Globo Pharma, BI IMEC ou CRM.",
+      },
     ],
   }),
   component: HubPage,
@@ -20,6 +23,13 @@ const MODULOS = [
     scope: "bi-globo",
   },
   {
+    to: "/imec",
+    label: "BI IMEC",
+    desc: "Inteligência comercial da Imec/Nutivit. Módulo em construção.",
+    icon: Factory,
+    scope: "bi-imec",
+  },
+  {
     to: "/crm",
     label: "CRM",
     desc: "Carteira de clientes por representada: status de compra, histórico e consolidado.",
@@ -31,7 +41,7 @@ const MODULOS = [
 function HubPage() {
   return (
     <div className="min-h-[calc(100vh-0px)] flex items-center justify-center p-8">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-4xl">
         <div className="mb-10 text-center">
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-primary mb-4 crm-green-glow">
             <Activity className="h-7 w-7 text-primary-foreground" strokeWidth={2.5} />
@@ -42,7 +52,7 @@ function HubPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {MODULOS.map((item) => {
             const Icon = item.icon;
             return (

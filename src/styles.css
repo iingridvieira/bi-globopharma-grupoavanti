@@ -201,6 +201,39 @@
   --chart-5: oklch(0.65 0.2 20);
 }
 
+/* ===== BI IMEC — identidade azul, isolada dos demais módulos ===== */
+.bi-imec {
+  --primary: oklch(0.45 0.18 260);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --accent: oklch(0.93 0.03 260);
+  --accent-foreground: oklch(0.35 0.15 260);
+
+  --ring: oklch(0.45 0.18 260 / 0.4);
+
+  --chart-1: oklch(0.45 0.18 260);
+  --chart-2: oklch(0.55 0.15 245);
+  --chart-3: oklch(0.65 0.13 230);
+  --chart-4: oklch(0.5 0.14 280);
+  --chart-5: oklch(0.7 0.1 210);
+}
+
+.dark .bi-imec {
+  --primary: oklch(0.62 0.16 260);
+  --primary-foreground: oklch(0.12 0.02 260);
+
+  --accent: oklch(0.32 0.08 260 / 0.4);
+  --accent-foreground: oklch(0.92 0.03 260);
+
+  --ring: oklch(0.62 0.16 260 / 0.5);
+
+  --chart-1: oklch(0.62 0.16 260);
+  --chart-2: oklch(0.68 0.14 245);
+  --chart-3: oklch(0.74 0.12 230);
+  --chart-4: oklch(0.58 0.13 280);
+  --chart-5: oklch(0.78 0.09 210);
+}
+
 /* ===== Dark theme ===== */
 .dark {
   --background: oklch(0.18 0.012 130);
@@ -397,5 +430,17 @@
     box-shadow:
       0 0 0 1px oklch(0.42 0.1 155 / 0.45),
       0 8px 32px -8px oklch(0.35 0.07 155 / 0.45);
+  }
+
+  .bi-imec-glow {
+    box-shadow:
+      0 0 0 1px oklch(0.45 0.18 260 / 0.4),
+      0 8px 32px -8px oklch(0.45 0.18 260 / 0.4);
+  }
+
+  /* Sombra do item ativo no menu lateral: acompanha a cor do módulo atual
+     (laranja/verde/azul) em vez de ficar fixa em laranja. */
+  .nav-active-glow {
+    box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--color-primary) 60%, transparent);
   }
 }

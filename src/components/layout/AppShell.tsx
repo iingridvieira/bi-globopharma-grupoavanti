@@ -16,6 +16,7 @@ import {
   Users2,
   Table2,
   Settings,
+  Factory,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -49,6 +50,8 @@ const CRM_NAV: NavItem[] = [
   { to: "/crm/configuracoes", label: "Configurações", icon: Settings },
 ];
 
+const IMEC_NAV: NavItem[] = [{ to: "/imec", label: "Início", icon: Factory, exact: true }];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user, roles, signOut, canEdit, isAdmin } = useAuth();
@@ -56,11 +59,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isHub = path === "/";
   const isCrm = path.startsWith("/crm");
+  const isImec = path.startsWith("/imec");
   const isGreenScope = isHub || isCrm;
-  const navItems = isCrm ? CRM_NAV : NAV;
+  const navItems = isCrm ? CRM_NAV : isImec ? IMEC_NAV : NAV;
+
+  const brandTitle = isGreenScope ? "BI AVANTI PHARMA" : isImec ? "BI IMEC" : "BI GLOBO PHARMA";
+  const brandSubtitle = isCrm ? "CRM · Carteira de Clientes" : "Inteligência Comercial";
+  const iconGlow = isGreenScope ? "crm-green-glow" : isImec ? "bi-imec-glow" : "bi-orange-glow";
+  const navSectionLabel = isCrm ? "CRM" : isImec ? "IMEC" : "Operação";
 
   return (
-    <div className={`min-h-screen flex ${isGreenScope ? "crm" : ""}`}>
+    <div className={`min-h-screen flex ${isGreenScope ? "crm" : isImec ? "bi-imec" : ""}`}>
       <aside className="w-[260px] shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col">
         <div className="px-5 py-5 border-b border-sidebar-border">
           <Link
@@ -69,16 +78,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             title="Voltar ao painel inicial"
           >
             <div
-              className={`h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0 ${isGreenScope ? "crm-green-glow" : "bi-orange-glow"}`}
+              className={`h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0 ${iconGlow}`}
             >
               <Activity className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
             </div>
             <div className="leading-tight">
-              <div className="font-display text-[15px] font-bold tracking-tight">
-                {isHub || isCrm ? "BI AVANTI PHARMA" : "BI GLOBO PHARMA"}
-              </div>
+              <div className="font-display text-[15px] font-bold tracking-tight">{brandTitle}</div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/60">
-                {isCrm ? "CRM · Carteira de Clientes" : "Inteligência Comercial"}
+                {brandSubtitle}
               </div>
             </div>
           </Link>
@@ -87,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {!isHub && (
             <div className="px-2 py-2 bi-stat-label text-sidebar-foreground/60">
-              {isCrm ? "CRM" : "Operação"}
+              {navSectionLabel}
             </div>
           )}
           {!isHub &&
@@ -105,7 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     className={[
                       "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                       active
-                        ? "bg-primary text-primary-foreground shadow-[0_6px_18px_-6px_oklch(0.70_0.19_50/0.6)]"
+                        ? "bg-primary text-primary-foreground nav-active-glow"
                         : "text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     ].join(" ")}
                   >
