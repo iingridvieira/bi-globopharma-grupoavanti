@@ -799,178 +799,11 @@ export type Database = {
         }
         Relationships: []
       }
-      crm_representadas: {
-        Row: {
-          created_at: string
-          id: string
-          logo_url: string | null
-          nome: string
-          ordem: number
-          slug: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          nome: string
-          ordem?: number
-          slug: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          logo_url?: string | null
-          nome?: string
-          ordem?: number
-          slug?: string
-        }
-        Relationships: []
-      }
-      crm_clientes: {
-        Row: {
-          created_at: string
-          id: string
-          nome: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          nome: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          nome?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      crm_cliente_representadas: {
-        Row: {
-          cliente_id: string
-          created_at: string
-          id: string
-          representada_id: string
-          user_id: string
-        }
-        Insert: {
-          cliente_id: string
-          created_at?: string
-          id?: string
-          representada_id: string
-          user_id: string
-        }
-        Update: {
-          cliente_id?: string
-          created_at?: string
-          id?: string
-          representada_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_cliente_representadas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "crm_clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_cliente_representadas_representada_id_fkey"
-            columns: ["representada_id"]
-            isOneToOne: false
-            referencedRelation: "crm_representadas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_status_mensal: {
-        Row: {
-          cliente_representada_id: string
-          created_at: string
-          id: string
-          mes_ref: string
-          motivo_nao_compra: string | null
-          observacoes: string | null
-          status: Database["public"]["Enums"]["crm_cliente_status"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          cliente_representada_id: string
-          created_at?: string
-          id?: string
-          mes_ref: string
-          motivo_nao_compra?: string | null
-          observacoes?: string | null
-          status?: Database["public"]["Enums"]["crm_cliente_status"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          cliente_representada_id?: string
-          created_at?: string
-          id?: string
-          mes_ref?: string
-          motivo_nao_compra?: string | null
-          observacoes?: string | null
-          status?: Database["public"]["Enums"]["crm_cliente_status"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_status_mensal_cliente_representada_id_fkey"
-            columns: ["cliente_representada_id"]
-            isOneToOne: false
-            referencedRelation: "crm_cliente_representadas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crm_compras: {
-        Row: {
-          cliente_representada_id: string
-          created_at: string
-          data_compra: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          cliente_representada_id: string
-          created_at?: string
-          data_compra: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          cliente_representada_id?: string
-          created_at?: string
-          data_compra?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crm_compras_cliente_representada_id_fkey"
-            columns: ["cliente_representada_id"]
-            isOneToOne: false
-            referencedRelation: "crm_cliente_representadas"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      crm_backfill_pedidos_globo: { Args: Record<PropertyKey, never>; Returns: number }
       get_email_for_username: { Args: { _username: string }; Returns: string }
       has_role: {
         Args: {
@@ -982,7 +815,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "representante" | "viewer" | "editor"
-      crm_cliente_status: "comprou" | "negociacao" | "nao_comprou" | "inativo"
     }
     CompositeTypes: {
       [_ in never]: never
