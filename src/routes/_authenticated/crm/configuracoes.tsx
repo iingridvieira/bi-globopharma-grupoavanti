@@ -17,7 +17,6 @@ import { RepresentadaLogo, slugify } from "@/lib/crm/representadas";
 import { Upload, Trash2, Plus, Pencil, DownloadCloud, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/crm/configuracoes")({
   head: () => ({
@@ -35,7 +34,6 @@ export const Route = createFileRoute("/_authenticated/crm/configuracoes")({
 type Rep = { id: string; nome: string; slug: string; ordem: number; logo_url: string | null };
 
 function ConfiguracoesPage() {
-  const { isAdmin } = useAuth();
   const repsQuery = useQuery({
     queryKey: ["crm-representadas"],
     queryFn: async () => {
@@ -57,16 +55,7 @@ function ConfiguracoesPage() {
         </p>
       </div>
 
-      {!isAdmin && (
-        <Card className="p-4 bg-card border-border">
-          <p className="text-sm text-muted-foreground">
-            Algumas ações desta página (criar/editar/remover representadas, enviar logos e importar
-            o histórico do BI) são exclusivas de administradores.
-          </p>
-        </Card>
-      )}
-
-      <IntegracaoBiSection isAdmin={isAdmin} />
+      <IntegracaoBiSection />
 
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -76,17 +65,12 @@ function ConfiguracoesPage() {
               Cadastre, edite ou remova as representadas que aparecem no CRM.
             </p>
           </div>
-          {isAdmin && (
-            <RepresentadaFormDialog
-              mode="criar"
-              ordemSugerida={(repsQuery.data?.length ?? 0) + 1}
-            />
-          )}
+          <RepresentadaFormDialog mode="criar" ordemSugerida={(repsQuery.data?.length ?? 0) + 1} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {repsQuery.data?.map((r) => (
-            <LogoCard key={r.id} rep={r} canEdit={isAdmin} />
+            <LogoCard key={r.id} rep={r} />
           ))}
         </div>
       </section>
@@ -94,7 +78,7 @@ function ConfiguracoesPage() {
   );
 }
 
-function IntegracaoBiSection({ isAdmin }: { isAdmin: boolean }) {
+function IntegracaoBiSection() {
   const qc = useQueryClient();
 
   const importar = useMutation({
@@ -132,16 +116,14 @@ function IntegracaoBiSection({ isAdmin }: { isAdmin: boolean }) {
             duplicar nada.
           </p>
         </div>
-        {isAdmin && (
-          <Button onClick={() => importar.mutate()} disabled={importar.isPending} variant="outline">
-            {importar.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <DownloadCloud className="h-4 w-4 mr-2" />
-            )}
-            Importar histórico do BI
-          </Button>
-        )}
+        <Button onClick={() => importar.mutate()} disabled={importar.isPending} variant="outline">
+          {importar.isPending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <DownloadCloud className="h-4 w-4 mr-2" />
+          )}
+          Importar histórico do BI
+        </Button>
       </div>
     </Card>
   );
@@ -252,7 +234,7 @@ function RepresentadaFormDialog({
   );
 }
 
-function LogoCard({ rep, canEdit }: { rep: Rep; canEdit: boolean }) {
+function LogoCard({ rep }: { rep: Rep }) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -323,61 +305,57 @@ function LogoCard({ rep, canEdit }: { rep: Rep; canEdit: boolean }) {
             {rep.logo_url ? "Logo enviada" : "Sem logo"}
           </p>
         </div>
-        {canEdit && (
-          <div className="flex items-center gap-1 shrink-0">
-            <RepresentadaFormDialog mode="editar" rep={rep} />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive"
-              title="Remover representada"
-              onClick={() => {
-                if (
-                  confirm(
-                    `Remover "${rep.nome}"? Todos os clientes vinculados só a ela, o histórico de compras e status também serão apagados.`,
-                  )
+        <div className="flex items-center gap-1 shrink-0">
+          <RepresentadaFormDialog mode="editar" rep={rep} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive"
+            title="Remover representada"
+            onClick={() => {
+              if (
+                confirm(
+                  `Remover "${rep.nome}"? Todos os clientes vinculados só a ela, o histórico de compras e status também serão apagados.`,
                 )
-                  removerRepresentada.mutate();
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+              )
+                removerRepresentada.mutate();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="mt-4 flex gap-2">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) upload.mutate(f);
+            e.target.value = "";
+          }}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => inputRef.current?.click()}
+          disabled={upload.isPending}
+        >
+          <Upload className="h-4 w-4 mr-1.5" /> {rep.logo_url ? "Trocar" : "Enviar"} logo
+        </Button>
+        {rep.logo_url && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive"
+            onClick={() => removeLogo.mutate()}
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" /> Remover logo
+          </Button>
         )}
       </div>
-      {canEdit && (
-        <div className="mt-4 flex gap-2">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) upload.mutate(f);
-              e.target.value = "";
-            }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => inputRef.current?.click()}
-            disabled={upload.isPending}
-          >
-            <Upload className="h-4 w-4 mr-1.5" /> {rep.logo_url ? "Trocar" : "Enviar"} logo
-          </Button>
-          {rep.logo_url && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive"
-              onClick={() => removeLogo.mutate()}
-            >
-              <Trash2 className="h-4 w-4 mr-1.5" /> Remover logo
-            </Button>
-          )}
-        </div>
-      )}
     </Card>
   );
 }

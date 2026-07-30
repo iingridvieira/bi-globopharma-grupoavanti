@@ -99,8 +99,8 @@ DECLARE
   v_count integer := 0;
   r RECORD;
 BEGIN
-  IF v_user_id IS NULL OR NOT public.has_role(v_user_id, 'admin') THEN
-    RAISE EXCEPTION 'Apenas administradores podem importar o histórico do BI.';
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'É preciso estar logado para importar o histórico do BI.';
   END IF;
 
   FOR r IN

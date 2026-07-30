@@ -23,12 +23,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.crm_representadas TO authenticate
 GRANT ALL ON public.crm_representadas TO service_role;
 ALTER TABLE public.crm_representadas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "crm_representadas select" ON public.crm_representadas FOR SELECT TO authenticated USING (true);
-CREATE POLICY "crm_representadas insert admin" ON public.crm_representadas FOR INSERT TO authenticated
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-CREATE POLICY "crm_representadas update admin" ON public.crm_representadas FOR UPDATE TO authenticated
-  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-CREATE POLICY "crm_representadas delete admin" ON public.crm_representadas FOR DELETE TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "crm_representadas insert authenticated" ON public.crm_representadas FOR INSERT TO authenticated
+  WITH CHECK (true);
+CREATE POLICY "crm_representadas update authenticated" ON public.crm_representadas FOR UPDATE TO authenticated
+  USING (true) WITH CHECK (true);
+CREATE POLICY "crm_representadas delete authenticated" ON public.crm_representadas FOR DELETE TO authenticated
+  USING (true);
 
 INSERT INTO public.crm_representadas (nome, slug, ordem) VALUES
   ('Globo', 'globo', 1),
@@ -123,10 +123,10 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('crm-representada-logos',
   ON CONFLICT (id) DO NOTHING;
 CREATE POLICY "crm logos read authenticated" ON storage.objects FOR SELECT TO authenticated
   USING (bucket_id = 'crm-representada-logos');
-CREATE POLICY "crm logos insert admin" ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'crm-representada-logos' AND public.has_role(auth.uid(), 'admin'));
-CREATE POLICY "crm logos update admin" ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'crm-representada-logos' AND public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (bucket_id = 'crm-representada-logos' AND public.has_role(auth.uid(), 'admin'));
-CREATE POLICY "crm logos delete admin" ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'crm-representada-logos' AND public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "crm logos insert authenticated" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'crm-representada-logos');
+CREATE POLICY "crm logos update authenticated" ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'crm-representada-logos')
+  WITH CHECK (bucket_id = 'crm-representada-logos');
+CREATE POLICY "crm logos delete authenticated" ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'crm-representada-logos');
