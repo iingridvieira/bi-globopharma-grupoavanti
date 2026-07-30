@@ -17,7 +17,7 @@ const MODULOS = [
     label: "BI Globo Pharma",
     desc: "Inteligência comercial Sell In e Sell Out, dashboards, pedidos e notas fiscais.",
     icon: LineChart,
-    scope: "",
+    scope: "bi-globo",
   },
   {
     to: "/crm",
@@ -33,7 +33,7 @@ function HubPage() {
     <div className="min-h-[calc(100vh-0px)] flex items-center justify-center p-8">
       <div className="w-full max-w-3xl">
         <div className="mb-10 text-center">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-primary mb-4 bi-orange-glow">
+          <div className="inline-flex items-center justify-center h-14 w-14 rounded-xl bg-primary mb-4 crm-green-glow">
             <Activity className="h-7 w-7 text-primary-foreground" strokeWidth={2.5} />
           </div>
           <h1 className="font-display text-3xl font-bold tracking-tight">BI AVANTI PHARMA</h1>

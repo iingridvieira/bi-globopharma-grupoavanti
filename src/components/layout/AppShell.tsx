@@ -56,10 +56,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isHub = path === "/";
   const isCrm = path.startsWith("/crm");
+  const isGreenScope = isHub || isCrm;
   const navItems = isCrm ? CRM_NAV : NAV;
 
   return (
-    <div className={`min-h-screen flex ${isCrm ? "crm" : ""}`}>
+    <div className={`min-h-screen flex ${isGreenScope ? "crm" : ""}`}>
       <aside className="w-[260px] shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col">
         <div className="px-5 py-5 border-b border-sidebar-border">
           <Link
@@ -68,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             title="Voltar ao painel inicial"
           >
             <div
-              className={`h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0 ${isCrm ? "crm-green-glow" : "bi-orange-glow"}`}
+              className={`h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0 ${isGreenScope ? "crm-green-glow" : "bi-orange-glow"}`}
             >
               <Activity className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
             </div>

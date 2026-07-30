@@ -35,12 +35,16 @@ function LoginPage() {
           const { data: mapped, error: rpcErr } = await supabase.rpc("get_email_for_username", {
             _username: loginEmail,
           });
-          if (rpcErr || !mapped) throw new Error("Usuário não encontrado. Verifique o nome de usuário.");
+          if (rpcErr || !mapped)
+            throw new Error("Usuário não encontrado. Verifique o nome de usuário.");
           loginEmail = mapped;
         }
-        const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: senha });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: loginEmail,
+          password: senha,
+        });
         if (error) throw new Error("Credenciais inválidas. Verifique usuário e senha.");
-        toast.success("Bem-vindo ao BI GLOBO PHARMA");
+        toast.success("Bem-vindo ao BI AVANTI PHARMA");
         navigate({ to: "/" });
       } else {
         const { error } = await supabase.from("access_requests").insert({
@@ -64,12 +68,16 @@ function LoginPage() {
       {/* Top bar */}
       <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-lg bg-[#ff6a13] flex items-center justify-center shadow-[0_6px_18px_-6px_rgba(255,106,19,.55)]">
+          <div className="h-9 w-9 rounded-lg bg-[#123D2E] flex items-center justify-center shadow-[0_6px_18px_-6px_rgba(18,61,46,.55)]">
             <Activity className="h-5 w-5 text-white" strokeWidth={2.8} />
           </div>
           <div className="leading-none">
-            <div className="font-display text-[15px] font-bold tracking-tight text-slate-900">BI GLOBO PHARMA</div>
-            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mt-1">Inteligência Comercial</div>
+            <div className="font-display text-[15px] font-bold tracking-tight text-slate-900">
+              BI AVANTI PHARMA
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mt-1">
+              Inteligência Comercial
+            </div>
           </div>
         </div>
         <div className="hidden sm:inline-flex items-center gap-1.5 text-[12px] text-slate-600">
@@ -95,8 +103,11 @@ function LoginPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => { setEnviado(false); setMode("login"); }}
-                  className="mt-6 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#ff6a13] hover:underline"
+                  onClick={() => {
+                    setEnviado(false);
+                    setMode("login");
+                  }}
+                  className="mt-6 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1C5A40] hover:underline"
                 >
                   Voltar para o login <ArrowRight className="h-3.5 w-3.5" />
                 </button>
@@ -146,7 +157,11 @@ function LoginPage() {
                             tabIndex={-1}
                             aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
                           >
-                            {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            {showSenha ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
                           </button>
                         </div>
                       </Field>
@@ -185,11 +200,7 @@ function LoginPage() {
                   )}
 
                   <button type="submit" disabled={loading} className="auth-submit">
-                    {loading
-                      ? "Aguarde..."
-                      : mode === "login"
-                      ? "Entrar"
-                      : "Enviar solicitação"}
+                    {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Enviar solicitação"}
                     {!loading && <ArrowRight className="h-4 w-4" />}
                   </button>
                 </form>
@@ -201,7 +212,7 @@ function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setMode("solicitar")}
-                        className="font-semibold text-[#ff6a13] hover:underline"
+                        className="font-semibold text-[#1C5A40] hover:underline"
                       >
                         Solicitar novo acesso
                       </button>
@@ -212,7 +223,7 @@ function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setMode("login")}
-                        className="font-semibold text-[#ff6a13] hover:underline"
+                        className="font-semibold text-[#1C5A40] hover:underline"
                       >
                         Entrar
                       </button>
@@ -231,14 +242,14 @@ function LoginPage() {
       </main>
 
       <footer className="relative z-10 py-5 text-center text-[11px] text-slate-500">
-        © {new Date().getFullYear()} Grupo Avanti · BI GLOBO PHARMA
+        © {new Date().getFullYear()} Grupo Avanti · BI AVANTI PHARMA
       </footer>
 
       <style>{`
         .auth-shell {
           background:
-            radial-gradient(60% 50% at 85% 0%, rgba(255,106,19,.10), transparent 60%),
-            radial-gradient(50% 40% at 10% 100%, rgba(255,106,19,.07), transparent 60%),
+            radial-gradient(60% 50% at 85% 0%, rgba(18,61,46,.10), transparent 60%),
+            radial-gradient(50% 40% at 10% 100%, rgba(18,61,46,.07), transparent 60%),
             linear-gradient(180deg, #f7f8fb 0%, #eef1f6 100%);
           color: #0f172a;
         }
@@ -251,7 +262,7 @@ function LoginPage() {
           box-shadow:
             0 1px 2px rgba(15,23,42,.04),
             0 20px 50px -25px rgba(15,23,42,.18),
-            0 8px 22px -14px rgba(255,106,19,.18);
+            0 8px 22px -14px rgba(18,61,46,.18);
         }
         .auth-input {
           width: 100%;
@@ -268,25 +279,25 @@ function LoginPage() {
         .auth-input::placeholder { color: #94a3b8; }
         .auth-input:hover { border-color: #b9bfcc; }
         .auth-input:focus {
-          border-color: #ff6a13;
-          box-shadow: 0 0 0 4px rgba(255,106,19,.16);
+          border-color: #1C5A40;
+          box-shadow: 0 0 0 4px rgba(18,61,46,.16);
         }
         .auth-submit {
           width: 100%;
           height: 46px;
           display: inline-flex; align-items: center; justify-content: center; gap: 8px;
           border-radius: 10px;
-          background: linear-gradient(180deg, #ff7a2a 0%, #ff6a13 100%);
+          background: linear-gradient(180deg, #1C5A40 0%, #123D2E 100%);
           color: #ffffff;
           font-weight: 600;
           font-size: 14.5px;
           letter-spacing: 0.01em;
           box-shadow:
             0 1px 0 rgba(255,255,255,.25) inset,
-            0 10px 22px -10px rgba(255,106,19,.55);
+            0 10px 22px -10px rgba(18,61,46,.55);
           transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
         }
-        .auth-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 26px -12px rgba(255,106,19,.6); }
+        .auth-submit:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 26px -12px rgba(18,61,46,.6); }
         .auth-submit:active:not(:disabled) { transform: translateY(0); }
         .auth-submit:disabled { opacity: .6; cursor: not-allowed; }
       `}</style>

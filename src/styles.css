@@ -136,35 +136,69 @@
    Sobrescreve só as variáveis de "marca" (primary/accent/ring/chart) dentro de
    qualquer elemento com a classe .crm. Estrutura, espaçamento e fontes não mudam. */
 .crm {
-  --primary: oklch(0.24 0.05 155);
+  --primary: oklch(0.32 0.09 155);
   --primary-foreground: oklch(0.98 0 0);
 
-  --accent: oklch(0.93 0.02 150);
-  --accent-foreground: oklch(0.24 0.05 155);
+  --accent: oklch(0.91 0.03 150);
+  --accent-foreground: oklch(0.28 0.08 155);
 
-  --ring: oklch(0.24 0.05 155 / 0.4);
+  --ring: oklch(0.32 0.09 155 / 0.4);
 
-  --chart-1: oklch(0.24 0.05 155);
-  --chart-2: oklch(0.4 0.08 150);
-  --chart-3: oklch(0.55 0.1 140);
-  --chart-4: oklch(0.35 0.06 175);
-  --chart-5: oklch(0.65 0.08 130);
+  --chart-1: oklch(0.32 0.09 155);
+  --chart-2: oklch(0.45 0.1 150);
+  --chart-3: oklch(0.58 0.12 140);
+  --chart-4: oklch(0.4 0.08 175);
+  --chart-5: oklch(0.68 0.1 130);
 }
 
 .dark .crm {
-  --primary: oklch(0.5 0.09 155);
+  --primary: oklch(0.55 0.12 155);
   --primary-foreground: oklch(0.1 0.02 155);
 
-  --accent: oklch(0.3 0.05 155 / 0.4);
-  --accent-foreground: oklch(0.92 0.02 150);
+  --accent: oklch(0.32 0.06 155 / 0.4);
+  --accent-foreground: oklch(0.93 0.03 150);
 
-  --ring: oklch(0.5 0.09 155 / 0.5);
+  --ring: oklch(0.55 0.12 155 / 0.5);
 
-  --chart-1: oklch(0.5 0.09 155);
-  --chart-2: oklch(0.6 0.11 145);
-  --chart-3: oklch(0.7 0.12 135);
-  --chart-4: oklch(0.45 0.08 175);
-  --chart-5: oklch(0.75 0.1 125);
+  --chart-1: oklch(0.55 0.12 155);
+  --chart-2: oklch(0.62 0.13 145);
+  --chart-3: oklch(0.72 0.13 135);
+  --chart-4: oklch(0.48 0.1 175);
+  --chart-5: oklch(0.76 0.11 125);
+}
+
+/* ===== BI Globo Pharma — restaura a identidade laranja original mesmo dentro
+   de uma área com escopo .crm (ex: card do BI Globo na tela inicial verde). */
+.bi-globo {
+  --primary: oklch(0.65 0.2 45);
+  --primary-foreground: oklch(0.99 0 0);
+
+  --accent: oklch(0.42 0.08 145);
+  --accent-foreground: oklch(0.99 0 0);
+
+  --ring: oklch(0.65 0.2 45 / 0.4);
+
+  --chart-1: oklch(0.65 0.2 45);
+  --chart-2: oklch(0.5 0.14 150);
+  --chart-3: oklch(0.7 0.16 80);
+  --chart-4: oklch(0.45 0.12 220);
+  --chart-5: oklch(0.6 0.2 20);
+}
+
+.dark .bi-globo {
+  --primary: oklch(0.7 0.19 50);
+  --primary-foreground: oklch(0.12 0.01 130);
+
+  --accent: oklch(0.42 0.08 145);
+  --accent-foreground: oklch(0.97 0.005 95);
+
+  --ring: oklch(0.7 0.19 50 / 0.5);
+
+  --chart-1: oklch(0.7 0.19 50);
+  --chart-2: oklch(0.55 0.14 150);
+  --chart-3: oklch(0.78 0.16 80);
+  --chart-4: oklch(0.5 0.1 220);
+  --chart-5: oklch(0.65 0.2 20);
 }
 
 /* ===== Dark theme ===== */
@@ -361,7 +395,7 @@
 
   .crm-green-glow {
     box-shadow:
-      0 0 0 1px oklch(0.35 0.07 155 / 0.45),
+      0 0 0 1px oklch(0.42 0.1 155 / 0.45),
       0 8px 32px -8px oklch(0.35 0.07 155 / 0.45);
   }
 }
