@@ -17,14 +17,14 @@ const MODULOS = [
     label: "BI Globo Pharma",
     desc: "Inteligência comercial Sell In e Sell Out, dashboards, pedidos e notas fiscais.",
     icon: LineChart,
-    color: "from-primary/20 to-primary/5",
+    scope: "",
   },
   {
     to: "/crm",
     label: "CRM",
     desc: "Carteira de clientes por representada: status de compra, histórico e consolidado.",
     icon: Users2,
-    color: "from-emerald-500/20 to-emerald-500/5",
+    scope: "crm",
   },
 ] as const;
 
@@ -49,11 +49,9 @@ function HubPage() {
               <Link
                 key={item.to}
                 to={item.to}
-                className="group relative bi-card p-7 hover:border-primary transition-all duration-200 overflow-hidden"
+                className={`group relative bi-card p-7 hover:border-primary transition-all duration-200 overflow-hidden ${item.scope}`}
               >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}
-                />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="h-11 w-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">

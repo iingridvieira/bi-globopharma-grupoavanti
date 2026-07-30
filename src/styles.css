@@ -6,7 +6,6 @@
 
 /* === BI GLOBO PHARMA — Design System === */
 
-
 @theme inline {
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Space Grotesk", "Inter", sans-serif;
@@ -83,11 +82,11 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.012 130);
 
-  --primary: oklch(0.65 0.20 45);
+  --primary: oklch(0.65 0.2 45);
   --primary-foreground: oklch(0.99 0 0);
 
   --secondary: oklch(0.94 0.005 100);
-  --secondary-foreground: oklch(0.20 0.012 130);
+  --secondary-foreground: oklch(0.2 0.012 130);
 
   --muted: oklch(0.95 0.004 100);
   --muted-foreground: oklch(0.46 0.012 130);
@@ -101,27 +100,27 @@
   --success: oklch(0.55 0.15 150);
   --success-foreground: oklch(0.99 0 0);
 
-  --warning: oklch(0.70 0.16 80);
+  --warning: oklch(0.7 0.16 80);
   --warning-foreground: oklch(0.18 0.012 130);
 
   --border: oklch(0.88 0.006 110);
   --input: oklch(0.96 0.004 100);
-  --ring: oklch(0.65 0.20 45 / 0.4);
+  --ring: oklch(0.65 0.2 45 / 0.4);
 
-  --chart-1: oklch(0.65 0.20 45);
-  --chart-2: oklch(0.50 0.14 150);
-  --chart-3: oklch(0.70 0.16 80);
+  --chart-1: oklch(0.65 0.2 45);
+  --chart-2: oklch(0.5 0.14 150);
+  --chart-3: oklch(0.7 0.16 80);
   --chart-4: oklch(0.45 0.12 220);
-  --chart-5: oklch(0.60 0.20 20);
+  --chart-5: oklch(0.6 0.2 20);
 
-  --sidebar: oklch(0.18 0.010 130);
+  --sidebar: oklch(0.18 0.01 130);
   --sidebar-foreground: oklch(0.92 0.005 100);
-  --sidebar-primary: oklch(0.70 0.19 50);
+  --sidebar-primary: oklch(0.7 0.19 50);
   --sidebar-primary-foreground: oklch(0.12 0.01 130);
   --sidebar-accent: oklch(0.24 0.013 130);
   --sidebar-accent-foreground: oklch(0.96 0.005 95);
   --sidebar-border: oklch(0.28 0.012 130);
-  --sidebar-ring: oklch(0.70 0.19 50 / 0.6);
+  --sidebar-ring: oklch(0.7 0.19 50 / 0.6);
 
   --crm-status-comprou: oklch(0.55 0.17 145);
   --crm-status-comprou-bg: oklch(0.92 0.06 145);
@@ -131,6 +130,41 @@
   --crm-status-nao-comprou-bg: oklch(0.94 0.05 25);
   --crm-status-inativo: oklch(0.5 0.01 260);
   --crm-status-inativo-bg: oklch(0.93 0.005 260);
+}
+
+/* ===== CRM Avanti Pharma — identidade verde escura (isolada do BI Globo) =====
+   Sobrescreve só as variáveis de "marca" (primary/accent/ring/chart) dentro de
+   qualquer elemento com a classe .crm. Estrutura, espaçamento e fontes não mudam. */
+.crm {
+  --primary: oklch(0.24 0.05 155);
+  --primary-foreground: oklch(0.98 0 0);
+
+  --accent: oklch(0.93 0.02 150);
+  --accent-foreground: oklch(0.24 0.05 155);
+
+  --ring: oklch(0.24 0.05 155 / 0.4);
+
+  --chart-1: oklch(0.24 0.05 155);
+  --chart-2: oklch(0.4 0.08 150);
+  --chart-3: oklch(0.55 0.1 140);
+  --chart-4: oklch(0.35 0.06 175);
+  --chart-5: oklch(0.65 0.08 130);
+}
+
+.dark .crm {
+  --primary: oklch(0.5 0.09 155);
+  --primary-foreground: oklch(0.1 0.02 155);
+
+  --accent: oklch(0.3 0.05 155 / 0.4);
+  --accent-foreground: oklch(0.92 0.02 150);
+
+  --ring: oklch(0.5 0.09 155 / 0.5);
+
+  --chart-1: oklch(0.5 0.09 155);
+  --chart-2: oklch(0.6 0.11 145);
+  --chart-3: oklch(0.7 0.12 135);
+  --chart-4: oklch(0.45 0.08 175);
+  --chart-5: oklch(0.75 0.1 125);
 }
 
 /* ===== Dark theme ===== */
@@ -147,19 +181,19 @@
   --popover: oklch(0.24 0.013 130);
   --popover-foreground: oklch(0.96 0.005 95);
 
-  --primary: oklch(0.70 0.19 50);
+  --primary: oklch(0.7 0.19 50);
   --primary-foreground: oklch(0.12 0.01 130);
 
-  --secondary: oklch(0.30 0.013 130);
+  --secondary: oklch(0.3 0.013 130);
   --secondary-foreground: oklch(0.96 0.005 95);
 
   --muted: oklch(0.26 0.012 130);
-  --muted-foreground: oklch(0.70 0.012 110);
+  --muted-foreground: oklch(0.7 0.012 110);
 
   --accent: oklch(0.42 0.08 145);
   --accent-foreground: oklch(0.97 0.005 95);
 
-  --destructive: oklch(0.60 0.22 28);
+  --destructive: oklch(0.6 0.22 28);
   --destructive-foreground: oklch(0.98 0 0);
 
   --success: oklch(0.62 0.16 150);
@@ -169,16 +203,16 @@
   --warning-foreground: oklch(0.18 0.012 130);
 
   --border: oklch(0.32 0.012 130 / 0.6);
-  --input: oklch(0.30 0.012 130);
-  --ring: oklch(0.70 0.19 50 / 0.5);
+  --input: oklch(0.3 0.012 130);
+  --ring: oklch(0.7 0.19 50 / 0.5);
 
-  --chart-1: oklch(0.70 0.19 50);
+  --chart-1: oklch(0.7 0.19 50);
   --chart-2: oklch(0.55 0.14 150);
   --chart-3: oklch(0.78 0.16 80);
-  --chart-4: oklch(0.50 0.10 220);
-  --chart-5: oklch(0.65 0.20 20);
+  --chart-4: oklch(0.5 0.1 220);
+  --chart-5: oklch(0.65 0.2 20);
 
-  --sidebar: oklch(0.14 0.010 130);
+  --sidebar: oklch(0.14 0.01 130);
   --sidebar-foreground: oklch(0.88 0.008 100);
   --sidebar-accent: oklch(0.22 0.013 130);
   --sidebar-border: oklch(0.26 0.012 130);
@@ -194,8 +228,13 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body { font-family: var(--font-sans); }
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    font-family: var(--font-sans);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -205,15 +244,24 @@
   .dark body {
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.22 0.04 50 / 0.18), transparent 60%),
-      linear-gradient(180deg, var(--color-background) 0%, oklch(0.16 0.010 130) 100%);
+      linear-gradient(180deg, var(--color-background) 0%, oklch(0.16 0.01 130) 100%);
   }
   :root:not(.dark) body {
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.85 0.05 50 / 0.20), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.85 0.05 50 / 0.2), transparent 60%),
       linear-gradient(180deg, var(--color-background) 0%, oklch(0.96 0.004 100) 100%);
   }
-  h1, h2, h3, h4, .font-display { font-family: var(--font-display); letter-spacing: -0.01em; }
-  .tabular-nums { font-variant-numeric: tabular-nums; }
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @layer components {
@@ -226,17 +274,17 @@
       0 8px 24px -12px oklch(0 0 0 / 0.18);
   }
   .dark .bi-card {
-    background: linear-gradient(180deg, var(--color-surface) 0%, oklch(0.20 0.012 130) 100%);
+    background: linear-gradient(180deg, var(--color-surface) 0%, oklch(0.2 0.012 130) 100%);
     box-shadow:
       0 1px 0 0 oklch(1 0 0 / 0.03) inset,
       0 8px 24px -12px oklch(0 0 0 / 0.5);
   }
   .bi-card-accent {
-    background: linear-gradient(135deg, var(--color-primary) 0%, oklch(0.60 0.20 40) 100%);
+    background: linear-gradient(135deg, var(--color-primary) 0%, oklch(0.6 0.2 40) 100%);
     color: var(--color-primary-foreground);
     border: 1px solid oklch(0.75 0.18 55);
     border-radius: var(--radius-md);
-    box-shadow: 0 12px 32px -8px oklch(0.50 0.20 40 / 0.45);
+    box-shadow: 0 12px 32px -8px oklch(0.5 0.2 40 / 0.45);
   }
   .bi-table {
     width: 100%;
@@ -260,7 +308,9 @@
     border-bottom: 1px solid var(--color-border);
     font-size: 14px;
   }
-  .bi-table tbody tr:hover { background: color-mix(in oklab, var(--color-primary) 6%, transparent); }
+  .bi-table tbody tr:hover {
+    background: color-mix(in oklab, var(--color-primary) 6%, transparent);
+  }
   .bi-table tfoot td {
     padding: 14px;
     font-family: var(--font-display);
@@ -304,6 +354,14 @@
   }
 
   .bi-orange-glow {
-    box-shadow: 0 0 0 1px oklch(0.70 0.19 50 / 0.4), 0 8px 32px -8px oklch(0.70 0.19 50 / 0.4);
+    box-shadow:
+      0 0 0 1px oklch(0.7 0.19 50 / 0.4),
+      0 8px 32px -8px oklch(0.7 0.19 50 / 0.4);
+  }
+
+  .crm-green-glow {
+    box-shadow:
+      0 0 0 1px oklch(0.35 0.07 155 / 0.45),
+      0 8px 32px -8px oklch(0.35 0.07 155 / 0.45);
   }
 }

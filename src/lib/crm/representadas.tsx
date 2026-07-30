@@ -78,7 +78,9 @@ export function RepresentadaLogo({
     .toUpperCase();
   return (
     <div
-      className="rounded-lg bg-accent flex items-center justify-center overflow-hidden shrink-0 border border-border"
+      className={`rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-border ${
+        url ? "bg-card" : "bg-muted"
+      }`}
       style={{ width: size, height: size }}
     >
       {url ? (
