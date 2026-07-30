@@ -27,6 +27,7 @@ import { Route as AuthenticatedCrmClientesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedCrmConfiguracoesRouteImport } from './routes/_authenticated/crm/configuracoes'
 import { Route as AuthenticatedCrmConsolidadoRouteImport } from './routes/_authenticated/crm/consolidado'
 import { Route as AuthenticatedImecIndexRouteImport } from './routes/_authenticated/imec/index'
+import { Route as AuthenticatedImecPedidosRouteImport } from './routes/_authenticated/imec/pedidos'
 import { Route as AuthenticatedPorClientesIndexRouteImport } from './routes/_authenticated/por-clientes.index'
 import { Route as AuthenticatedPorClientesClienteIdRouteImport } from './routes/_authenticated/por-clientes.$clienteId'
 import { Route as AuthenticatedPorClientesGeralRouteImport } from './routes/_authenticated/por-clientes.geral'
@@ -128,6 +129,12 @@ const AuthenticatedImecIndexRoute = AuthenticatedImecIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedImecRoute,
 } as any)
+const AuthenticatedImecPedidosRoute =
+  AuthenticatedImecPedidosRouteImport.update({
+    id: '/pedidos',
+    path: '/pedidos',
+    getParentRoute: () => AuthenticatedImecRoute,
+  } as any)
 const AuthenticatedPorClientesIndexRoute =
   AuthenticatedPorClientesIndexRouteImport.update({
     id: '/por-clientes/',
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/crm/clientes': typeof AuthenticatedCrmClientesRoute
   '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
+  '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
@@ -204,6 +212,7 @@ export interface FileRoutesByTo {
   '/crm/clientes': typeof AuthenticatedCrmClientesRoute
   '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
+  '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
@@ -231,6 +240,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/clientes': typeof AuthenticatedCrmClientesRoute
   '/_authenticated/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/_authenticated/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
+  '/_authenticated/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/_authenticated/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/_authenticated/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/_authenticated/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/crm/clientes'
     | '/crm/configuracoes'
     | '/crm/consolidado'
+    | '/imec/pedidos'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
     | '/sell-out/$clienteId'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/crm/clientes'
     | '/crm/configuracoes'
     | '/crm/consolidado'
+    | '/imec/pedidos'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
     | '/sell-out/$clienteId'
@@ -307,6 +319,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/clientes'
     | '/_authenticated/crm/configuracoes'
     | '/_authenticated/crm/consolidado'
+    | '/_authenticated/imec/pedidos'
     | '/_authenticated/por-clientes/$clienteId'
     | '/_authenticated/por-clientes/geral'
     | '/_authenticated/sell-out/$clienteId'
@@ -450,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImecIndexRouteImport
       parentRoute: typeof AuthenticatedImecRoute
     }
+    '/_authenticated/imec/pedidos': {
+      id: '/_authenticated/imec/pedidos'
+      path: '/pedidos'
+      fullPath: '/imec/pedidos'
+      preLoaderRoute: typeof AuthenticatedImecPedidosRouteImport
+      parentRoute: typeof AuthenticatedImecRoute
+    }
     '/_authenticated/por-clientes/': {
       id: '/_authenticated/por-clientes/'
       path: '/por-clientes'
@@ -515,10 +535,12 @@ const AuthenticatedCrmRouteWithChildren =
   AuthenticatedCrmRoute._addFileChildren(AuthenticatedCrmRouteChildren)
 
 interface AuthenticatedImecRouteChildren {
+  AuthenticatedImecPedidosRoute: typeof AuthenticatedImecPedidosRoute
   AuthenticatedImecIndexRoute: typeof AuthenticatedImecIndexRoute
 }
 
 const AuthenticatedImecRouteChildren: AuthenticatedImecRouteChildren = {
+  AuthenticatedImecPedidosRoute: AuthenticatedImecPedidosRoute,
   AuthenticatedImecIndexRoute: AuthenticatedImecIndexRoute,
 }
 

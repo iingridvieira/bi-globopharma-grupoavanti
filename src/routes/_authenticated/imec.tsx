@@ -9,13 +9,15 @@ function ImecLayout() {
   const router = useRouter();
 
   return (
-    <div className="p-8 max-w-[1400px] mx-auto space-y-6">
-      <button
-        onClick={() => router.history.back()}
-        className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
-      >
-        <ArrowLeft className="h-4 w-4" /> Voltar
-      </button>
+    <div>
+      <div className="px-8 pt-4">
+        <button
+          onClick={() => router.history.back()}
+          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
+      </div>
 
       <Outlet />
     </div>

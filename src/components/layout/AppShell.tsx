@@ -50,7 +50,10 @@ const CRM_NAV: NavItem[] = [
   { to: "/crm/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-const IMEC_NAV: NavItem[] = [{ to: "/imec", label: "Início", icon: Factory, exact: true }];
+const IMEC_NAV: NavItem[] = [
+  { to: "/imec", label: "Início", icon: Factory, exact: true },
+  { to: "/imec/pedidos", label: "Pedidos Enviados", icon: Send },
+];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
