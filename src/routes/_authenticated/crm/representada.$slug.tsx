@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,6 +78,7 @@ function RepresentadaPage() {
   const { slug } = Route.useParams();
   const { mes } = useMes();
   const qc = useQueryClient();
+  const router = useRouter();
   const [filter, setFilter] = useState<"todos" | ClienteStatus>("todos");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("nome-asc");
@@ -207,12 +208,12 @@ function RepresentadaPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link
-          to="/crm"
+        <button
+          onClick={() => router.history.back()}
           className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
         >
-          <ArrowLeft className="h-4 w-4" /> Voltar ao painel
-        </Link>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
         <div className="flex items-start justify-between mt-3 gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             {repQuery.data && (

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import {
   MesProvider,
@@ -19,16 +19,17 @@ export const Route = createFileRoute("/_authenticated/crm")({
 
 function CrmLayout() {
   const { mes, setMes } = useMes();
+  const router = useRouter();
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <Link
-          to="/"
+        <button
+          onClick={() => router.history.back()}
           className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
         >
-          <ArrowLeft className="h-4 w-4" /> BI Avanti Pharma
-        </Link>
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </button>
 
         <div className="flex items-center rounded-md border border-border bg-card overflow-hidden h-9">
           <button

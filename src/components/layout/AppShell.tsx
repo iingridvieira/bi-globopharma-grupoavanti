@@ -62,8 +62,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex">
       <aside className="w-[260px] shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col">
         <div className="px-5 py-5 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center bi-orange-glow">
+          <Link
+            to="/"
+            className="flex items-center gap-3 -m-1 p-1 rounded-md hover:bg-sidebar-accent transition-colors"
+            title="Voltar ao painel inicial"
+          >
+            <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center bi-orange-glow shrink-0">
               <Activity className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
             </div>
             <div className="leading-tight">
@@ -74,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {isCrm ? "CRM · Carteira de Clientes" : "Inteligência Comercial"}
               </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
