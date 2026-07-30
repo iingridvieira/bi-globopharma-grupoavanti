@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
+import { formatBRL, formatDateBR, parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
+import { normalizeKey } from "@/lib/cliente-mapping";
 import {
   Download,
   Send,
@@ -17,6 +18,7 @@ import {
   ChevronDown,
   Package,
   Plus,
+  Clipboard,
 } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import {
@@ -48,12 +50,106 @@ function ImecPedidosPage() {
   const [clientesSel, setClientesSel] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [novoOpen, setNovoOpen] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [pasting, setPasting] = useState(false);
 
   const { data: clientes } = useQuery({
     queryKey: ["imec-clientes"],
     queryFn: async () =>
       (await supabase.from("imec_clientes").select("id,nome").order("nome")).data ?? [],
   });
+
+  // Colar retroativos: cola linhas "DATA  CLIENTE  VALOR" (igual ao BI Globo, mas sem
+  // itens — só o cadastro rápido do pedido). Como o BI IMEC começa sem clientes
+  // cadastrados, um cliente que não seja encontrado é criado automaticamente.
+  async function processPasted() {
+    if (!pasteText.trim()) {
+      toast.error("Cole os dados primeiro");
+      return;
+    }
+    setPasting(true);
+    try {
+      const lines = pasteText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      type Parsed = { data: string; nomeCliente: string; valor: number };
+      const parsed: Parsed[] = [];
+      const ignoradas: string[] = [];
+      for (const line of lines) {
+        const parts = line
+          .split(/\t|;|\s{2,}/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+        if (parts.length < 3) {
+          ignoradas.push(line);
+          continue;
+        }
+        const dataISO = parseBRDate(parts[0]);
+        const nomeCliente = parts[1];
+        const valor = parseBRNumber(parts.slice(2).join(" "));
+        if (dataISO && nomeCliente && valor > 0) {
+          parsed.push({ data: dataISO, nomeCliente, valor });
+        } else {
+          ignoradas.push(line);
+        }
+      }
+      if (parsed.length === 0) {
+        toast.error("Nenhuma linha válida (formato: DATA  CLIENTE  VALOR)");
+        return;
+      }
+
+      const idx = new Map<string, string>();
+      (clientes ?? []).forEach((c) => idx.set(normalizeKey(c.nome), c.id));
+
+      const novosNomes: string[] = [];
+      const vistos = new Set<string>();
+      for (const p of parsed) {
+        const key = normalizeKey(p.nomeCliente);
+        if (!idx.has(key) && !vistos.has(key)) {
+          vistos.add(key);
+          novosNomes.push(p.nomeCliente);
+        }
+      }
+      if (novosNomes.length > 0) {
+        const { data: criados, error: errCriar } = await supabase
+          .from("imec_clientes")
+          .insert(novosNomes.map((nome) => ({ nome })))
+          .select("id,nome");
+        if (errCriar) throw errCriar;
+        (criados ?? []).forEach((c) => idx.set(normalizeKey(c.nome), c.id));
+      }
+
+      const rows = parsed
+        .map((p) => ({
+          data: p.data,
+          cliente_id: idx.get(normalizeKey(p.nomeCliente)),
+          valor: p.valor,
+        }))
+        .filter((r): r is { data: string; cliente_id: string; valor: number } => !!r.cliente_id);
+
+      const { error } = await supabase
+        .from("imec_pedidos_enviados")
+        .upsert(rows, { onConflict: "data,cliente_id,valor", ignoreDuplicates: true });
+      if (error) throw error;
+
+      toast.success(
+        `${rows.length} pedido${rows.length === 1 ? "" : "s"} importado${rows.length === 1 ? "" : "s"}${
+          novosNomes.length ? ` · ${novosNomes.length} cliente(s) novo(s) criado(s)` : ""
+        }${ignoradas.length ? ` · ${ignoradas.length} linha(s) ignorada(s)` : ""}`,
+      );
+      setPasteText("");
+      setPasteOpen(false);
+      await qc.invalidateQueries({ queryKey: ["imec-clientes"] });
+      await qc.invalidateQueries({ queryKey: ["imec-pedidos"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPasting(false);
+    }
+  }
 
   const { data: pedidos } = useQuery({
     queryKey: ["imec-pedidos", anos, meses, clientesSel],
@@ -306,6 +402,47 @@ function ImecPedidosPage() {
           <Download className="h-4 w-4" /> Exportar
         </button>
       </div>
+
+      {canEdit && (
+        <div className="bi-card p-5 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="bi-stat-label">Colar manualmente</div>
+            <button
+              onClick={() => setPasteOpen((v) => !v)}
+              className="text-xs text-primary font-semibold flex items-center gap-1"
+            >
+              <Clipboard className="h-3 w-3" /> {pasteOpen ? "Fechar" : "Abrir"}
+            </button>
+          </div>
+          {pasteOpen && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Cole uma linha por pedido: <b>Data · Cliente · Valor</b>. Clientes ainda não
+                cadastrados são criados automaticamente. Itens não são importados por aqui.
+              </p>
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={8}
+                placeholder={
+                  "12/01/2026\tANDORINHA\tR$ 18.787,62\n12/01/2026\tJK MEDICAMENTOS\tR$ 336.794,64"
+                }
+                className="w-full bg-input border border-border rounded-md p-3 text-sm font-mono"
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  disabled={pasting}
+                  onClick={processPasted}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50"
+                >
+                  Importar{" "}
+                  {pasteText ? `(${pasteText.split(/\r?\n/).filter(Boolean).length} linhas)` : ""}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bi-card mt-6 overflow-hidden">
         <div className="flex justify-end px-3 py-1.5">
