@@ -976,6 +976,7 @@ export type Database = {
           p_cliente_nome: string
           p_data: string
           p_representada_slug?: string
+          p_status: string
           p_user_id: string
         }
         Returns: undefined
