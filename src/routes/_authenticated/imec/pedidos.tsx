@@ -115,8 +115,15 @@ function ImecPedidosPage() {
         return;
       }
 
+      // Busca a lista de clientes sempre atualizada (não confia no cache local),
+      // para não tentar recriar um cliente que já existe.
+      const { data: clientesAtuais, error: errClientes } = await supabase
+        .from("imec_clientes")
+        .select("id,nome");
+      if (errClientes) throw errClientes;
+
       const idx = new Map<string, string>();
-      (clientes ?? []).forEach((c) => idx.set(normalizeKey(c.nome), c.id));
+      (clientesAtuais ?? []).forEach((c) => idx.set(normalizeKey(c.nome), c.id));
 
       const novosNomes: string[] = [];
       const vistos = new Set<string>();
@@ -128,12 +135,21 @@ function ImecPedidosPage() {
         }
       }
       if (novosNomes.length > 0) {
-        const { data: criados, error: errCriar } = await supabase
-          .from("imec_clientes")
-          .insert(novosNomes.map((nome) => ({ nome })))
-          .select("id,nome");
+        // upsert (em vez de insert) para não quebrar caso, por alguma corrida,
+        // o nome já exista — nesse caso simplesmente não duplica.
+        const { error: errCriar } = await supabase.from("imec_clientes").upsert(
+          novosNomes.map((nome) => ({ nome })),
+          { onConflict: "nome", ignoreDuplicates: true },
+        );
         if (errCriar) throw errCriar;
-        (criados ?? []).forEach((c) => idx.set(normalizeKey(c.nome), c.id));
+
+        // Rebusca (upsert com ignoreDuplicates não retorna as linhas ignoradas)
+        // para garantir que todos os nomes, novos ou já existentes, tenham id.
+        const { data: apos, error: errApos } = await supabase
+          .from("imec_clientes")
+          .select("id,nome");
+        if (errApos) throw errApos;
+        (apos ?? []).forEach((c) => idx.set(normalizeKey(c.nome), c.id));
       }
 
       const rows = parsed
@@ -650,6 +666,13 @@ function NovoPedidoModal({
     mutationFn: async () => {
       const nome = novoClienteNome.trim();
       if (!nome) throw new Error("Informe o nome do cliente");
+      // Se já existir um cliente com esse nome, reaproveita em vez de dar erro.
+      const { data: existente } = await supabase
+        .from("imec_clientes")
+        .select("id")
+        .ilike("nome", nome)
+        .maybeSingle();
+      if (existente) return existente.id as string;
       const { data: novo, error } = await supabase
         .from("imec_clientes")
         .insert({ nome })
