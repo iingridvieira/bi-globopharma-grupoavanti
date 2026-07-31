@@ -20,6 +20,41 @@ export const Route = createFileRoute("/_authenticated/imec/pedidos")({
   component: ImecPedidosPage,
 });
 
+type Empresa = "IMEC" | "NUTIVIT";
+const EMPRESAS: Empresa[] = ["IMEC", "NUTIVIT"];
+
+function isEmpresa(v: string): v is Empresa {
+  return EMPRESAS.includes(v as Empresa);
+}
+
+/** Badge discreto indicando a origem do pedido — IMEC em azul escuro, NUTIVIT em azul claro. */
+function EmpresaBadge({ empresa }: { empresa: string }) {
+  const isImec = empresa === "IMEC";
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+        isImec
+          ? "bg-blue-700/10 text-blue-700 border-blue-700/30 dark:bg-blue-400/15 dark:text-blue-300 dark:border-blue-400/30"
+          : "bg-sky-400/15 text-sky-600 border-sky-400/40 dark:bg-sky-300/15 dark:text-sky-300 dark:border-sky-300/30"
+      }`}
+    >
+      {empresa}
+    </span>
+  );
+}
+
+function EmpresaSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="bi-input-sm w-full">
+      {EMPRESAS.map((e) => (
+        <option key={e} value={e}>
+          {e}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function ImecPedidosPage() {
   const { canEdit } = useAuth();
   const qc = useQueryClient();
@@ -38,9 +73,9 @@ function ImecPedidosPage() {
       (await supabase.from("imec_clientes").select("id,nome").order("nome")).data ?? [],
   });
 
-  // Colar retroativos: cola linhas "DATA  CLIENTE  VALOR" (igual ao BI Globo). Como o
-  // BI IMEC começa sem clientes cadastrados, um cliente que não seja encontrado é
-  // criado automaticamente.
+  // Colar retroativos: cola linhas "DATA  EMPRESA  CLIENTE  VALOR" (igual ao BI
+  // Globo, mas com a empresa de origem). Cliente ainda não cadastrado é criado
+  // automaticamente.
   async function processPasted() {
     if (!pasteText.trim()) {
       toast.error("Cole os dados primeiro");
@@ -53,7 +88,7 @@ function ImecPedidosPage() {
         .map((l) => l.trim())
         .filter(Boolean);
 
-      type Parsed = { data: string; nomeCliente: string; valor: number };
+      type Parsed = { data: string; empresa: Empresa; nomeCliente: string; valor: number };
       const parsed: Parsed[] = [];
       const ignoradas: string[] = [];
       for (const line of lines) {
@@ -61,21 +96,22 @@ function ImecPedidosPage() {
           .split(/\t|;|\s{2,}/)
           .map((p) => p.trim())
           .filter(Boolean);
-        if (parts.length < 3) {
+        if (parts.length < 4) {
           ignoradas.push(line);
           continue;
         }
         const dataISO = parseBRDate(parts[0]);
-        const nomeCliente = parts[1];
-        const valor = parseBRNumber(parts.slice(2).join(" "));
-        if (dataISO && nomeCliente && valor > 0) {
-          parsed.push({ data: dataISO, nomeCliente, valor });
+        const empresaRaw = parts[1].toUpperCase();
+        const nomeCliente = parts[2];
+        const valor = parseBRNumber(parts.slice(3).join(" "));
+        if (dataISO && isEmpresa(empresaRaw) && nomeCliente && valor > 0) {
+          parsed.push({ data: dataISO, empresa: empresaRaw, nomeCliente, valor });
         } else {
           ignoradas.push(line);
         }
       }
       if (parsed.length === 0) {
-        toast.error("Nenhuma linha válida (formato: DATA  CLIENTE  VALOR)");
+        toast.error("Nenhuma linha válida (formato: DATA  EMPRESA  CLIENTE  VALOR)");
         return;
       }
 
@@ -103,14 +139,18 @@ function ImecPedidosPage() {
       const rows = parsed
         .map((p) => ({
           data: p.data,
+          empresa: p.empresa,
           cliente_id: idx.get(normalizeKey(p.nomeCliente)),
           valor: p.valor,
         }))
-        .filter((r): r is { data: string; cliente_id: string; valor: number } => !!r.cliente_id);
+        .filter(
+          (r): r is { data: string; empresa: Empresa; cliente_id: string; valor: number } =>
+            !!r.cliente_id,
+        );
 
       const { error } = await supabase
         .from("imec_pedidos_enviados")
-        .upsert(rows, { onConflict: "data,cliente_id,valor", ignoreDuplicates: true });
+        .upsert(rows, { onConflict: "data,cliente_id,valor,empresa", ignoreDuplicates: true });
       if (error) throw error;
 
       toast.success(
@@ -134,7 +174,7 @@ function ImecPedidosPage() {
     queryFn: async () => {
       let q = supabase
         .from("imec_pedidos_enviados")
-        .select("id,data,valor,cliente_id,imec_clientes(nome)")
+        .select("id,data,valor,empresa,cliente_id,imec_clientes(nome)")
         .order("data", { ascending: false });
 
       const anosNum = anos.map(Number);
@@ -165,15 +205,17 @@ function ImecPedidosPage() {
       data,
       cliente_id,
       valor,
+      empresa,
     }: {
       id: string;
       data: string;
       cliente_id: string;
       valor: number;
+      empresa: string;
     }) => {
       const { error } = await supabase
         .from("imec_pedidos_enviados")
-        .update({ data, cliente_id, valor })
+        .update({ data, cliente_id, valor, empresa })
         .eq("id", id);
       if (error) throw error;
     },
@@ -201,12 +243,20 @@ function ImecPedidosPage() {
   const [editData, setEditData] = useState("");
   const [editClienteId, setEditClienteId] = useState("");
   const [editValor, setEditValor] = useState("");
+  const [editEmpresa, setEditEmpresa] = useState<string>("IMEC");
 
-  function startEdit(p: { id: string; data: string; cliente_id: string; valor: number | string }) {
+  function startEdit(p: {
+    id: string;
+    data: string;
+    cliente_id: string;
+    valor: number | string;
+    empresa: string;
+  }) {
     setEditId(p.id);
     setEditData(p.data);
     setEditClienteId(p.cliente_id);
     setEditValor(String(p.valor).replace(".", ","));
+    setEditEmpresa(p.empresa);
   }
 
   const clientesVisiveis = clientes ?? [];
@@ -216,13 +266,19 @@ function ImecPedidosPage() {
   const pedGetters = useMemo(
     () => ({
       data: (p: PedRow) => formatDateBR(p.data),
+      empresa: (p: PedRow) => p.empresa,
       cliente: (p: PedRow) => p.imec_clientes?.nome ?? "",
       valor: (p: PedRow) => String(p.valor),
     }),
     [],
   );
   const pedTypes = useMemo(
-    () => ({ data: "date" as const, cliente: "text" as const, valor: "number" as const }),
+    () => ({
+      data: "date" as const,
+      empresa: "text" as const,
+      cliente: "text" as const,
+      valor: "number" as const,
+    }),
     [],
   );
   const {
@@ -245,6 +301,7 @@ function ImecPedidosPage() {
       }
       const rows = filtrados.map((p) => ({
         Data: formatDateBR(p.data),
+        Empresa: p.empresa,
         Cliente: p.imec_clientes?.nome ?? "",
         Valor: Number(p.valor),
       }));
@@ -255,7 +312,7 @@ function ImecPedidosPage() {
     }
   }
 
-  const nColunas = canEdit ? 4 : 3;
+  const nColunas = canEdit ? 5 : 4;
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
@@ -339,15 +396,15 @@ function ImecPedidosPage() {
           {pasteOpen && (
             <div>
               <p className="text-xs text-muted-foreground mb-2">
-                Cole uma linha por pedido: <b>Data · Cliente · Valor</b>. Clientes ainda não
-                cadastrados são criados automaticamente.
+                Cole uma linha por pedido: <b>Data · Empresa (IMEC ou NUTIVIT) · Cliente · Valor</b>
+                . Clientes ainda não cadastrados são criados automaticamente.
               </p>
               <textarea
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
                 rows={8}
                 placeholder={
-                  "12/01/2026\tANDORINHA\tR$ 18.787,62\n12/01/2026\tJK MEDICAMENTOS\tR$ 336.794,64"
+                  "10/06/2026\tNUTIVIT\tDISMAP\tR$ 3.057,00\n19/06/2026\tIMEC\tMEDSOL\tR$ 7.396,55"
                 }
                 className="w-full bg-input border border-border rounded-md p-3 text-sm font-mono"
               />
@@ -383,6 +440,17 @@ function ImecPedidosPage() {
                     onChange={(v) => setPedFilter("data", v)}
                     sort={pedSorts.data ?? null}
                     onSortChange={(s) => setPedSort("data", s)}
+                  />
+                </th>
+                <th className="text-center">
+                  <ColumnFilterHeader
+                    label="Empresa"
+                    align="center"
+                    values={pedDistinct.empresa ?? []}
+                    selected={pedFilters.empresa ?? []}
+                    onChange={(v) => setPedFilter("empresa", v)}
+                    sort={pedSorts.empresa ?? null}
+                    onSortChange={(s) => setPedSort("empresa", s)}
                   />
                 </th>
                 <th>
@@ -425,6 +493,9 @@ function ImecPedidosPage() {
                         />
                       </td>
                       <td>
+                        <EmpresaSelect value={editEmpresa} onChange={setEditEmpresa} />
+                      </td>
+                      <td>
                         <select
                           value={editClienteId}
                           onChange={(e) => setEditClienteId(e.target.value)}
@@ -457,6 +528,7 @@ function ImecPedidosPage() {
                                 data: editData,
                                 cliente_id: editClienteId,
                                 valor: parseBRNumber(editValor),
+                                empresa: editEmpresa,
                               })
                             }
                             className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
@@ -479,6 +551,9 @@ function ImecPedidosPage() {
                 return (
                   <tr key={p.id}>
                     <td>{formatDateBR(p.data)}</td>
+                    <td className="text-center">
+                      <EmpresaBadge empresa={p.empresa} />
+                    </td>
                     <td>{p.imec_clientes?.nome ?? "—"}</td>
                     <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
                     {canEdit && (
@@ -525,7 +600,7 @@ function ImecPedidosPage() {
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={2}>TOTAL ({filtrados.length})</td>
+                <td colSpan={3}>TOTAL ({filtrados.length})</td>
                 <td className="text-right text-primary">{formatBRL(total)}</td>
                 {canEdit && <td />}
               </tr>
@@ -564,6 +639,7 @@ function NovoPedidoModal({
 }) {
   const qc = useQueryClient();
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
+  const [empresa, setEmpresa] = useState<string>("IMEC");
   const [clienteId, setClienteId] = useState("");
   const [valor, setValor] = useState("");
   const [saving, setSaving] = useState(false);
@@ -607,6 +683,7 @@ function NovoPedidoModal({
       const { data: userData } = await supabase.auth.getUser();
       const { error } = await supabase.from("imec_pedidos_enviados").insert({
         data,
+        empresa,
         cliente_id: clienteId,
         valor: valorNum,
         created_by: userData.user?.id,
@@ -642,14 +719,19 @@ function NovoPedidoModal({
         </div>
 
         <div className="p-5 space-y-4">
-          <Field label="Data">
-            <input
-              type="date"
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              className="bi-input-sm w-full"
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Data">
+              <input
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                className="bi-input-sm w-full"
+              />
+            </Field>
+            <Field label="Empresa">
+              <EmpresaSelect value={empresa} onChange={setEmpresa} />
+            </Field>
+          </div>
 
           <Field label="Cliente">
             {novoClienteMode ? (
