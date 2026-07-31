@@ -327,6 +327,100 @@ export type Database = {
         }
         Relationships: []
       }
+      imec_clientes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      imec_pedido_itens: {
+        Row: {
+          created_at: string
+          descricao: string
+          ean: string | null
+          id: string
+          pedido_id: string
+          preco_passado: number
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          ean?: string | null
+          id?: string
+          pedido_id: string
+          preco_passado?: number
+          quantidade?: number
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          ean?: string | null
+          id?: string
+          pedido_id?: string
+          preco_passado?: number
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imec_pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "imec_pedidos_enviados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imec_pedidos_enviados: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data: string
+          id: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data: string
+          id?: string
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imec_pedidos_enviados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "imec_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itens_nf: {
         Row: {
           codigo_produto: string | null
