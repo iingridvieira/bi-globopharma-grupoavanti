@@ -4,7 +4,7 @@ import { forwardRef, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, MESES_BR } from "@/lib/format";
-import { Send, CheckCircle2, Clock, Users, ImageDown } from "lucide-react";
+import { Send, Users, Building2, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/imec/")({
@@ -21,14 +21,7 @@ const now = new Date();
 const ANO_ATUAL = now.getFullYear();
 const MES_ATUAL = now.getMonth() + 1;
 
-type ResumoRow = {
-  id: string;
-  nome: string;
-  total: number;
-  aprovado: number;
-  aguardando: number;
-  pedidos: number;
-};
+type ResumoRow = { id: string; nome: string; total: number; pedidos: number };
 
 function ImecDashboard() {
   const [ANO, setAno] = useState(ANO_ATUAL);
@@ -44,7 +37,7 @@ function ImecDashboard() {
 
       const { data: pedidos, error } = await supabase
         .from("imec_pedidos_enviados")
-        .select("cliente_id,valor,status,imec_clientes(nome)")
+        .select("cliente_id,valor,imec_clientes(nome)")
         .gte("data", start)
         .lte("data", endDate);
       if (error) throw error;
@@ -52,37 +45,24 @@ function ImecDashboard() {
       const map = new Map<string, ResumoRow>();
       (pedidos ?? []).forEach((p) => {
         const nome = p.imec_clientes?.nome ?? "—";
-        const row = map.get(p.cliente_id) ?? {
-          id: p.cliente_id,
-          nome,
-          total: 0,
-          aprovado: 0,
-          aguardando: 0,
-          pedidos: 0,
-        };
+        const row = map.get(p.cliente_id) ?? { id: p.cliente_id, nome, total: 0, pedidos: 0 };
         row.total += Number(p.valor);
         row.pedidos += 1;
-        if (p.status === "aprovado") row.aprovado += Number(p.valor);
-        else row.aguardando += Number(p.valor);
         map.set(p.cliente_id, row);
       });
 
       const rows = Array.from(map.values()).sort((a, b) => b.total - a.total);
       const totals = rows.reduce(
-        (a, r) => ({
-          total: a.total + r.total,
-          aprovado: a.aprovado + r.aprovado,
-          aguardando: a.aguardando + r.aguardando,
-          pedidos: a.pedidos + r.pedidos,
-        }),
-        { total: 0, aprovado: 0, aguardando: 0, pedidos: 0 },
+        (a, r) => ({ total: a.total + r.total, pedidos: a.pedidos + r.pedidos }),
+        { total: 0, pedidos: 0 },
       );
 
-      return { rows, totals };
+      return { rows, totals, clientesAtendidos: rows.length };
     },
   });
 
-  const t = data?.totals ?? { total: 0, aprovado: 0, aguardando: 0, pedidos: 0 };
+  const t = data?.totals ?? { total: 0, pedidos: 0 };
+  const clientesAtendidos = data?.clientesAtendidos ?? 0;
 
   async function exportarPNG() {
     if (!shareRef.current) return;
@@ -152,18 +132,17 @@ function ImecDashboard() {
         </div>
       </header>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <StatCard label="Total enviado" value={formatBRL(t.total)} icon={Send} accent />
         <StatCard label="Pedidos no mês" value={String(t.pedidos)} icon={Users} />
-        <StatCard label="Aprovado" value={formatBRL(t.aprovado)} icon={CheckCircle2} />
-        <StatCard label="Aguardando" value={formatBRL(t.aguardando)} icon={Clock} />
+        <StatCard label="Clientes atendidos" value={String(clientesAtendidos)} icon={Building2} />
       </section>
 
       <section className="bi-card overflow-hidden mb-8">
         <header className="px-6 py-4 border-b border-border">
           <h2 className="font-display text-lg font-semibold">Resumo por cliente</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Pedidos enviados no mês, separados por status de aprovação.
+            Pedidos enviados no mês selecionado.
           </p>
         </header>
         <div className="overflow-x-auto">
@@ -172,22 +151,20 @@ function ImecDashboard() {
               <tr>
                 <th>Cliente</th>
                 <th className="text-right">Pedidos</th>
-                <th className="text-right">Aprovado</th>
-                <th className="text-right">Aguardando</th>
                 <th className="text-right">Total enviado</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted-foreground py-10">
+                  <td colSpan={3} className="text-center text-muted-foreground py-10">
                     Carregando…
                   </td>
                 </tr>
               )}
               {!isLoading && (data?.rows.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted-foreground py-10">
+                  <td colSpan={3} className="text-center text-muted-foreground py-10">
                     Nenhum pedido cadastrado neste mês.
                   </td>
                 </tr>
@@ -196,12 +173,6 @@ function ImecDashboard() {
                 <tr key={r.id}>
                   <td className="font-medium">{r.nome}</td>
                   <td className="text-right tabular-nums">{r.pedidos}</td>
-                  <td className="text-right tabular-nums text-emerald-500">
-                    {r.aprovado > 0 ? formatBRL(r.aprovado) : "—"}
-                  </td>
-                  <td className="text-right tabular-nums text-warning">
-                    {r.aguardando > 0 ? formatBRL(r.aguardando) : "—"}
-                  </td>
                   <td className="text-right tabular-nums font-semibold">{formatBRL(r.total)}</td>
                 </tr>
               ))}
@@ -210,8 +181,6 @@ function ImecDashboard() {
               <tr>
                 <td>TOTAL GERAL</td>
                 <td className="text-right tabular-nums">{t.pedidos}</td>
-                <td className="text-right tabular-nums">{formatBRL(t.aprovado)}</td>
-                <td className="text-right tabular-nums">{formatBRL(t.aguardando)}</td>
                 <td className="text-right tabular-nums text-primary">{formatBRL(t.total)}</td>
               </tr>
             </tfoot>
@@ -224,7 +193,14 @@ function ImecDashboard() {
         style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }}
         aria-hidden
       >
-        <ShareCard ref={shareRef} mes={MES} ano={ANO} totals={t} rows={data?.rows ?? []} />
+        <ShareCard
+          ref={shareRef}
+          mes={MES}
+          ano={ANO}
+          totals={t}
+          clientesAtendidos={clientesAtendidos}
+          rows={data?.rows ?? []}
+        />
       </div>
     </div>
   );
@@ -242,7 +218,13 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={(accent ? "bi-card-accent" : "bi-card") + " p-5"}>
+    <div
+      className={
+        accent
+          ? "rounded-md p-5 bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_var(--color-primary)]"
+          : "bi-card p-5"
+      }
+    >
       <div className="flex items-start justify-between">
         <div className={accent ? "text-primary-foreground/80 bi-stat-label" : "bi-stat-label"}>
           {label}
@@ -260,12 +242,13 @@ function StatCard({
 type ShareCardProps = {
   mes: number;
   ano: number;
-  totals: { total: number; aprovado: number; aguardando: number; pedidos: number };
+  totals: { total: number; pedidos: number };
+  clientesAtendidos: number;
   rows: ResumoRow[];
 };
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardImpl(props, ref) {
-  const { mes, ano, totals, rows } = props;
+  const { mes, ano, totals, clientesAtendidos, rows } = props;
   const mesNome = MESES_BR[mes - 1];
   const sorted = [...rows].sort((a, b) => b.total - a.total);
   const geradoEm = new Date().toLocaleDateString("pt-BR");
@@ -316,18 +299,12 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
       </div>
 
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr 1fr",
-          gap: 16,
-          marginBottom: 24,
-        }}
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}
       >
         {[
           { label: "TOTAL ENVIADO", value: formatBRL(totals.total), highlight: true },
           { label: "PEDIDOS NO MÊS", value: String(totals.pedidos) },
-          { label: "APROVADO", value: formatBRL(totals.aprovado) },
-          { label: "AGUARDANDO", value: formatBRL(totals.aguardando) },
+          { label: "CLIENTES ATENDIDOS", value: String(clientesAtendidos) },
         ].map((s) => (
           <div
             key={s.label}
@@ -396,12 +373,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
               }}
             >
               <th style={{ textAlign: "left", padding: "10px 14px", fontWeight: 700 }}>Cliente</th>
-              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>
-                Aprovado
-              </th>
-              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>
-                Aguardando
-              </th>
+              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Pedidos</th>
               <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Total</th>
             </tr>
           </thead>
@@ -415,12 +387,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
                 }}
               >
                 <td style={{ padding: "9px 14px", fontWeight: 600 }}>{r.nome}</td>
-                <td style={{ padding: "9px 14px", textAlign: "right" }}>
-                  {r.aprovado > 0 ? formatBRL(r.aprovado) : "—"}
-                </td>
-                <td style={{ padding: "9px 14px", textAlign: "right" }}>
-                  {r.aguardando > 0 ? formatBRL(r.aguardando) : "—"}
-                </td>
+                <td style={{ padding: "9px 14px", textAlign: "right" }}>{r.pedidos}</td>
                 <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700 }}>
                   {formatBRL(r.total)}
                 </td>
@@ -428,12 +395,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
             ))}
             <tr style={{ background: AZUL, color: "#fff", fontWeight: 800 }}>
               <td style={{ padding: "12px 14px" }}>TOTAL GERAL</td>
-              <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                {formatBRL(totals.aprovado)}
-              </td>
-              <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                {formatBRL(totals.aguardando)}
-              </td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>{totals.pedidos}</td>
               <td style={{ padding: "12px 14px", textAlign: "right" }}>
                 {formatBRL(totals.total)}
               </td>
