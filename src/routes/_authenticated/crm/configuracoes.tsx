@@ -67,6 +67,7 @@ function ConfiguracoesPage() {
       )}
 
       <IntegracaoBiSection canEdit={canEdit} />
+      <IntegracaoImecSection canEdit={canEdit} />
 
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -140,6 +141,60 @@ function IntegracaoBiSection({ canEdit }: { canEdit: boolean }) {
               <DownloadCloud className="h-4 w-4 mr-2" />
             )}
             Importar histórico do BI
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function IntegracaoImecSection({ canEdit }: { canEdit: boolean }) {
+  const qc = useQueryClient();
+
+  const importar = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("crm_backfill_pedidos_imec");
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (count) => {
+      qc.invalidateQueries({ queryKey: ["crm-representadas"] });
+      qc.invalidateQueries({ queryKey: ["crm-clientes-com-reps"] });
+      qc.invalidateQueries({ queryKey: ["crm-clientes-lista"] });
+      qc.invalidateQueries({ queryKey: ["crm-cliente-representadas-all"] });
+      qc.invalidateQueries({ queryKey: ["crm-cr-by-rep"] });
+      qc.invalidateQueries({ queryKey: ["crm-sm-by-rep"] });
+      qc.invalidateQueries({ queryKey: ["crm-status-mensal"] });
+      qc.invalidateQueries({ queryKey: ["crm-ultimas-compras"] });
+      qc.invalidateQueries({ queryKey: ["crm-consolidado-clientes"] });
+      toast.success(
+        `Histórico importado: ${count} pedido${count === 1 ? "" : "s"} processado${count === 1 ? "" : "s"}.`,
+      );
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="p-5 bg-card border-border">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Integração com o BI IMEC</h2>
+          <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+            Todo novo pedido cadastrado no BI IMEC (IMEC ou NUTIVIT) já atualiza o CRM
+            automaticamente na representada "Imec/Nutivit" — sem etapa de negociação, o pedido já
+            entra direto como compra concretizada. Use o botão abaixo para trazer, de uma vez, todo
+            o histórico que já existia antes dessa integração — pode rodar quantas vezes quiser, sem
+            duplicar nada.
+          </p>
+        </div>
+        {canEdit && (
+          <Button onClick={() => importar.mutate()} disabled={importar.isPending} variant="outline">
+            {importar.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <DownloadCloud className="h-4 w-4 mr-2" />
+            )}
+            Importar histórico do BI IMEC
           </Button>
         )}
       </div>

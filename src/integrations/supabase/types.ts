@@ -1062,6 +1062,7 @@ export type Database = {
     };
     Functions: {
       crm_backfill_pedidos_globo: { Args: never; Returns: number };
+      crm_backfill_pedidos_imec: { Args: never; Returns: number };
       crm_sync_pedido: {
         Args: {
           p_cliente_nome: string;
