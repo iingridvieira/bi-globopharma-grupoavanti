@@ -392,6 +392,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           data: string
+          empresa: string
           id: string
           valor: number
         }
@@ -400,6 +401,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data: string
+          empresa?: string
           id?: string
           valor?: number
         }
@@ -408,6 +410,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data?: string
+          empresa?: string
           id?: string
           valor?: number
         }
