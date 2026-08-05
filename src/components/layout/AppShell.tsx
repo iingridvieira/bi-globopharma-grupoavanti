@@ -52,7 +52,9 @@ const CRM_NAV: NavItem[] = [
 
 const IMEC_NAV: NavItem[] = [
   { to: "/imec", label: "Início", icon: Factory, exact: true },
+  { to: "/imec/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/imec/pedidos", label: "Pedidos Enviados", icon: Send },
+
   { to: "/imec/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/imec/sell-in", label: "Sell In", icon: TrendingUp },
   { to: "/imec/importar", label: "Importar Excel", icon: Upload, adminOnly: true },
