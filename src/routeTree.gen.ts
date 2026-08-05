@@ -30,6 +30,7 @@ import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_aut
 import { Route as AuthenticatedPorClientesGeralRouteImport } from './routes/_authenticated/por-clientes.geral'
 import { Route as AuthenticatedPorClientesClienteIdRouteImport } from './routes/_authenticated/por-clientes.$clienteId'
 import { Route as AuthenticatedImecPedidosRouteImport } from './routes/_authenticated/imec/pedidos'
+import { Route as AuthenticatedImecNotasFiscaisRouteImport } from './routes/_authenticated/imec/notas-fiscais'
 import { Route as AuthenticatedImecImportarRouteImport } from './routes/_authenticated/imec/importar'
 import { Route as AuthenticatedCrmConsolidadoRouteImport } from './routes/_authenticated/crm/consolidado'
 import { Route as AuthenticatedCrmConfiguracoesRouteImport } from './routes/_authenticated/crm/configuracoes'
@@ -148,6 +149,12 @@ const AuthenticatedImecPedidosRoute =
     path: '/pedidos',
     getParentRoute: () => AuthenticatedImecRoute,
   } as any)
+const AuthenticatedImecNotasFiscaisRoute =
+  AuthenticatedImecNotasFiscaisRouteImport.update({
+    id: '/notas-fiscais',
+    path: '/notas-fiscais',
+    getParentRoute: () => AuthenticatedImecRoute,
+  } as any)
 const AuthenticatedImecImportarRoute =
   AuthenticatedImecImportarRouteImport.update({
     id: '/importar',
@@ -196,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
   '/imec/importar': typeof AuthenticatedImecImportarRoute
+  '/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
   '/imec/importar': typeof AuthenticatedImecImportarRoute
+  '/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
@@ -250,6 +259,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/_authenticated/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
   '/_authenticated/imec/importar': typeof AuthenticatedImecImportarRoute
+  '/_authenticated/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/_authenticated/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/_authenticated/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/_authenticated/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/crm/configuracoes'
     | '/crm/consolidado'
     | '/imec/importar'
+    | '/imec/notas-fiscais'
     | '/imec/pedidos'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/crm/configuracoes'
     | '/crm/consolidado'
     | '/imec/importar'
+    | '/imec/notas-fiscais'
     | '/imec/pedidos'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
@@ -332,6 +344,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/configuracoes'
     | '/_authenticated/crm/consolidado'
     | '/_authenticated/imec/importar'
+    | '/_authenticated/imec/notas-fiscais'
     | '/_authenticated/imec/pedidos'
     | '/_authenticated/por-clientes/$clienteId'
     | '/_authenticated/por-clientes/geral'
@@ -497,6 +510,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImecPedidosRouteImport
       parentRoute: typeof AuthenticatedImecRoute
     }
+    '/_authenticated/imec/notas-fiscais': {
+      id: '/_authenticated/imec/notas-fiscais'
+      path: '/notas-fiscais'
+      fullPath: '/imec/notas-fiscais'
+      preLoaderRoute: typeof AuthenticatedImecNotasFiscaisRouteImport
+      parentRoute: typeof AuthenticatedImecRoute
+    }
     '/_authenticated/imec/importar': {
       id: '/_authenticated/imec/importar'
       path: '/importar'
@@ -556,12 +576,14 @@ const AuthenticatedCrmRouteWithChildren =
 
 interface AuthenticatedImecRouteChildren {
   AuthenticatedImecImportarRoute: typeof AuthenticatedImecImportarRoute
+  AuthenticatedImecNotasFiscaisRoute: typeof AuthenticatedImecNotasFiscaisRoute
   AuthenticatedImecPedidosRoute: typeof AuthenticatedImecPedidosRoute
   AuthenticatedImecIndexRoute: typeof AuthenticatedImecIndexRoute
 }
 
 const AuthenticatedImecRouteChildren: AuthenticatedImecRouteChildren = {
   AuthenticatedImecImportarRoute: AuthenticatedImecImportarRoute,
+  AuthenticatedImecNotasFiscaisRoute: AuthenticatedImecNotasFiscaisRoute,
   AuthenticatedImecPedidosRoute: AuthenticatedImecPedidosRoute,
   AuthenticatedImecIndexRoute: AuthenticatedImecIndexRoute,
 }
