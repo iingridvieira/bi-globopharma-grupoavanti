@@ -53,6 +53,9 @@ const CRM_NAV: NavItem[] = [
 const IMEC_NAV: NavItem[] = [
   { to: "/imec", label: "Início", icon: Factory, exact: true },
   { to: "/imec/pedidos", label: "Pedidos Enviados", icon: Send },
+  { to: "/imec/notas-fiscais", label: "Notas Fiscais", icon: FileText },
+  { to: "/imec/sell-in", label: "Sell In", icon: TrendingUp },
+  { to: "/imec/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
