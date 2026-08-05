@@ -16,6 +16,7 @@ import {
   Table2,
   Settings,
   Factory,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -41,7 +42,6 @@ const NAV: NavItem[] = [
   { to: "/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
 ];
 
-
 const CRM_NAV: NavItem[] = [
   { to: "/crm", label: "Painel", icon: LayoutGrid, exact: true },
   { to: "/crm/clientes", label: "Clientes", icon: Users2 },
@@ -56,6 +56,7 @@ const IMEC_NAV: NavItem[] = [
 
   { to: "/imec/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/imec/sell-in", label: "Sell In", icon: TrendingUp },
+  { to: "/imec/investimento", label: "Investimento", icon: Wallet },
   { to: "/imec/importar", label: "Importar Excel", icon: Upload, adminOnly: true },
 ];
 

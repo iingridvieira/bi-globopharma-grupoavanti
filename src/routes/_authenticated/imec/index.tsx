@@ -8,6 +8,7 @@ import {
   Upload,
   ArrowRight,
   Factory,
+  Wallet,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/imec/")({
@@ -21,7 +22,8 @@ export const Route = createFileRoute("/_authenticated/imec/")({
       { property: "og:title", content: "BI IMEC — Início" },
       {
         property: "og:description",
-        content: "Inteligência comercial IMEC/Nutivit: dashboard, pedidos, notas fiscais e sell in.",
+        content:
+          "Inteligência comercial IMEC/Nutivit: dashboard, pedidos, notas fiscais e sell in.",
       },
     ],
   }),
@@ -52,6 +54,12 @@ const MENU_ITEMS = [
     label: "Sell In",
     desc: "Consolidado mensal e anual de vendas Sell In",
     icon: TrendingUp,
+  },
+  {
+    to: "/imec/investimento",
+    label: "Investimento",
+    desc: "NFs que geram verba de investimento · controle de cobrança e pagamento",
+    icon: Wallet,
   },
 ] as const;
 

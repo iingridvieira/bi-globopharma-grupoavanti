@@ -348,6 +348,80 @@ export type Database = {
         }
         Relationships: []
       }
+      imec_investimento_nf: {
+        Row: {
+          created_at: string
+          data_cobranca: string | null
+          data_pagamento: string | null
+          id: string
+          nota_fiscal_id: string
+          observacao: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_cobranca?: string | null
+          data_pagamento?: string | null
+          id?: string
+          nota_fiscal_id: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_cobranca?: string | null
+          data_pagamento?: string | null
+          id?: string
+          nota_fiscal_id?: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imec_investimento_nf_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: true
+            referencedRelation: "imec_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imec_investimento_precos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          ean: string
+          id: string
+          preco_custo: number
+          preco_final: number
+          produto: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          ean: string
+          id?: string
+          preco_custo?: number
+          preco_final?: number
+          produto: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          ean?: string
+          id?: string
+          preco_custo?: number
+          preco_final?: number
+          produto?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       imec_itens_nf: {
         Row: {
           codigo_produto: string | null
@@ -1223,6 +1297,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      imec_calc_investimento_nf: {
+        Args: { p_nota_fiscal_id: string }
+        Returns: number
+      }
+      imec_investimento_recheck_recentes: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "representante" | "viewer" | "editor"
