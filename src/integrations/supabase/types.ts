@@ -1334,7 +1334,10 @@ export type Database = {
       imec_investimento_recheck_recentes: { Args: never; Returns: number }
       imec_match_produto: {
         Args: { p_descricao: string }
-        Returns: { codigo_interno: string; ean: string }[]
+        Returns: {
+          codigo_interno: string
+          ean: string
+        }[]
       }
       imec_normalize_produto: { Args: { s: string }; Returns: string }
     }
