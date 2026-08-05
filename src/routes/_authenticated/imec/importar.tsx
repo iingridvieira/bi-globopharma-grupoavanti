@@ -25,13 +25,13 @@ function detectarEmpresa(nomeArquivo: string): Empresa {
 }
 
 function ImecImportarPage() {
-  const { canEdit } = useAuth();
+  const { isAdmin } = useAuth();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [empresa, setEmpresa] = useState<Empresa | "auto">("auto");
   const [resumo, setResumo] = useState<string | null>(null);
 
-  if (!canEdit) {
+  if (!isAdmin) {
     return (
       <div className="p-8 max-w-xl mx-auto">
         <div className="bi-card p-8 text-center">
