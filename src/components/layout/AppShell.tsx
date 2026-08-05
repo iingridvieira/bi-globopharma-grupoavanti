@@ -40,8 +40,8 @@ const NAV: NavItem[] = [
 
   { to: "/por-clientes", label: "Por Clientes", icon: Users },
   { to: "/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
-  { to: "/acessos", label: "Solicitações de Acesso", icon: UserPlus, adminOnly: true },
 ];
+
 
 const CRM_NAV: NavItem[] = [
   { to: "/crm", label: "Painel", icon: LayoutGrid, exact: true },
