@@ -7,7 +7,7 @@ import { formatBRL, MESES_BR } from "@/lib/format";
 import { Send, FileText, Percent, Building2, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/imec/")({
+export const Route = createFileRoute("/_authenticated/imec/dashboard")({
   head: () => ({
     meta: [
       { title: "BI IMEC" },
