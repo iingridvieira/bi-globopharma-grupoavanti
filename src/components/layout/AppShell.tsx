@@ -55,7 +55,7 @@ const IMEC_NAV: NavItem[] = [
   { to: "/imec/pedidos", label: "Pedidos Enviados", icon: Send },
   { to: "/imec/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/imec/sell-in", label: "Sell In", icon: TrendingUp },
-  { to: "/imec/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
+  { to: "/imec/importar", label: "Importar Excel", icon: Upload, adminOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
