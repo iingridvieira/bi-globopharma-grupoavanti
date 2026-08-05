@@ -33,6 +33,7 @@ import { Route as AuthenticatedImecSellInRouteImport } from './routes/_authentic
 import { Route as AuthenticatedImecPedidosRouteImport } from './routes/_authenticated/imec/pedidos'
 import { Route as AuthenticatedImecNotasFiscaisRouteImport } from './routes/_authenticated/imec/notas-fiscais'
 import { Route as AuthenticatedImecImportarRouteImport } from './routes/_authenticated/imec/importar'
+import { Route as AuthenticatedImecDashboardRouteImport } from './routes/_authenticated/imec/dashboard'
 import { Route as AuthenticatedCrmConsolidadoRouteImport } from './routes/_authenticated/crm/consolidado'
 import { Route as AuthenticatedCrmConfiguracoesRouteImport } from './routes/_authenticated/crm/configuracoes'
 import { Route as AuthenticatedCrmClientesRouteImport } from './routes/_authenticated/crm/clientes'
@@ -167,6 +168,12 @@ const AuthenticatedImecImportarRoute =
     path: '/importar',
     getParentRoute: () => AuthenticatedImecRoute,
   } as any)
+const AuthenticatedImecDashboardRoute =
+  AuthenticatedImecDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedImecRoute,
+  } as any)
 const AuthenticatedCrmConsolidadoRoute =
   AuthenticatedCrmConsolidadoRouteImport.update({
     id: '/consolidado',
@@ -208,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/crm/clientes': typeof AuthenticatedCrmClientesRoute
   '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
+  '/imec/dashboard': typeof AuthenticatedImecDashboardRoute
   '/imec/importar': typeof AuthenticatedImecImportarRoute
   '/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
@@ -235,6 +243,7 @@ export interface FileRoutesByTo {
   '/crm/clientes': typeof AuthenticatedCrmClientesRoute
   '/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
+  '/imec/dashboard': typeof AuthenticatedImecDashboardRoute
   '/imec/importar': typeof AuthenticatedImecImportarRoute
   '/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
@@ -266,6 +275,7 @@ export interface FileRoutesById {
   '/_authenticated/crm/clientes': typeof AuthenticatedCrmClientesRoute
   '/_authenticated/crm/configuracoes': typeof AuthenticatedCrmConfiguracoesRoute
   '/_authenticated/crm/consolidado': typeof AuthenticatedCrmConsolidadoRoute
+  '/_authenticated/imec/dashboard': typeof AuthenticatedImecDashboardRoute
   '/_authenticated/imec/importar': typeof AuthenticatedImecImportarRoute
   '/_authenticated/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/_authenticated/imec/pedidos': typeof AuthenticatedImecPedidosRoute
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/crm/clientes'
     | '/crm/configuracoes'
     | '/crm/consolidado'
+    | '/imec/dashboard'
     | '/imec/importar'
     | '/imec/notas-fiscais'
     | '/imec/pedidos'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/crm/clientes'
     | '/crm/configuracoes'
     | '/crm/consolidado'
+    | '/imec/dashboard'
     | '/imec/importar'
     | '/imec/notas-fiscais'
     | '/imec/pedidos'
@@ -354,6 +366,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm/clientes'
     | '/_authenticated/crm/configuracoes'
     | '/_authenticated/crm/consolidado'
+    | '/_authenticated/imec/dashboard'
     | '/_authenticated/imec/importar'
     | '/_authenticated/imec/notas-fiscais'
     | '/_authenticated/imec/pedidos'
@@ -543,6 +556,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedImecImportarRouteImport
       parentRoute: typeof AuthenticatedImecRoute
     }
+    '/_authenticated/imec/dashboard': {
+      id: '/_authenticated/imec/dashboard'
+      path: '/dashboard'
+      fullPath: '/imec/dashboard'
+      preLoaderRoute: typeof AuthenticatedImecDashboardRouteImport
+      parentRoute: typeof AuthenticatedImecRoute
+    }
     '/_authenticated/crm/consolidado': {
       id: '/_authenticated/crm/consolidado'
       path: '/consolidado'
@@ -594,6 +614,7 @@ const AuthenticatedCrmRouteWithChildren =
   AuthenticatedCrmRoute._addFileChildren(AuthenticatedCrmRouteChildren)
 
 interface AuthenticatedImecRouteChildren {
+  AuthenticatedImecDashboardRoute: typeof AuthenticatedImecDashboardRoute
   AuthenticatedImecImportarRoute: typeof AuthenticatedImecImportarRoute
   AuthenticatedImecNotasFiscaisRoute: typeof AuthenticatedImecNotasFiscaisRoute
   AuthenticatedImecPedidosRoute: typeof AuthenticatedImecPedidosRoute
@@ -602,6 +623,7 @@ interface AuthenticatedImecRouteChildren {
 }
 
 const AuthenticatedImecRouteChildren: AuthenticatedImecRouteChildren = {
+  AuthenticatedImecDashboardRoute: AuthenticatedImecDashboardRoute,
   AuthenticatedImecImportarRoute: AuthenticatedImecImportarRoute,
   AuthenticatedImecNotasFiscaisRoute: AuthenticatedImecNotasFiscaisRoute,
   AuthenticatedImecPedidosRoute: AuthenticatedImecPedidosRoute,

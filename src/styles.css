@@ -211,6 +211,10 @@
 
   --ring: oklch(0.45 0.18 260 / 0.4);
 
+  --sidebar-primary: oklch(0.45 0.18 260);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-ring: oklch(0.45 0.18 260 / 0.6);
+
   --chart-1: oklch(0.45 0.18 260);
   --chart-2: oklch(0.55 0.15 245);
   --chart-3: oklch(0.65 0.13 230);
@@ -226,6 +230,10 @@
   --accent-foreground: oklch(0.92 0.03 260);
 
   --ring: oklch(0.62 0.16 260 / 0.5);
+
+  --sidebar-primary: oklch(0.62 0.16 260);
+  --sidebar-primary-foreground: oklch(0.12 0.02 260);
+  --sidebar-ring: oklch(0.62 0.16 260 / 0.6);
 
   --chart-1: oklch(0.62 0.16 260);
   --chart-2: oklch(0.68 0.14 245);

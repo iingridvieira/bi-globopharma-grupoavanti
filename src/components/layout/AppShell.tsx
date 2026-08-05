@@ -11,7 +11,6 @@ import {
   LogOut,
   Sun,
   Moon,
-  UserPlus,
   LayoutGrid,
   Users2,
   Table2,
@@ -40,8 +39,8 @@ const NAV: NavItem[] = [
 
   { to: "/por-clientes", label: "Por Clientes", icon: Users },
   { to: "/importar", label: "Importar Excel", icon: Upload, editorOnly: true },
-  { to: "/acessos", label: "Solicitações de Acesso", icon: UserPlus, adminOnly: true },
 ];
+
 
 const CRM_NAV: NavItem[] = [
   { to: "/crm", label: "Painel", icon: LayoutGrid, exact: true },
@@ -52,7 +51,9 @@ const CRM_NAV: NavItem[] = [
 
 const IMEC_NAV: NavItem[] = [
   { to: "/imec", label: "Início", icon: Factory, exact: true },
+  { to: "/imec/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/imec/pedidos", label: "Pedidos Enviados", icon: Send },
+
   { to: "/imec/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/imec/sell-in", label: "Sell In", icon: TrendingUp },
   { to: "/imec/importar", label: "Importar Excel", icon: Upload, adminOnly: true },
