@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatDateBR, formatNumberBR, MESES_BR } from "@/lib/format";
@@ -10,14 +10,28 @@ import {
   useColumnFilters,
 } from "@/components/ColumnFilterHeader";
 import { exportToExcel } from "@/lib/excel";
-import { ChevronDown, ChevronRight, FileDown, Search, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  ChevronDown,
+  ChevronRight,
+  FileDown,
+  Search,
+  X,
+  Settings2,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/imec/notas-fiscais")({
   head: () => ({
     meta: [
       { title: "Notas Fiscais · BI IMEC" },
-      { name: "description", content: "Notas fiscais de faturamento IMEC e NUTIVIT com itens e exportação." },
+      {
+        name: "description",
+        content: "Notas fiscais de faturamento IMEC e NUTIVIT com itens e exportação.",
+      },
     ],
   }),
   component: ImecNFsPage,
@@ -39,6 +53,7 @@ type NF = {
 type ItemNF = {
   nota_fiscal_id: string;
   ean: string | null;
+  codigo_produto: string | null;
   produto: string | null;
   quantidade: number | string;
   valor_unitario: number | string;
@@ -46,7 +61,11 @@ type ItemNF = {
 };
 
 function norm(s: string): string {
-  return (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 function ImecNFsPage() {
@@ -62,6 +81,7 @@ function ImecNFsPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
+  const [catalogoOpen, setCatalogoOpen] = useState(false);
 
   const buscaTrim = busca.trim();
   const buscaAtiva = buscaTrim.length >= 2;
@@ -133,8 +153,16 @@ function ImecNFsPage() {
 
   const { data: nfs, isLoading } = useQuery({
     queryKey: [
-      "imec-nfs", anos, meses, clientesSel, empresasSel, buscaTrim,
-      nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel, (clientes ?? []).length,
+      "imec-nfs",
+      anos,
+      meses,
+      clientesSel,
+      empresasSel,
+      buscaTrim,
+      nfIdsPorProduto,
+      produtosSel,
+      nfIdsPorProdutosSel,
+      (clientes ?? []).length,
     ],
     enabled: produtosSel.length === 0 || nfIdsPorProdutosSel != null,
     queryFn: async () => {
@@ -145,7 +173,8 @@ function ImecNFsPage() {
         .limit(5000);
 
       const anosAplicar = anos.length > 0 ? anos.map(Number) : anosOpcoes;
-      const mesesAplicar = meses.length > 0 ? meses.map(Number) : Array.from({ length: 12 }, (_, i) => i + 1);
+      const mesesAplicar =
+        meses.length > 0 ? meses.map(Number) : Array.from({ length: 12 }, (_, i) => i + 1);
       const ranges: string[] = [];
       anosAplicar.forEach((a) =>
         mesesAplicar.forEach((m) => {
@@ -164,8 +193,11 @@ function ImecNFsPage() {
           orParts.push(`id.in.(${nfIdsPorProduto.join(",")})`);
         }
         const bNorm = norm(buscaTrim);
-        const clienteIdsBusca = (clientes ?? []).filter((c) => norm(c.nome).includes(bNorm)).map((c) => c.id);
-        if (clienteIdsBusca.length > 0) orParts.push(`cliente_id.in.(${clienteIdsBusca.join(",")})`);
+        const clienteIdsBusca = (clientes ?? [])
+          .filter((c) => norm(c.nome).includes(bNorm))
+          .map((c) => c.id);
+        if (clienteIdsBusca.length > 0)
+          orParts.push(`cliente_id.in.(${clienteIdsBusca.join(",")})`);
         q = q.or(orParts.join(","));
       }
 
@@ -207,7 +239,7 @@ function ImecNFsPage() {
       for (let i = 0; i < idsFiltradas.length; i += BATCH) {
         const { data } = await supabase
           .from("imec_itens_nf")
-          .select("nota_fiscal_id,ean,produto,quantidade,valor_unitario,valor_total")
+          .select("nota_fiscal_id,ean,codigo_produto,produto,quantidade,valor_unitario,valor_total")
           .in("nota_fiscal_id", idsFiltradas.slice(i, i + BATCH));
         out.push(...((data ?? []) as ItemNF[]));
       }
@@ -221,14 +253,19 @@ function ImecNFsPage() {
     const b = buscaTrim.toLowerCase();
     const prodSet = new Set(produtosSel.map((p) => p.trim()));
     const buscaOk = (it: ItemNF) =>
-      !buscaAtiva || (it.produto ?? "").toLowerCase().includes(b) || (it.ean ?? "").toLowerCase().includes(b);
+      !buscaAtiva ||
+      (it.produto ?? "").toLowerCase().includes(b) ||
+      (it.ean ?? "").toLowerCase().includes(b);
     const prodOk = (it: ItemNF) => prodSet.size === 0 || prodSet.has((it.produto ?? "").trim());
     const porNf = new Map<string, number>();
     itensFiltrados.forEach((it) => {
       const matchedOutro = nfsMatchOutro.has(it.nota_fiscal_id);
-      const conta = prodSet.size > 0
-        ? prodOk(it) && (matchedOutro || buscaOk(it))
-        : matchedOutro ? false : buscaOk(it);
+      const conta =
+        prodSet.size > 0
+          ? prodOk(it) && (matchedOutro || buscaOk(it))
+          : matchedOutro
+            ? false
+            : buscaOk(it);
       if (!conta) return;
       porNf.set(it.nota_fiscal_id, (porNf.get(it.nota_fiscal_id) ?? 0) + Number(it.valor_total));
     });
@@ -319,7 +356,7 @@ function ImecNFsPage() {
       for (let i = 0; i < ids.length; i += 150) {
         const { data } = await supabase
           .from("imec_itens_nf")
-          .select("nota_fiscal_id,ean,produto,quantidade,valor_unitario,valor_total")
+          .select("nota_fiscal_id,ean,codigo_produto,produto,quantidade,valor_unitario,valor_total")
           .in("nota_fiscal_id", ids.slice(i, i + 150));
         itens.push(...((data ?? []) as ItemNF[]));
       }
@@ -332,6 +369,7 @@ function ImecNFsPage() {
           Empresa: nf?.empresa ?? "",
           Cliente: nf?.imec_clientes?.nome ?? "",
           EAN: it.ean ?? "",
+          "Código Interno": it.codigo_produto ?? "",
           "Descrição do Produto": it.produto ?? "",
           Quantidade: Number(it.quantidade),
           Valor: Number(it.valor_unitario),
@@ -353,11 +391,22 @@ function ImecNFsPage() {
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
-      <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
-      <p className="text-muted-foreground mt-1">
-        Pesquise por NF, cliente ou produto. Filtre por período, cliente e empresa. Clique em uma
-        linha para ver os itens.
-      </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
+          <p className="text-muted-foreground mt-1">
+            Pesquise por NF, cliente ou produto. Filtre por período, cliente e empresa. Clique em
+            uma linha para ver os itens.
+          </p>
+        </div>
+        <button
+          onClick={() => setCatalogoOpen(true)}
+          className="h-9 px-3 rounded-md bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1.5 text-sm font-medium shrink-0"
+        >
+          <Settings2 className="h-4 w-4" /> Catálogo de produtos
+        </button>
+      </div>
+      {catalogoOpen && <CatalogoProdutosDialog onClose={() => setCatalogoOpen(false)} />}
 
       <div className="bi-card mt-6 p-4 space-y-3">
         <div className="relative">
@@ -419,7 +468,10 @@ function ImecNFsPage() {
             selected={produtosSel}
             onChange={setProdutosSel}
           />
-          {(busca || clientesSel.length > 0 || empresasSel.length > 0 || produtosSel.length > 0) && (
+          {(busca ||
+            clientesSel.length > 0 ||
+            empresasSel.length > 0 ||
+            produtosSel.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
@@ -436,7 +488,9 @@ function ImecNFsPage() {
         </div>
         <div className="bi-card p-4">
           <div className="bi-stat-label">Total faturado (filtros aplicados)</div>
-          <div className="text-2xl font-bold tabular-nums mt-1 text-primary">{formatBRL(total)}</div>
+          <div className="text-2xl font-bold tabular-nums mt-1 text-primary">
+            {formatBRL(total)}
+          </div>
         </div>
         <div className="bi-card p-4">
           <div className="bi-stat-label">Clientes atendidos</div>
@@ -465,19 +519,57 @@ function ImecNFsPage() {
               </th>
               <th style={{ width: 38 }} />
               <th>
-                <ColumnFilterHeader label="Data" type="date" values={distinct.data ?? []} selected={filters.data ?? []} onChange={(v) => setFilter("data", v)} sort={sorts.data ?? null} onSortChange={(s) => setSort("data", s)} />
+                <ColumnFilterHeader
+                  label="Data"
+                  type="date"
+                  values={distinct.data ?? []}
+                  selected={filters.data ?? []}
+                  onChange={(v) => setFilter("data", v)}
+                  sort={sorts.data ?? null}
+                  onSortChange={(s) => setSort("data", s)}
+                />
               </th>
               <th>
-                <ColumnFilterHeader label="Número" values={distinct.numero ?? []} selected={filters.numero ?? []} onChange={(v) => setFilter("numero", v)} sort={sorts.numero ?? null} onSortChange={(s) => setSort("numero", s)} />
+                <ColumnFilterHeader
+                  label="Número"
+                  values={distinct.numero ?? []}
+                  selected={filters.numero ?? []}
+                  onChange={(v) => setFilter("numero", v)}
+                  sort={sorts.numero ?? null}
+                  onSortChange={(s) => setSort("numero", s)}
+                />
               </th>
               <th>
-                <ColumnFilterHeader label="Empresa" values={distinct.empresa ?? []} selected={filters.empresa ?? []} onChange={(v) => setFilter("empresa", v)} sort={sorts.empresa ?? null} onSortChange={(s) => setSort("empresa", s)} />
+                <ColumnFilterHeader
+                  label="Empresa"
+                  values={distinct.empresa ?? []}
+                  selected={filters.empresa ?? []}
+                  onChange={(v) => setFilter("empresa", v)}
+                  sort={sorts.empresa ?? null}
+                  onSortChange={(s) => setSort("empresa", s)}
+                />
               </th>
               <th>
-                <ColumnFilterHeader label="Cliente" values={distinct.cliente ?? []} selected={filters.cliente ?? []} onChange={(v) => setFilter("cliente", v)} sort={sorts.cliente ?? null} onSortChange={(s) => setSort("cliente", s)} />
+                <ColumnFilterHeader
+                  label="Cliente"
+                  values={distinct.cliente ?? []}
+                  selected={filters.cliente ?? []}
+                  onChange={(v) => setFilter("cliente", v)}
+                  sort={sorts.cliente ?? null}
+                  onSortChange={(s) => setSort("cliente", s)}
+                />
               </th>
               <th className="text-right">
-                <ColumnFilterHeader label="Valor" align="right" type="number" values={distinct.valor ?? []} selected={filters.valor ?? []} onChange={(v) => setFilter("valor", v)} sort={sorts.valor ?? null} onSortChange={(s) => setSort("valor", s)} />
+                <ColumnFilterHeader
+                  label="Valor"
+                  align="right"
+                  type="number"
+                  values={distinct.valor ?? []}
+                  selected={filters.valor ?? []}
+                  onChange={(v) => setFilter("valor", v)}
+                  sort={sorts.valor ?? null}
+                  onSortChange={(s) => setSort("valor", s)}
+                />
               </th>
               <th style={{ width: 60 }} />
             </tr>
@@ -564,7 +656,7 @@ function ImecNFRow({
       (
         await supabase
           .from("imec_itens_nf")
-          .select("id,ean,produto,quantidade,valor_unitario,valor_total")
+          .select("id,ean,codigo_produto,produto,quantidade,valor_unitario,valor_total")
           .eq("nota_fiscal_id", nf.id)
           .order("produto")
       ).data ?? [],
@@ -575,7 +667,7 @@ function ImecNFRow({
   async function exportarNF() {
     const { data } = await supabase
       .from("imec_itens_nf")
-      .select("ean,produto,quantidade,valor_unitario,valor_total")
+      .select("ean,codigo_produto,produto,quantidade,valor_unitario,valor_total")
       .eq("nota_fiscal_id", nf.id);
     const rows = (data ?? []).map((it) => ({
       "Data de Faturamento": formatDateBR(nf.data),
@@ -639,6 +731,7 @@ function ImecNFRow({
               <thead>
                 <tr>
                   <th>EAN</th>
+                  <th>Código Interno</th>
                   <th>Descrição do produto</th>
                   <th className="text-right">Quantidade</th>
                   <th className="text-right">Valor unitário</th>
@@ -651,7 +744,10 @@ function ImecNFRow({
                   return (
                     <tr key={it.id} className={match ? "bg-primary/10" : undefined}>
                       <td className="text-xs tabular-nums">{it.ean ?? "—"}</td>
-                      <td className={match ? "font-semibold text-primary" : undefined}>{it.produto}</td>
+                      <td className="text-xs tabular-nums">{it.codigo_produto ?? "—"}</td>
+                      <td className={match ? "font-semibold text-primary" : undefined}>
+                        {it.produto}
+                      </td>
                       <td className="text-right tabular-nums">{formatNumberBR(it.quantidade)}</td>
                       <td className="text-right tabular-nums">{formatBRL(it.valor_unitario)}</td>
                       <td className="text-right tabular-nums font-semibold">
@@ -673,5 +769,153 @@ function ImecNFRow({
         </tr>
       )}
     </>
+  );
+}
+
+type Produto = {
+  id: string;
+  codigo_interno: string;
+  produto: string;
+  ean: string;
+  ativo: boolean;
+  updated_at: string;
+};
+
+/** Catálogo mestre de produtos (código interno, nome oficial e EAN), a partir
+ * das Fichas Técnicas IMEC. Usado para preencher automaticamente o EAN e o
+ * código interno dos itens de NF (que só vêm com a descrição solta) e para o
+ * cálculo de investimento. Editável aqui caso um produto novo apareça. */
+function CatalogoProdutosDialog({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const { data: produtos } = useQuery({
+    queryKey: ["imec-produtos-catalogo"],
+    queryFn: async () =>
+      ((await supabase.from("imec_produtos").select("*").order("produto")).data ?? []) as Produto[],
+  });
+
+  const salvar = useMutation({
+    mutationFn: async (vars: { id: string; campo: string; valor: string | boolean }) => {
+      const { error } = await supabase
+        .from("imec_produtos")
+        .update({
+          [vars.campo]: vars.valor,
+        } as Database["public"]["Tables"]["imec_produtos"]["Update"])
+        .eq("id", vars.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["imec-produtos-catalogo"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const criar = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("imec_produtos")
+        .insert({ codigo_interno: "", produto: "Novo produto", ean: "" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["imec-produtos-catalogo"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remover = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("imec_produtos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["imec-produtos-catalogo"] }),
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Catálogo de produtos (Ficha Técnica)</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground -mt-2">
+          Código interno, nome oficial e EAN de cada produto. Usado para reconhecer os produtos das
+          NFs (que vêm sem EAN) automaticamente pelo nome. Desative um produto em vez de apagar se
+          ele sair de linha.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="bi-table">
+            <thead>
+              <tr>
+                <th>Código Interno</th>
+                <th>Produto</th>
+                <th>EAN</th>
+                <th className="text-center">Ativo</th>
+                <th style={{ width: 40 }} />
+              </tr>
+            </thead>
+            <tbody>
+              {(produtos ?? []).map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <input
+                      defaultValue={p.codigo_interno}
+                      onBlur={(e) =>
+                        salvar.mutate({
+                          id: p.id,
+                          campo: "codigo_interno",
+                          valor: e.target.value.trim(),
+                        })
+                      }
+                      className="bi-input-sm w-28"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      defaultValue={p.produto}
+                      onBlur={(e) =>
+                        salvar.mutate({ id: p.id, campo: "produto", valor: e.target.value })
+                      }
+                      className="bi-input-sm w-full"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      defaultValue={p.ean}
+                      onBlur={(e) =>
+                        salvar.mutate({ id: p.id, campo: "ean", valor: e.target.value.trim() })
+                      }
+                      className="bi-input-sm w-32"
+                    />
+                  </td>
+                  <td className="text-center">
+                    <input
+                      type="checkbox"
+                      checked={p.ativo}
+                      onChange={(e) =>
+                        salvar.mutate({ id: p.id, campo: "ativo", valor: e.target.checked })
+                      }
+                    />
+                  </td>
+                  <td className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Remover "${p.produto}" do catálogo?`)) remover.mutate(p.id);
+                      }}
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <button
+          type="button"
+          onClick={() => criar.mutate()}
+          className="mt-2 h-9 px-3 rounded-md bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1.5 text-sm font-medium self-start"
+        >
+          <Plus className="h-4 w-4" /> Novo produto
+        </button>
+      </DialogContent>
+    </Dialog>
   );
 }
