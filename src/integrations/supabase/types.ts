@@ -592,6 +592,36 @@ export type Database = {
           },
         ]
       }
+      imec_produtos: {
+        Row: {
+          ativo: boolean
+          codigo_interno: string
+          created_at: string
+          ean: string
+          id: string
+          produto: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_interno: string
+          created_at?: string
+          ean: string
+          id?: string
+          produto: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_interno?: string
+          created_at?: string
+          ean?: string
+          id?: string
+          produto?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       imec_sell_in: {
         Row: {
           ano: number
@@ -1302,6 +1332,14 @@ export type Database = {
         Returns: number
       }
       imec_investimento_recheck_recentes: { Args: never; Returns: number }
+      imec_match_produto: {
+        Args: { p_descricao: string }
+        Returns: {
+          codigo_interno: string
+          ean: string
+        }[]
+      }
+      imec_normalize_produto: { Args: { s: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "representante" | "viewer" | "editor"
