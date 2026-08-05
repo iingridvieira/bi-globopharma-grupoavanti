@@ -11,7 +11,6 @@ import {
   LogOut,
   Sun,
   Moon,
-  UserPlus,
   LayoutGrid,
   Users2,
   Table2,
