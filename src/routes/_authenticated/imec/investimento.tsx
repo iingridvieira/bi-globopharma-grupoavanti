@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
+import { formatBRL, formatDateBR, formatNumberBR, MESES_BR } from "@/lib/format";
 import { MultiSelect } from "@/components/MultiSelect";
 import {
   ColumnFilterHeader,
@@ -12,7 +12,16 @@ import {
 } from "@/components/ColumnFilterHeader";
 import { useAuth } from "@/hooks/use-auth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Settings2, Search, Plus, Trash2, RefreshCcw, Loader2 } from "lucide-react";
+import {
+  Settings2,
+  Search,
+  Plus,
+  Trash2,
+  RefreshCcw,
+  Loader2,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/imec/investimento")({
@@ -58,6 +67,7 @@ type NF = {
 type ItemNF = {
   nota_fiscal_id: string;
   ean: string | null;
+  produto: string | null;
   quantidade: number | string;
 };
 
@@ -136,6 +146,16 @@ function ImecInvestimentoPage() {
   const [statusSel, setStatusSel] = useState<string[]>([]);
   const [precosOpen, setPrecosOpen] = useState(false);
   const [buscaOpen, setBuscaOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
+  }
 
   const { data: clientes } = useQuery({
     queryKey: ["imec-clientes"],
@@ -196,7 +216,7 @@ function ImecInvestimentoPage() {
       for (let i = 0; i < nfIds.length; i += BATCH) {
         const { data } = await supabase
           .from("imec_itens_nf")
-          .select("nota_fiscal_id,ean,quantidade")
+          .select("nota_fiscal_id,ean,produto,quantidade")
           .in("nota_fiscal_id", nfIds.slice(i, i + BATCH));
         out.push(...((data ?? []) as ItemNF[]));
       }
@@ -412,6 +432,7 @@ function ImecInvestimentoPage() {
         <table className="bi-table">
           <thead>
             <tr>
+              <th style={{ width: 32 }} />
               <th>
                 <ColumnFilterHeader
                   label="Data"
@@ -475,14 +496,14 @@ function ImecInvestimentoPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={9} className="text-center text-muted-foreground py-10">
+                <td colSpan={10} className="text-center text-muted-foreground py-10">
                   Carregando…
                 </td>
               </tr>
             )}
             {!isLoading && view.length === 0 && (
               <tr>
-                <td colSpan={9} className="text-center text-muted-foreground py-10">
+                <td colSpan={10} className="text-center text-muted-foreground py-10">
                   Nenhuma NF com investimento encontrada com os filtros aplicados.
                 </td>
               </tr>
@@ -491,118 +512,195 @@ function ImecInvestimentoPage() {
               view.map((n) => {
                 const t = n.imec_investimento_nf;
                 if (!t) return null;
+                const isOpen = expanded.has(n.id);
+                const itensNf = itensPorNf.get(n.id) ?? [];
                 return (
-                  <tr key={n.id}>
-                    <td className="tabular-nums">{formatDateBR(n.data)}</td>
-                    <td className="font-medium">{n.numero}</td>
-                    <td className="text-xs">{n.empresa}</td>
-                    <td>{n.imec_clientes?.nome ?? "—"}</td>
-                    <td className="text-right tabular-nums font-semibold text-primary">
-                      {formatBRL(n.investimento)}
-                    </td>
-                    <td>
-                      {canEdit ? (
-                        <select
-                          value={t.status}
-                          onChange={(e) =>
-                            atualizarCampo.mutate({
-                              id: t.id,
-                              campo: "status",
-                              valor: e.target.value,
-                            })
-                          }
-                          className="bi-input-sm"
-                        >
-                          {STATUS_OPTIONS.map((s) => (
-                            <option key={s.value} value={s.value}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <StatusBadge status={t.status} />
-                      )}
-                    </td>
-                    <td>
-                      {canEdit ? (
-                        <input
-                          type="date"
-                          value={t.data_cobranca ?? ""}
-                          onChange={(e) =>
-                            atualizarCampo.mutate({
-                              id: t.id,
-                              campo: "data_cobranca",
-                              valor: e.target.value || null,
-                            })
-                          }
-                          className="bi-input-sm"
-                        />
-                      ) : t.data_cobranca ? (
-                        formatDateBR(t.data_cobranca)
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>
-                      {canEdit ? (
-                        <input
-                          type="date"
-                          value={t.data_pagamento ?? ""}
-                          onChange={(e) =>
-                            atualizarCampo.mutate({
-                              id: t.id,
-                              campo: "data_pagamento",
-                              valor: e.target.value || null,
-                            })
-                          }
-                          className="bi-input-sm"
-                        />
-                      ) : t.data_pagamento ? (
-                        formatDateBR(t.data_pagamento)
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td>
-                      {canEdit ? (
-                        <input
-                          defaultValue={t.observacao ?? ""}
-                          onBlur={(e) =>
-                            atualizarCampo.mutate({
-                              id: t.id,
-                              campo: "observacao",
-                              valor: e.target.value || null,
-                            })
-                          }
-                          placeholder="Observação..."
-                          className="bi-input-sm w-full"
-                        />
-                      ) : (
-                        (t.observacao ?? "—")
-                      )}
-                    </td>
-                    {canEdit && (
-                      <td className="text-center">
+                  <Fragment key={n.id}>
+                    <tr>
+                      <td>
                         <button
                           type="button"
-                          title="Tirar da lista de investimento (não apaga a NF)"
-                          onClick={() => {
-                            if (confirm(`Remover a NF ${n.numero} da lista de investimento?`))
-                              remover.mutate(t.id);
-                          }}
-                          className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive"
+                          onClick={() => toggleExpanded(n.id)}
+                          className="h-6 w-6 inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
+                          title="Ver produtos que geraram esse investimento"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
                         </button>
                       </td>
+                      <td className="tabular-nums">{formatDateBR(n.data)}</td>
+                      <td className="font-medium">{n.numero}</td>
+                      <td className="text-xs">{n.empresa}</td>
+                      <td>{n.imec_clientes?.nome ?? "—"}</td>
+                      <td className="text-right tabular-nums font-semibold text-primary">
+                        {formatBRL(n.investimento)}
+                      </td>
+                      <td>
+                        {canEdit ? (
+                          <select
+                            value={t.status}
+                            onChange={(e) =>
+                              atualizarCampo.mutate({
+                                id: t.id,
+                                campo: "status",
+                                valor: e.target.value,
+                              })
+                            }
+                            className="bi-input-sm"
+                          >
+                            {STATUS_OPTIONS.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <StatusBadge status={t.status} />
+                        )}
+                      </td>
+                      <td>
+                        {canEdit ? (
+                          <input
+                            type="date"
+                            value={t.data_cobranca ?? ""}
+                            onChange={(e) =>
+                              atualizarCampo.mutate({
+                                id: t.id,
+                                campo: "data_cobranca",
+                                valor: e.target.value || null,
+                              })
+                            }
+                            className="bi-input-sm"
+                          />
+                        ) : t.data_cobranca ? (
+                          formatDateBR(t.data_cobranca)
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>
+                        {canEdit ? (
+                          <input
+                            type="date"
+                            value={t.data_pagamento ?? ""}
+                            onChange={(e) =>
+                              atualizarCampo.mutate({
+                                id: t.id,
+                                campo: "data_pagamento",
+                                valor: e.target.value || null,
+                              })
+                            }
+                            className="bi-input-sm"
+                          />
+                        ) : t.data_pagamento ? (
+                          formatDateBR(t.data_pagamento)
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>
+                        {canEdit ? (
+                          <input
+                            defaultValue={t.observacao ?? ""}
+                            onBlur={(e) =>
+                              atualizarCampo.mutate({
+                                id: t.id,
+                                campo: "observacao",
+                                valor: e.target.value || null,
+                              })
+                            }
+                            placeholder="Observação..."
+                            className="bi-input-sm w-full"
+                          />
+                        ) : (
+                          (t.observacao ?? "—")
+                        )}
+                      </td>
+                      {canEdit && (
+                        <td className="text-center">
+                          <button
+                            type="button"
+                            title="Tirar da lista de investimento (não apaga a NF)"
+                            onClick={() => {
+                              if (confirm(`Remover a NF ${n.numero} da lista de investimento?`))
+                                remover.mutate(t.id);
+                            }}
+                            className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-destructive/10 text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                    {isOpen && (
+                      <tr>
+                        <td colSpan={10} className="bg-secondary/30 p-0">
+                          <table className="bi-table w-full">
+                            <thead>
+                              <tr>
+                                <th>Produto</th>
+                                <th className="text-right">Quantidade</th>
+                                <th className="text-right">Verba unitária</th>
+                                <th className="text-right">Investimento</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {itensNf.map((it, idx) => {
+                                const preco = precoIdx.get((it.ean ?? "").trim());
+                                const investItem = preco
+                                  ? Number(it.quantidade) * (preco.custo - preco.final)
+                                  : 0;
+                                return (
+                                  <tr
+                                    key={idx}
+                                    className={investItem > 0 ? "bg-primary/5" : undefined}
+                                  >
+                                    <td
+                                      className={
+                                        investItem > 0 ? "font-medium" : "text-muted-foreground"
+                                      }
+                                    >
+                                      {it.produto ?? "—"}
+                                    </td>
+                                    <td className="text-right tabular-nums">
+                                      {formatNumberBR(it.quantidade)}
+                                    </td>
+                                    <td className="text-right tabular-nums">
+                                      {preco
+                                        ? formatBRL(preco.custo - preco.final)
+                                        : "não reconhecido"}
+                                    </td>
+                                    <td className="text-right tabular-nums font-semibold">
+                                      {investItem > 0 ? formatBRL(investItem) : "—"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                              {itensNf.length === 0 && (
+                                <tr>
+                                  <td
+                                    colSpan={4}
+                                    className="text-center text-muted-foreground py-4"
+                                  >
+                                    Sem itens.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
                     )}
-                  </tr>
+                  </Fragment>
                 );
               })}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={4}>TOTAL</td>
+              <td colSpan={5}>TOTAL</td>
               <td className="text-right text-primary tabular-nums">
                 {formatBRL(totalInvestimento)}
               </td>
