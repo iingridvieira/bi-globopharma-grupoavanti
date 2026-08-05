@@ -827,6 +827,62 @@ function CatalogoProdutosDialog({ onClose }: { onClose: () => void }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Descrições que vieram em NFs recentes e não bateram com nenhum produto do
+  // catálogo (por isso ficam sem EAN/código interno e sem investimento).
+  const { data: naoReconhecidos } = useQuery({
+    queryKey: ["imec-produtos-nao-reconhecidos"],
+    queryFn: async () => {
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 2);
+      const { data, error } = await supabase
+        .from("imec_itens_nf")
+        .select("produto, imec_notas_fiscais!inner(data)")
+        .is("ean", null)
+        .gte("imec_notas_fiscais.data", cutoff.toISOString().slice(0, 10));
+      if (error) throw error;
+      const set = new Set<string>();
+      (data ?? []).forEach((r) => {
+        const p = (r.produto ?? "").trim();
+        if (p) set.add(p);
+      });
+      return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    },
+  });
+
+  // Um produto "canônico" por EAN, só pra listar no seletor de vínculo.
+  const canonicos = useMemo(() => {
+    const byEan = new Map<string, Produto>();
+    (produtos ?? []).forEach((p) => {
+      if (p.ean && !byEan.has(p.ean)) byEan.set(p.ean, p);
+    });
+    return Array.from(byEan.values()).sort((a, b) => a.produto.localeCompare(b.produto, "pt-BR"));
+  }, [produtos]);
+
+  const vincular = useMutation({
+    mutationFn: async (vars: { descricao: string; ean: string; codigo_interno: string }) => {
+      const { error: errInsert } = await supabase.from("imec_produtos").insert({
+        codigo_interno: vars.codigo_interno,
+        produto: vars.descricao,
+        ean: vars.ean,
+      });
+      if (errInsert) throw errInsert;
+      const { error: errUpdate } = await supabase
+        .from("imec_itens_nf")
+        .update({ ean: vars.ean, codigo_produto: vars.codigo_interno })
+        .eq("produto", vars.descricao)
+        .is("ean", null);
+      if (errUpdate) throw errUpdate;
+      await supabase.rpc("imec_investimento_recheck_recentes");
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["imec-produtos-catalogo"] });
+      qc.invalidateQueries({ queryKey: ["imec-produtos-nao-reconhecidos"] });
+      qc.invalidateQueries({ queryKey: ["imec-investimento-nf"] });
+      toast.success("Produto vinculado — os itens já foram atualizados.");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -838,6 +894,32 @@ function CatalogoProdutosDialog({ onClose }: { onClose: () => void }) {
           NFs (que vêm sem EAN) automaticamente pelo nome. Desative um produto em vez de apagar se
           ele sair de linha.
         </p>
+
+        {(naoReconhecidos ?? []).length > 0 && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 space-y-2">
+            <p className="text-sm font-semibold">
+              {naoReconhecidos!.length} descrição(ões) de NFs recentes não reconhecidas
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Escolha a qual produto cada uma corresponde — os itens já lançados são atualizados na
+              hora, sem precisar mexer em mais nada.
+            </p>
+            <div className="space-y-1.5 max-h-56 overflow-y-auto">
+              {naoReconhecidos!.map((desc) => (
+                <NaoReconhecidoRow
+                  key={desc}
+                  descricao={desc}
+                  canonicos={canonicos}
+                  onVincular={(ean, codigo_interno) =>
+                    vincular.mutate({ descricao: desc, ean, codigo_interno })
+                  }
+                  pending={vincular.isPending}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="bi-table">
             <thead>
@@ -917,5 +999,49 @@ function CatalogoProdutosDialog({ onClose }: { onClose: () => void }) {
         </button>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function NaoReconhecidoRow({
+  descricao,
+  canonicos,
+  onVincular,
+  pending,
+}: {
+  descricao: string;
+  canonicos: Produto[];
+  onVincular: (ean: string, codigo_interno: string) => void;
+  pending: boolean;
+}) {
+  const [selecionado, setSelecionado] = useState("");
+  return (
+    <div className="flex items-center gap-2 bg-background rounded-md p-2">
+      <span className="text-sm flex-1 min-w-0 truncate" title={descricao}>
+        {descricao}
+      </span>
+      <select
+        value={selecionado}
+        onChange={(e) => setSelecionado(e.target.value)}
+        className="bi-input-sm w-64 shrink-0"
+      >
+        <option value="">É o mesmo produto que...</option>
+        {canonicos.map((c) => (
+          <option key={c.ean} value={c.ean}>
+            {c.produto} ({c.ean})
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        disabled={!selecionado || pending}
+        onClick={() => {
+          const c = canonicos.find((x) => x.ean === selecionado);
+          if (c) onVincular(c.ean, c.codigo_interno);
+        }}
+        className="h-8 px-3 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 text-xs font-semibold shrink-0"
+      >
+        Vincular
+      </button>
+    </div>
   );
 }
