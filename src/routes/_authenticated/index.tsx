@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowRight, LineChart, Users2, Factory } from "lucide-react";
+import { Activity, ArrowRight, LineChart, Users2, Factory, UserPlus } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -38,7 +40,18 @@ const MODULOS = [
   },
 ] as const;
 
+const ACESSOS_ITEM = {
+  to: "/acessos",
+  label: "Solicitações de Acesso",
+  desc: "Aprovar novos usuários e gerenciar permissões da plataforma.",
+  icon: UserPlus,
+  scope: "",
+} as const;
+
 function HubPage() {
+  const { isAdmin } = useAuth();
+  const items = isAdmin ? [...MODULOS, ACESSOS_ITEM] : [...MODULOS];
+
   return (
     <div className="min-h-[calc(100vh-0px)] flex items-center justify-center p-8">
       <div className="w-full max-w-4xl">
@@ -53,7 +66,8 @@ function HubPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {MODULOS.map((item) => {
+          {items.map((item) => {
+
             const Icon = item.icon;
             return (
               <Link

@@ -348,6 +348,100 @@ export type Database = {
         }
         Relationships: []
       }
+      imec_itens_nf: {
+        Row: {
+          codigo_produto: string | null
+          created_at: string
+          ean: string | null
+          id: string
+          nota_fiscal_id: string
+          produto: string
+          quantidade: number
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          codigo_produto?: string | null
+          created_at?: string
+          ean?: string | null
+          id?: string
+          nota_fiscal_id: string
+          produto: string
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          codigo_produto?: string | null
+          created_at?: string
+          ean?: string | null
+          id?: string
+          nota_fiscal_id?: string
+          produto?: string
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imec_itens_nf_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "imec_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imec_notas_fiscais: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data: string
+          empresa: string
+          id: string
+          numero: string
+          observacao: string | null
+          razao_social: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data: string
+          empresa?: string
+          id?: string
+          numero: string
+          observacao?: string | null
+          razao_social?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          empresa?: string
+          id?: string
+          numero?: string
+          observacao?: string | null
+          razao_social?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imec_notas_fiscais_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "imec_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       imec_pedido_itens: {
         Row: {
           created_at: string
@@ -417,6 +511,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "imec_pedidos_enviados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "imec_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imec_sell_in: {
+        Row: {
+          ano: number
+          cliente_id: string
+          created_at: string
+          empresa: string
+          id: string
+          mes: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ano: number
+          cliente_id: string
+          created_at?: string
+          empresa?: string
+          id?: string
+          mes: number
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          cliente_id?: string
+          created_at?: string
+          empresa?: string
+          id?: string
+          mes?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imec_sell_in_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "imec_clientes"
