@@ -41,8 +41,9 @@ const EMPRESAS = ["IMEC", "NUTIVIT"];
 
 const STATUS_OPTIONS = [
   { value: "pendente", label: "Pendente" },
-  { value: "cobrado", label: "Cobrado" },
+  { value: "programado", label: "Programado" },
   { value: "pago", label: "Pago" },
+  { value: "nao_aplicado", label: "Não aplicado" },
 ] as const;
 
 type Status = (typeof STATUS_OPTIONS)[number]["value"];
@@ -85,9 +86,11 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     pendente:
       "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-300 dark:border-amber-400/30",
-    cobrado:
+    programado:
       "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-300 dark:border-blue-400/30",
     pago: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-300 dark:border-emerald-400/30",
+    nao_aplicado:
+      "bg-zinc-500/15 text-zinc-700 border-zinc-500/30 dark:text-zinc-300 dark:border-zinc-400/30",
   };
   const label = STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status;
   return (
@@ -328,8 +331,8 @@ function ImecInvestimentoPage() {
         <div>
           <h1 className="font-display text-3xl font-bold">Investimento</h1>
           <p className="text-muted-foreground mt-1">
-            NFs faturadas que geram verba de investimento (IMEC/NUTIVIT), com controle de cobrança e
-            pagamento.
+            NFs faturadas que geram verba de investimento (IMEC/NUTIVIT), com controle de
+            programação e pagamento.
           </p>
         </div>
         {canEdit && (
@@ -487,7 +490,7 @@ function ImecInvestimentoPage() {
                 />
               </th>
               <th>Status</th>
-              <th>Cobrado em</th>
+              <th>Programado para</th>
               <th>Pago em</th>
               <th>Observação</th>
               {canEdit && <th style={{ width: 40 }} />}
