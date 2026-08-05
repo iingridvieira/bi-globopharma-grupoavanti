@@ -4,14 +4,14 @@ import { forwardRef, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, MESES_BR } from "@/lib/format";
-import { Send, Users, Building2, ImageDown } from "lucide-react";
+import { Send, FileText, Percent, Building2, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/imec/")({
   head: () => ({
     meta: [
       { title: "BI IMEC" },
-      { name: "description", content: "Dashboard executivo do BI IMEC." },
+      { name: "description", content: "Dashboard executivo do BI IMEC — enviado x faturado por cliente." },
     ],
   }),
   component: ImecDashboard,
@@ -21,7 +21,14 @@ const now = new Date();
 const ANO_ATUAL = now.getFullYear();
 const MES_ATUAL = now.getMonth() + 1;
 
-type ResumoRow = { id: string; nome: string; total: number; pedidos: number };
+type ResumoRow = {
+  id: string;
+  nome: string;
+  enviado: number;
+  faturado: number;
+  pedidos: number;
+  nfs: number;
+};
 
 function ImecDashboard() {
   const [ANO, setAno] = useState(ANO_ATUAL);
@@ -35,34 +42,58 @@ function ImecDashboard() {
       const start = `${ANO}-${String(MES).padStart(2, "0")}-01`;
       const endDate = new Date(ANO, MES, 0).toISOString().slice(0, 10);
 
-      const { data: pedidos, error } = await supabase
-        .from("imec_pedidos_enviados")
-        .select("cliente_id,valor,imec_clientes(nome)")
-        .gte("data", start)
-        .lte("data", endDate);
-      if (error) throw error;
+      const [pedidosRes, nfsRes] = await Promise.all([
+        supabase
+          .from("imec_pedidos_enviados")
+          .select("cliente_id,valor,imec_clientes(nome)")
+          .gte("data", start)
+          .lte("data", endDate),
+        supabase
+          .from("imec_notas_fiscais")
+          .select("cliente_id,valor,imec_clientes(nome)")
+          .gte("data", start)
+          .lte("data", endDate)
+          .limit(10000),
+      ]);
+      if (pedidosRes.error) throw pedidosRes.error;
+      if (nfsRes.error) throw nfsRes.error;
 
       const map = new Map<string, ResumoRow>();
-      (pedidos ?? []).forEach((p) => {
-        const nome = p.imec_clientes?.nome ?? "—";
-        const row = map.get(p.cliente_id) ?? { id: p.cliente_id, nome, total: 0, pedidos: 0 };
-        row.total += Number(p.valor);
-        row.pedidos += 1;
-        map.set(p.cliente_id, row);
+      const get = (id: string, nome: string) => {
+        const row = map.get(id) ?? { id, nome, enviado: 0, faturado: 0, pedidos: 0, nfs: 0 };
+        map.set(id, row);
+        return row;
+      };
+
+      (pedidosRes.data ?? []).forEach((p) => {
+        const r = get(p.cliente_id, p.imec_clientes?.nome ?? "—");
+        r.enviado += Number(p.valor);
+        r.pedidos += 1;
+      });
+      (nfsRes.data ?? []).forEach((n) => {
+        const r = get(n.cliente_id, n.imec_clientes?.nome ?? "—");
+        r.faturado += Number(n.valor);
+        r.nfs += 1;
       });
 
-      const rows = Array.from(map.values()).sort((a, b) => b.total - a.total);
+      const rows = Array.from(map.values()).sort((a, b) => b.faturado - a.faturado || b.enviado - a.enviado);
       const totals = rows.reduce(
-        (a, r) => ({ total: a.total + r.total, pedidos: a.pedidos + r.pedidos }),
-        { total: 0, pedidos: 0 },
+        (a, r) => ({
+          enviado: a.enviado + r.enviado,
+          faturado: a.faturado + r.faturado,
+          pedidos: a.pedidos + r.pedidos,
+          nfs: a.nfs + r.nfs,
+        }),
+        { enviado: 0, faturado: 0, pedidos: 0, nfs: 0 },
       );
 
       return { rows, totals, clientesAtendidos: rows.length };
     },
   });
 
-  const t = data?.totals ?? { total: 0, pedidos: 0 };
+  const t = data?.totals ?? { enviado: 0, faturado: 0, pedidos: 0, nfs: 0 };
   const clientesAtendidos = data?.clientesAtendidos ?? 0;
+  const conversao = t.enviado > 0 ? (t.faturado / t.enviado) * 100 : 0;
 
   async function exportarPNG() {
     if (!shareRef.current) return;
@@ -94,6 +125,9 @@ function ImecDashboard() {
             Mês de referência · {String(MES).padStart(2, "0")}/{ANO}
           </div>
           <h1 className="font-display text-3xl font-bold mt-1">Dashboard BI IMEC</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Comparativo entre valor enviado e valor faturado no mês, por cliente.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -132,17 +166,18 @@ function ImecDashboard() {
         </div>
       </header>
 
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Total enviado" value={formatBRL(t.total)} icon={Send} accent />
-        <StatCard label="Pedidos no mês" value={String(t.pedidos)} icon={Users} />
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <StatCard label="Enviado no mês" value={formatBRL(t.enviado)} icon={Send} />
+        <StatCard label="Faturado no mês" value={formatBRL(t.faturado)} icon={FileText} accent />
+        <StatCard label="Conversão" value={`${conversao.toFixed(1).replace(".", ",")}%`} icon={Percent} />
         <StatCard label="Clientes atendidos" value={String(clientesAtendidos)} icon={Building2} />
       </section>
 
       <section className="bi-card overflow-hidden mb-8">
         <header className="px-6 py-4 border-b border-border">
-          <h2 className="font-display text-lg font-semibold">Resumo por cliente</h2>
+          <h2 className="font-display text-lg font-semibold">Enviado × Faturado por cliente</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Pedidos enviados no mês selecionado.
+            Pedidos enviados e notas fiscais faturadas no mês selecionado.
           </p>
         </header>
         <div className="overflow-x-auto">
@@ -151,37 +186,59 @@ function ImecDashboard() {
               <tr>
                 <th>Cliente</th>
                 <th className="text-right">Pedidos</th>
-                <th className="text-right">Total enviado</th>
+                <th className="text-right">Enviado</th>
+                <th className="text-right">NFs</th>
+                <th className="text-right">Faturado</th>
+                <th className="text-right">Diferença</th>
+                <th className="text-right">% Faturado</th>
               </tr>
             </thead>
             <tbody>
               {isLoading && (
                 <tr>
-                  <td colSpan={3} className="text-center text-muted-foreground py-10">
+                  <td colSpan={7} className="text-center text-muted-foreground py-10">
                     Carregando…
                   </td>
                 </tr>
               )}
               {!isLoading && (data?.rows.length ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={3} className="text-center text-muted-foreground py-10">
-                    Nenhum pedido cadastrado neste mês.
+                  <td colSpan={7} className="text-center text-muted-foreground py-10">
+                    Nenhum movimento neste mês.
                   </td>
                 </tr>
               )}
-              {data?.rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="font-medium">{r.nome}</td>
-                  <td className="text-right tabular-nums">{r.pedidos}</td>
-                  <td className="text-right tabular-nums font-semibold">{formatBRL(r.total)}</td>
-                </tr>
-              ))}
+              {data?.rows.map((r) => {
+                const diff = r.faturado - r.enviado;
+                const pct = r.enviado > 0 ? (r.faturado / r.enviado) * 100 : null;
+                return (
+                  <tr key={r.id}>
+                    <td className="font-medium">{r.nome}</td>
+                    <td className="text-right tabular-nums">{r.pedidos}</td>
+                    <td className="text-right tabular-nums">{formatBRL(r.enviado)}</td>
+                    <td className="text-right tabular-nums">{r.nfs}</td>
+                    <td className="text-right tabular-nums font-semibold">{formatBRL(r.faturado)}</td>
+                    <td
+                      className={`text-right tabular-nums ${diff >= 0 ? "text-success" : "text-warning"}`}
+                    >
+                      {formatBRL(diff)}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {pct == null ? "—" : `${pct.toFixed(0)}%`}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr>
                 <td>TOTAL GERAL</td>
                 <td className="text-right tabular-nums">{t.pedidos}</td>
-                <td className="text-right tabular-nums text-primary">{formatBRL(t.total)}</td>
+                <td className="text-right tabular-nums">{formatBRL(t.enviado)}</td>
+                <td className="text-right tabular-nums">{t.nfs}</td>
+                <td className="text-right tabular-nums text-primary">{formatBRL(t.faturado)}</td>
+                <td className="text-right tabular-nums">{formatBRL(t.faturado - t.enviado)}</td>
+                <td className="text-right tabular-nums">{conversao.toFixed(0)}%</td>
               </tr>
             </tfoot>
           </table>
@@ -239,10 +296,12 @@ function StatCard({
   );
 }
 
+type Totals = { enviado: number; faturado: number; pedidos: number; nfs: number };
+
 type ShareCardProps = {
   mes: number;
   ano: number;
-  totals: { total: number; pedidos: number };
+  totals: Totals;
   clientesAtendidos: number;
   rows: ResumoRow[];
 };
@@ -250,9 +309,10 @@ type ShareCardProps = {
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardImpl(props, ref) {
   const { mes, ano, totals, clientesAtendidos, rows } = props;
   const mesNome = MESES_BR[mes - 1];
-  const sorted = [...rows].sort((a, b) => b.total - a.total);
+  const sorted = [...rows].sort((a, b) => b.faturado - a.faturado);
   const geradoEm = new Date().toLocaleDateString("pt-BR");
   const AZUL = "#044CB6";
+  const conversao = totals.enviado > 0 ? (totals.faturado / totals.enviado) * 100 : 0;
 
   return (
     <div
@@ -299,12 +359,13 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
       </div>
 
       <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 24 }}
       >
         {[
-          { label: "TOTAL ENVIADO", value: formatBRL(totals.total), highlight: true },
-          { label: "PEDIDOS NO MÊS", value: String(totals.pedidos) },
-          { label: "CLIENTES ATENDIDOS", value: String(clientesAtendidos) },
+          { label: "ENVIADO", value: formatBRL(totals.enviado) },
+          { label: "FATURADO", value: formatBRL(totals.faturado), highlight: true },
+          { label: "CONVERSÃO", value: `${conversao.toFixed(1).replace(".", ",")}%` },
+          { label: "CLIENTES", value: String(clientesAtendidos) },
         ].map((s) => (
           <div
             key={s.label}
@@ -320,7 +381,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
             </div>
             <div
               style={{
-                fontSize: 26,
+                fontSize: 22,
                 fontWeight: 800,
                 marginTop: 6,
                 color: s.highlight ? AZUL : "#fff",
@@ -352,7 +413,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
             textTransform: "uppercase",
           }}
         >
-          Resumo por cliente
+          Enviado × Faturado por cliente
         </div>
         <table
           style={{
@@ -373,8 +434,9 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
               }}
             >
               <th style={{ textAlign: "left", padding: "10px 14px", fontWeight: 700 }}>Cliente</th>
-              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Pedidos</th>
-              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Total</th>
+              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Enviado</th>
+              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Faturado</th>
+              <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>%</th>
             </tr>
           </thead>
           <tbody>
@@ -387,18 +449,24 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
                 }}
               >
                 <td style={{ padding: "9px 14px", fontWeight: 600 }}>{r.nome}</td>
-                <td style={{ padding: "9px 14px", textAlign: "right" }}>{r.pedidos}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right" }}>{formatBRL(r.enviado)}</td>
                 <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700 }}>
-                  {formatBRL(r.total)}
+                  {formatBRL(r.faturado)}
+                </td>
+                <td style={{ padding: "9px 14px", textAlign: "right" }}>
+                  {r.enviado > 0 ? `${((r.faturado / r.enviado) * 100).toFixed(0)}%` : "—"}
                 </td>
               </tr>
             ))}
             <tr style={{ background: AZUL, color: "#fff", fontWeight: 800 }}>
               <td style={{ padding: "12px 14px" }}>TOTAL GERAL</td>
-              <td style={{ padding: "12px 14px", textAlign: "right" }}>{totals.pedidos}</td>
               <td style={{ padding: "12px 14px", textAlign: "right" }}>
-                {formatBRL(totals.total)}
+                {formatBRL(totals.enviado)}
               </td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>
+                {formatBRL(totals.faturado)}
+              </td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>{conversao.toFixed(0)}%</td>
             </tr>
           </tbody>
         </table>
