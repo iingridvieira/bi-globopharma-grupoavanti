@@ -5,13 +5,16 @@ import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { SmallStyles } from "./pedidos";
-import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText, ImageDown } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
+import { EntregasReportCard, type EntregaReportRow } from "@/components/EntregasReportCard";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
+import { toPng } from "html-to-image";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
