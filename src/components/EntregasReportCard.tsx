@@ -49,9 +49,12 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
   const pctEntregue = total ? (entregues / total) * 100 : 0;
 
   const lista = [...rows].sort((a, b) => a.cliente.localeCompare(b.cliente, "pt-BR") || a.numero.localeCompare(b.numero, "pt-BR"));
-  const MAX_LINHAS = 45;
+  const MAX_LINHAS = 90;
   const visiveis = lista.slice(0, MAX_LINHAS);
   const restantes = lista.length - visiveis.length;
+  const meio = Math.ceil(visiveis.length / 2);
+  const leftRows = visiveis.slice(0, meio);
+  const rightRows = visiveis.slice(meio);
 
   return (
     <div
@@ -127,73 +130,82 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
         {resumo.length === 0 && <div style={{ color: "#9ca39a", fontSize: 14 }}>Sem notas fiscais no período.</div>}
       </div>
 
-      {/* Tabela */}
-      <div style={{ border: "1px solid #3a3f34", borderRadius: 8, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
-          <colgroup>
-            <col style={{ width: 90 }} />
-            <col />
-            <col style={{ width: 130 }} />
-            <col style={{ width: 130 }} />
-            <col style={{ width: 70 }} />
-            <col style={{ width: 150 }} />
-          </colgroup>
-          <thead>
-            <tr style={{ background: "rgba(255,255,255,0.06)" }}>
-              {["NF", "Cliente", "Faturamento", "Entrega", "Dias", "Situação"].map((h, i) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: i >= 2 ? (i === 5 ? "right" : "center") : "left",
-                    fontSize: 11,
-                    letterSpacing: 1.5,
-                    textTransform: "uppercase",
-                    color: "#9ca39a",
-                    fontWeight: 700,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {visiveis.map((r, idx) => (
-              <tr key={`${r.numero}-${idx}`} style={{ background: idx % 2 ? "rgba(255,255,255,0.02)" : "transparent" }}>
-                <td style={{ padding: "8px 12px", fontWeight: 700, whiteSpace: "nowrap" }}>{r.numero}</td>
-                <td style={{ padding: "8px 12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.cliente}</td>
-                <td style={{ padding: "8px 12px", textAlign: "center", color: "#c9cec6", whiteSpace: "nowrap" }}>{r.dataFaturamento}</td>
-                <td style={{ padding: "8px 12px", textAlign: "center", color: "#c9cec6", whiteSpace: "nowrap" }}>{r.dataEntrega || "—"}</td>
-                <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700 }}>{r.dias == null ? "—" : r.dias}</td>
-                <td style={{ padding: "8px 12px", textAlign: "right" }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "2px 10px",
-                      borderRadius: 999,
-                      fontSize: 11,
-                      lineHeight: "16px",
-                      fontWeight: 700,
-                      whiteSpace: "nowrap",
-                      color: STATUS_CORES[r.status] ?? "#9ca39a",
-                      border: `1px solid ${STATUS_CORES[r.status] ?? "#9ca39a"}`,
-                    }}
-                  >
-                    {r.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {restantes > 0 && (
-          <div style={{ padding: "10px 12px", fontSize: 12, color: "#9ca39a", background: "rgba(255,255,255,0.04)" }}>
-            + {restantes} NF(s) não exibidas neste relatório.
+      {/* Tabelas lado a lado */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {[leftRows, rightRows].map((chunk, colIdx) => (
+          <div key={colIdx} style={{ border: "1px solid #3a3f34", borderRadius: 8, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+              <colgroup>
+                <col style={{ width: 70 }} />
+                <col />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 48 }} />
+                <col style={{ width: 110 }} />
+              </colgroup>
+              <thead>
+                <tr style={{ background: "rgba(255,255,255,0.06)" }}>
+                  {["NF", "Cliente", "Fat.", "Ent.", "Dias", "Situação"].map((h, i) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "8px 8px",
+                        textAlign: i >= 2 ? (i === 5 ? "right" : "center") : "left",
+                        fontSize: 10,
+                        letterSpacing: 1,
+                        textTransform: "uppercase",
+                        color: "#9ca39a",
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {chunk.map((r, idx) => (
+                  <tr key={`${r.numero}-${colIdx}-${idx}`} style={{ background: idx % 2 ? "rgba(255,255,255,0.02)" : "transparent" }}>
+                    <td style={{ padding: "6px 8px", fontWeight: 700, whiteSpace: "nowrap" }}>{r.numero}</td>
+                    <td style={{ padding: "6px 8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.cliente}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "center", color: "#c9cec6", whiteSpace: "nowrap" }}>{r.dataFaturamento}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "center", color: "#c9cec6", whiteSpace: "nowrap" }}>{r.dataEntrega || "—"}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "center", fontWeight: 700 }}>{r.dias == null ? "—" : r.dias}</td>
+                    <td style={{ padding: "6px 8px", textAlign: "right" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "1px 8px",
+                          borderRadius: 999,
+                          fontSize: 10,
+                          lineHeight: "14px",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                          color: STATUS_CORES[r.status] ?? "#9ca39a",
+                          border: `1px solid ${STATUS_CORES[r.status] ?? "#9ca39a"}`,
+                        }}
+                      >
+                        {r.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {chunk.length === 0 && (
+              <div style={{ padding: "10px 8px", fontSize: 12, color: "#9ca39a", background: "rgba(255,255,255,0.04)" }}>
+                Sem itens.
+              </div>
+            )}
           </div>
-        )}
+        ))}
       </div>
+      {restantes > 0 && (
+        <div style={{ padding: "10px 12px", fontSize: 12, color: "#9ca39a", background: "rgba(255,255,255,0.04)", borderRadius: 8, marginTop: 12 }}>
+          + {restantes} NF(s) não exibidas neste relatório.
+        </div>
+      )}
     </div>
   );
 });
