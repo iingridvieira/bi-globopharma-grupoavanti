@@ -790,8 +790,14 @@ function NFsPage() {
         </table>
       </div>
 
+      {/* Card off-screen para exportação PNG do relatório de entregas */}
+      <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
+        <EntregasReportCard ref={reportRef} periodo={periodoLabel} rows={entregasReportRows} />
+      </div>
+
       <SmallStyles />
     </div>
+
   );
 }
 
