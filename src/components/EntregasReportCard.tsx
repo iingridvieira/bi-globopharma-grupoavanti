@@ -60,11 +60,11 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
     <div
       ref={ref}
       style={{
-        width: 1080,
+        width: 1280,
         background: "linear-gradient(180deg, #0E0F0C 0%, #1A1D17 100%)",
         color: "#E5E7E1",
         fontFamily: "'Inter', system-ui, sans-serif",
-        padding: 48,
+        padding: 44,
         boxSizing: "border-box",
       }}
     >
@@ -134,14 +134,14 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {[leftRows, rightRows].map((chunk, colIdx) => (
           <div key={colIdx} style={{ border: "1px solid #3a3f34", borderRadius: 8, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, tableLayout: "fixed" }}>
               <colgroup>
-                <col style={{ width: 70 }} />
+                <col style={{ width: 65 }} />
                 <col />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 42 }} />
                 <col style={{ width: 95 }} />
-                <col style={{ width: 95 }} />
-                <col style={{ width: 48 }} />
-                <col style={{ width: 110 }} />
               </colgroup>
               <thead>
                 <tr style={{ background: "rgba(255,255,255,0.06)" }}>
@@ -174,17 +174,17 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
                     <td style={{ padding: "6px 8px", textAlign: "center", fontWeight: 700 }}>{r.dias == null ? "—" : r.dias}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>
                       <span
-                        style={{
-                          display: "inline-block",
-                          padding: "1px 8px",
-                          borderRadius: 999,
-                          fontSize: 10,
-                          lineHeight: "14px",
-                          fontWeight: 700,
-                          whiteSpace: "nowrap",
-                          color: STATUS_CORES[r.status] ?? "#9ca39a",
-                          border: `1px solid ${STATUS_CORES[r.status] ?? "#9ca39a"}`,
-                        }}
+                      style={{
+                        display: "inline-block",
+                        padding: "1px 7px",
+                        borderRadius: 999,
+                        fontSize: 9,
+                        lineHeight: "13px",
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        color: STATUS_CORES[r.status] ?? "#9ca39a",
+                        border: `1px solid ${STATUS_CORES[r.status] ?? "#9ca39a"}`,
+                      }}
                       >
                         {r.status}
                       </span>
