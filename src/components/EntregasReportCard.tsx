@@ -49,9 +49,12 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
   const pctEntregue = total ? (entregues / total) * 100 : 0;
 
   const lista = [...rows].sort((a, b) => a.cliente.localeCompare(b.cliente, "pt-BR") || a.numero.localeCompare(b.numero, "pt-BR"));
-  const MAX_LINHAS = 45;
+  const MAX_LINHAS = 90;
   const visiveis = lista.slice(0, MAX_LINHAS);
   const restantes = lista.length - visiveis.length;
+  const meio = Math.ceil(visiveis.length / 2);
+  const leftRows = visiveis.slice(0, meio);
+  const rightRows = visiveis.slice(meio);
 
   return (
     <div
