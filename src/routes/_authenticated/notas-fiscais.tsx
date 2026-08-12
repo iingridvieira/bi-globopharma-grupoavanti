@@ -5,13 +5,16 @@ import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { SmallStyles } from "./pedidos";
-import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText, ImageDown } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
+import { EntregasReportCard, type EntregaReportRow } from "@/components/EntregasReportCard";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
+import { toPng } from "html-to-image";
 import { toast } from "sonner";
+
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
@@ -438,14 +441,75 @@ function NFsPage() {
     }
   }
 
+  // ===== Relatório de entregas em PNG (mês selecionado) =====
+  const entregasReportRows = useMemo<EntregaReportRow[]>(
+    () =>
+      view.map((n) => {
+        const e = entregasMap?.[n.numero];
+        const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+        const dias = d && n.data ? Math.round((new Date(d).getTime() - new Date(n.data).getTime()) / 86400000) : null;
+        return {
+          numero: String(n.numero ?? ""),
+          cliente: n.clientes?.nome ?? "",
+          dataFaturamento: formatDateBR(n.data),
+          dataEntrega: d ? formatDateBR(d) : "",
+          dias: dias != null && Number.isFinite(dias) ? dias : null,
+          status: e?.status ?? "Não Coletada",
+        };
+      }),
+    [view, entregasMap],
+  );
+
+  const periodoLabel = useMemo(() => {
+    const anosLbl = anos.length > 0 ? anos.slice().sort().join(", ") : "Todos os anos";
+    const mesesLbl = meses.length > 0 ? meses.map((m) => MESES_BR[Number(m) - 1]).join(", ") : "Todos os meses";
+    return `${mesesLbl} · ${anosLbl}`;
+  }, [meses, anos]);
+
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [exportingPng, setExportingPng] = useState(false);
+
+  async function exportarRelatorioEntregasPNG() {
+    if (!reportRef.current) return;
+    if (entregasReportRows.length === 0) { toast.error("Nenhuma NF no período selecionado."); return; }
+    setExportingPng(true);
+    try {
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const dataUrl = await toPng(reportRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: "#0E0F0C" });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `relatorio-entregas-${periodoLabel.replace(/[^\w]+/g, "-").toLowerCase()}.png`;
+      a.click();
+      toast.success("Relatório de entregas gerado");
+    } catch (e) {
+      toast.error("Erro ao gerar imagem: " + (e as Error).message);
+    } finally {
+      setExportingPng(false);
+    }
+  }
+
   function limparFiltros() {
     setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]); setProdutosSel([]);
   }
 
 
+
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
-      <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
+        <button
+          type="button"
+          onClick={() => void exportarRelatorioEntregasPNG()}
+          disabled={exportingPng}
+          className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+          title="Exportar relatório de entregas do período selecionado (PNG)"
+        >
+          <ImageDown className="h-4 w-4" /> {exportingPng ? "Gerando…" : "Relatório de Entregas (PNG)"}
+        </button>
+      </div>
+
       <p className="text-muted-foreground mt-1">Pesquise por NF ou produto. Filtre por período, cliente e operação. Clique em uma linha para ver os itens.</p>
 
       {/* Barra de busca */}
@@ -726,8 +790,14 @@ function NFsPage() {
         </table>
       </div>
 
+      {/* Card off-screen para exportação PNG do relatório de entregas */}
+      <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
+        <EntregasReportCard ref={reportRef} periodo={periodoLabel} rows={entregasReportRows} />
+      </div>
+
       <SmallStyles />
     </div>
+
   );
 }
 
