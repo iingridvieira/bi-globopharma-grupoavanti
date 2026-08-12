@@ -497,7 +497,19 @@ function NFsPage() {
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
-      <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
+        <button
+          type="button"
+          onClick={() => void exportarRelatorioEntregasPNG()}
+          disabled={exportingPng}
+          className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/20 disabled:opacity-50"
+          title="Exportar relatório de entregas do período selecionado (PNG)"
+        >
+          <ImageDown className="h-4 w-4" /> {exportingPng ? "Gerando…" : "Relatório de Entregas (PNG)"}
+        </button>
+      </div>
+
       <p className="text-muted-foreground mt-1">Pesquise por NF ou produto. Filtre por período, cliente e operação. Clique em uma linha para ver os itens.</p>
 
       {/* Barra de busca */}
