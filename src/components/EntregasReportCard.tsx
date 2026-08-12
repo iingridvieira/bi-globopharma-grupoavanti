@@ -60,11 +60,11 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
     <div
       ref={ref}
       style={{
-        width: 1080,
+        width: 1280,
         background: "linear-gradient(180deg, #0E0F0C 0%, #1A1D17 100%)",
         color: "#E5E7E1",
         fontFamily: "'Inter', system-ui, sans-serif",
-        padding: 48,
+        padding: 44,
         boxSizing: "border-box",
       }}
     >
