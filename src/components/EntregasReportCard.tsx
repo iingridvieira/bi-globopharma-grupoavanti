@@ -49,7 +49,7 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
   const pctEntregue = total ? (entregues / total) * 100 : 0;
 
   const lista = [...rows].sort((a, b) => a.cliente.localeCompare(b.cliente, "pt-BR") || a.numero.localeCompare(b.numero, "pt-BR"));
-  const MAX_LINHAS = 40;
+  const MAX_LINHAS = 45;
   const visiveis = lista.slice(0, MAX_LINHAS);
   const restantes = lista.length - visiveis.length;
 
@@ -129,7 +129,15 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
 
       {/* Tabela */}
       <div style={{ border: "1px solid #3a3f34", borderRadius: 8, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: 90 }} />
+            <col />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 70 }} />
+            <col style={{ width: 150 }} />
+          </colgroup>
           <thead>
             <tr style={{ background: "rgba(255,255,255,0.06)" }}>
               {["NF", "Cliente", "Faturamento", "Entrega", "Dias", "Situação"].map((h, i) => (
@@ -143,6 +151,7 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
                     textTransform: "uppercase",
                     color: "#9ca39a",
                     fontWeight: 700,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {h}
@@ -153,19 +162,21 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
           <tbody>
             {visiveis.map((r, idx) => (
               <tr key={`${r.numero}-${idx}`} style={{ background: idx % 2 ? "rgba(255,255,255,0.02)" : "transparent" }}>
-                <td style={{ padding: "9px 12px", fontWeight: 700 }}>{r.numero}</td>
-                <td style={{ padding: "9px 12px" }}>{r.cliente}</td>
-                <td style={{ padding: "9px 12px", textAlign: "center", color: "#c9cec6" }}>{r.dataFaturamento}</td>
-                <td style={{ padding: "9px 12px", textAlign: "center", color: "#c9cec6" }}>{r.dataEntrega || "—"}</td>
-                <td style={{ padding: "9px 12px", textAlign: "center", fontWeight: 700 }}>{r.dias == null ? "—" : r.dias}</td>
-                <td style={{ padding: "9px 12px", textAlign: "right" }}>
+                <td style={{ padding: "8px 12px", fontWeight: 700, whiteSpace: "nowrap" }}>{r.numero}</td>
+                <td style={{ padding: "8px 12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.cliente}</td>
+                <td style={{ padding: "8px 12px", textAlign: "center", color: "#c9cec6", whiteSpace: "nowrap" }}>{r.dataFaturamento}</td>
+                <td style={{ padding: "8px 12px", textAlign: "center", color: "#c9cec6", whiteSpace: "nowrap" }}>{r.dataEntrega || "—"}</td>
+                <td style={{ padding: "8px 12px", textAlign: "center", fontWeight: 700 }}>{r.dias == null ? "—" : r.dias}</td>
+                <td style={{ padding: "8px 12px", textAlign: "right" }}>
                   <span
                     style={{
                       display: "inline-block",
-                      padding: "3px 10px",
+                      padding: "2px 10px",
                       borderRadius: 999,
                       fontSize: 11,
+                      lineHeight: "16px",
                       fontWeight: 700,
+                      whiteSpace: "nowrap",
                       color: STATUS_CORES[r.status] ?? "#9ca39a",
                       border: `1px solid ${STATUS_CORES[r.status] ?? "#9ca39a"}`,
                     }}
