@@ -174,17 +174,17 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
                     <td style={{ padding: "6px 8px", textAlign: "center", fontWeight: 700 }}>{r.dias == null ? "—" : r.dias}</td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>
                       <span
-                        style={{
-                          display: "inline-block",
-                          padding: "1px 8px",
-                          borderRadius: 999,
-                          fontSize: 10,
-                          lineHeight: "14px",
-                          fontWeight: 700,
-                          whiteSpace: "nowrap",
-                          color: STATUS_CORES[r.status] ?? "#9ca39a",
-                          border: `1px solid ${STATUS_CORES[r.status] ?? "#9ca39a"}`,
-                        }}
+                      style={{
+                        display: "inline-block",
+                        padding: "1px 7px",
+                        borderRadius: 999,
+                        fontSize: 9,
+                        lineHeight: "13px",
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        color: STATUS_CORES[r.status] ?? "#9ca39a",
+                        border: `1px solid ${STATUS_CORES[r.status] ?? "#9ca39a"}`,
+                      }}
                       >
                         {r.status}
                       </span>
