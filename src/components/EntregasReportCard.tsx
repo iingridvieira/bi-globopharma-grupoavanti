@@ -76,7 +76,7 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
         }}
       >
         <div>
-          <div style={{ fontSize: 13, letterSpacing: 3, color: "#F26A1F", fontWeight: 700, textTransform: "uppercase" }}>
+          <div style={{ fontSize: 13, letterSpacing: 2, color: "#F26A1F", fontWeight: 700, textTransform: "uppercase", whiteSpace: "nowrap" }}>
             BI Globo Pharma · Relatório de Entregas
           </div>
           <div style={{ fontSize: 40, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{periodo}</div>
