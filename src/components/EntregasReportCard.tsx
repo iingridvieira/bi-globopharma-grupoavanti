@@ -134,14 +134,14 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {[leftRows, rightRows].map((chunk, colIdx) => (
           <div key={colIdx} style={{ border: "1px solid #3a3f34", borderRadius: 8, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, tableLayout: "fixed" }}>
               <colgroup>
-                <col style={{ width: 70 }} />
+                <col style={{ width: 65 }} />
                 <col />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 80 }} />
+                <col style={{ width: 42 }} />
                 <col style={{ width: 95 }} />
-                <col style={{ width: 95 }} />
-                <col style={{ width: 48 }} />
-                <col style={{ width: 110 }} />
               </colgroup>
               <thead>
                 <tr style={{ background: "rgba(255,255,255,0.06)" }}>
