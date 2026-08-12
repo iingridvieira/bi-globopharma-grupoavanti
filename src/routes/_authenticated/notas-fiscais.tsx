@@ -441,9 +441,58 @@ function NFsPage() {
     }
   }
 
+  // ===== Relatório de entregas em PNG (mês selecionado) =====
+  const entregasReportRows = useMemo<EntregaReportRow[]>(
+    () =>
+      view.map((n) => {
+        const e = entregasMap?.[n.numero];
+        const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+        const dias = d && n.data ? Math.round((new Date(d).getTime() - new Date(n.data).getTime()) / 86400000) : null;
+        return {
+          numero: String(n.numero ?? ""),
+          cliente: n.clientes?.nome ?? "",
+          dataFaturamento: formatDateBR(n.data),
+          dataEntrega: d ? formatDateBR(d) : "",
+          dias: dias != null && Number.isFinite(dias) ? dias : null,
+          status: e?.status ?? "Não Coletada",
+        };
+      }),
+    [view, entregasMap],
+  );
+
+  const periodoLabel = useMemo(() => {
+    const anosLbl = anos.length > 0 ? anos.slice().sort().join(", ") : "Todos os anos";
+    const mesesLbl = meses.length > 0 ? meses.map((m) => MESES_BR[Number(m) - 1]).join(", ") : "Todos os meses";
+    return `${mesesLbl} · ${anosLbl}`;
+  }, [meses, anos]);
+
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [exportingPng, setExportingPng] = useState(false);
+
+  async function exportarRelatorioEntregasPNG() {
+    if (!reportRef.current) return;
+    if (entregasReportRows.length === 0) { toast.error("Nenhuma NF no período selecionado."); return; }
+    setExportingPng(true);
+    try {
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const dataUrl = await toPng(reportRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: "#0E0F0C" });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `relatorio-entregas-${periodoLabel.replace(/[^\w]+/g, "-").toLowerCase()}.png`;
+      a.click();
+      toast.success("Relatório de entregas gerado");
+    } catch (e) {
+      toast.error("Erro ao gerar imagem: " + (e as Error).message);
+    } finally {
+      setExportingPng(false);
+    }
+  }
+
   function limparFiltros() {
     setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]); setProdutosSel([]);
   }
+
+
 
 
   return (
