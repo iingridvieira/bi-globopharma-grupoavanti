@@ -831,24 +831,7 @@ function NFsPage() {
       </div>
 
       <div className="bi-card mt-4 overflow-hidden">
-        <div className="flex items-center justify-between gap-3 flex-wrap px-3 py-1.5">
-          <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground flex-wrap">
-            <span className="font-semibold text-foreground/80">
-              Andamento (Agendada → Coletada → Expedida → Entregue):
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-blue-400" /> feito
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-amber-400" /> atraso sinalizado
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-muted border border-border" /> pendente
-            </span>
-            <span className="text-muted-foreground/70">
-              · passe o mouse na bolinha pra ver a data
-            </span>
-          </div>
+        <div className="flex justify-end px-3 py-1.5">
           <ClearFiltersButton filters={colFilters} sorts={colSorts} onReset={resetColFilters} />
         </div>
         <table className="bi-table">
