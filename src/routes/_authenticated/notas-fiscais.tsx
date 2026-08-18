@@ -7,7 +7,11 @@ import { createPortal } from "react-dom";
 import { SmallStyles } from "./pedidos";
 import { ChevronDown, ChevronRight, Search, X, FileDown, MessageSquareText } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
-import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
+import {
+  ColumnFilterHeader,
+  ClearFiltersButton,
+  useColumnFilters,
+} from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
@@ -15,15 +19,27 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
 
-
-
 const RESPONSAVEIS: Record<string, string[]> = {
-  Alexandre: ["ANDORINHA", "BANDEIRANTES", "DISMAP", "IMPACTA MED", "MAXIFARMA", "NÚCLEO FARMA", "DISMED", "MED VALLE", "GEMELI"],
+  Alexandre: [
+    "ANDORINHA",
+    "BANDEIRANTES",
+    "DISMAP",
+    "IMPACTA MED",
+    "MAXIFARMA",
+    "NÚCLEO FARMA",
+    "DISMED",
+    "MED VALLE",
+    "GEMELI",
+  ],
   Eduardo: ["CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "FARMA CONDE", "MEDLOG"],
 };
 
 function normNome(s: string): string {
-  return (s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+  return (s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 const EDITOR_ENTREGAS_EMAIL = "avantipharma.comercial@gmail.com";
@@ -55,7 +71,8 @@ function NFsPage() {
 
   const { data: clientes } = useQuery({
     queryKey: ["clientes"],
-    queryFn: async () => (await supabase.from("clientes").select("id,nome").order("nome")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("clientes").select("id,nome").order("nome")).data ?? [],
   });
 
   // Quando busca por produto, primeiro coleta nota_fiscal_ids dos itens que casam.
@@ -88,7 +105,10 @@ function NFsPage() {
           .range(from, from + PAGE - 1);
         if (error) break;
         const rows = data ?? [];
-        rows.forEach((r) => { const p = (r.produto ?? "").trim(); if (p) set.add(p); });
+        rows.forEach((r) => {
+          const p = (r.produto ?? "").trim();
+          if (p) set.add(p);
+        });
         if (rows.length < PAGE) break;
       }
       return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
@@ -115,12 +135,22 @@ function NFsPage() {
     },
   });
 
-
   const { data: nfs, isLoading } = useQuery({
-    queryKey: ["nfs", anos, meses, clientesSel, buscaTrim, nfIdsPorProduto, produtosSel, nfIdsPorProdutosSel, (clientes ?? []).length],
-    enabled: produtosSel.length === 0 || (nfIdsPorProdutosSel != null),
+    queryKey: [
+      "nfs",
+      anos,
+      meses,
+      clientesSel,
+      buscaTrim,
+      nfIdsPorProduto,
+      produtosSel,
+      nfIdsPorProdutosSel,
+      (clientes ?? []).length,
+    ],
+    enabled: produtosSel.length === 0 || nfIdsPorProdutosSel != null,
     queryFn: async () => {
-      let q = supabase.from("notas_fiscais")
+      let q = supabase
+        .from("notas_fiscais")
         .select("id,data,numero,valor,desconto,cliente_id,observacao,clientes(nome)")
         .order("data", { ascending: false })
         .limit(5000);
@@ -130,7 +160,8 @@ function NFsPage() {
       const mesesNum = meses.map(Number);
       if (anosNum.length > 0 || mesesNum.length > 0) {
         const anosAplicar = anosNum.length > 0 ? anosNum : anosOpcoes;
-        const mesesAplicar = mesesNum.length > 0 ? mesesNum : Array.from({ length: 12 }, (_, i) => i + 1);
+        const mesesAplicar =
+          mesesNum.length > 0 ? mesesNum : Array.from({ length: 12 }, (_, i) => i + 1);
         const ranges: string[] = [];
         anosAplicar.forEach((a) => {
           mesesAplicar.forEach((m) => {
@@ -159,7 +190,6 @@ function NFsPage() {
         q = q.or(orParts.join(","));
       }
 
-
       if (produtosSel.length > 0) {
         const ids = nfIdsPorProdutosSel ?? [];
         if (ids.length === 0) return [];
@@ -171,9 +201,12 @@ function NFsPage() {
     },
   });
 
-
   const clientesPorResponsavel = useMemo(() => {
-    const map: Record<string, Set<string>> = { Alexandre: new Set(), Eduardo: new Set(), Paulo: new Set() };
+    const map: Record<string, Set<string>> = {
+      Alexandre: new Set(),
+      Eduardo: new Set(),
+      Paulo: new Set(),
+    };
     const alexNorm = RESPONSAVEIS.Alexandre.map(normNome);
     const eduNorm = RESPONSAVEIS.Eduardo.map(normNome);
     (clientes ?? []).forEach((c) => {
@@ -188,7 +221,9 @@ function NFsPage() {
   const allowedIdSet = useMemo(() => {
     if (!allowedNameSet) return null;
     const s = new Set<string>();
-    (clientes ?? []).forEach((c) => { if (allowedNameSet.has(normNome(c.nome))) s.add(c.id); });
+    (clientes ?? []).forEach((c) => {
+      if (allowedNameSet.has(normNome(c.nome))) s.add(c.id);
+    });
     return s;
   }, [allowedNameSet, clientes]);
 
@@ -197,14 +232,28 @@ function NFsPage() {
     queryKey: ["nf-entregas", numerosNFAll.slice().sort().join("|")],
     enabled: numerosNFAll.length > 0,
     queryFn: async () => {
-      const map: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
+      const map: Record<
+        string,
+        {
+          status: string;
+          data_entrega: string | null;
+          data_agendamento: string | null;
+          previsao_entrega: string | null;
+          status_coleta: string | null;
+          data_coleta: string | null;
+        }
+      > = {};
       const BATCH = 500;
       for (let i = 0; i < numerosNFAll.length; i += BATCH) {
         const { data } = await supabase
           .from("nf_entregas")
-          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
+          .select(
+            "numero,status,data_entrega,data_agendamento,previsao_entrega,status_coleta,data_coleta",
+          )
           .in("numero", numerosNFAll.slice(i, i + BATCH));
-        (data ?? []).forEach((d) => { map[d.numero] = d; });
+        (data ?? []).forEach((d) => {
+          map[d.numero] = d;
+        });
       }
       return map;
     },
@@ -226,8 +275,15 @@ function NFsPage() {
       }
       return true;
     });
-  }, [nfs, operacoes, responsavel, clientesPorResponsavel, allowedIdSet, statusEntrega, entregasMap]);
-
+  }, [
+    nfs,
+    operacoes,
+    responsavel,
+    clientesPorResponsavel,
+    allowedIdSet,
+    statusEntrega,
+    entregasMap,
+  ]);
 
   const buscaAtiva = buscaTrim.length >= 2;
   const usaItens = produtosSel.length > 0 || (buscaAtiva && (nfIdsPorProduto?.length ?? 0) > 0);
@@ -251,7 +307,12 @@ function NFsPage() {
     queryKey: ["itens-nfs-filtradas", idsFiltradas.slice().sort().join("|")],
     enabled: usaItens && idsFiltradas.length > 0,
     queryFn: async () => {
-      const out: { nota_fiscal_id: string; produto: string | null; codigo_produto: string | null; valor_total: number }[] = [];
+      const out: {
+        nota_fiscal_id: string;
+        produto: string | null;
+        codigo_produto: string | null;
+        valor_total: number;
+      }[] = [];
       const BATCH = 150;
       for (let i = 0; i < idsFiltradas.length; i += BATCH) {
         const { data } = await supabase
@@ -272,7 +333,9 @@ function NFsPage() {
     const b = buscaTrim.toLowerCase();
     const prodSet = new Set(produtosSel.map((p) => p.trim()));
     const buscaOk = (it: { produto: string | null; codigo_produto: string | null }) =>
-      !buscaAtiva || (it.produto ?? "").toLowerCase().includes(b) || (it.codigo_produto ?? "").toLowerCase().includes(b);
+      !buscaAtiva ||
+      (it.produto ?? "").toLowerCase().includes(b) ||
+      (it.codigo_produto ?? "").toLowerCase().includes(b);
     const prodOk = (it: { produto: string | null }) =>
       prodSet.size === 0 || prodSet.has((it.produto ?? "").trim());
     const porNf = new Map<string, number>();
@@ -295,7 +358,11 @@ function NFsPage() {
 
   // Total geral de todas as NFs (ignora pesquisa e filtros; respeita restrições de acesso)
   const { data: totalGeral } = useQuery({
-    queryKey: ["nfs-total-geral", restrictedClientes?.join("|") ?? "all", allowedIdSet ? allowedIdSet.size : -1],
+    queryKey: [
+      "nfs-total-geral",
+      restrictedClientes?.join("|") ?? "all",
+      allowedIdSet ? allowedIdSet.size : -1,
+    ],
     enabled: !allowedNameSet || (allowedIdSet != null && (clientes ?? []).length > 0),
     queryFn: async () => {
       let sum = 0;
@@ -316,45 +383,81 @@ function NFsPage() {
     },
   });
 
-  const totalVendas = useMemo(() => filtradas.filter((n) => Number(n.valor) > 0).length, [filtradas]);
-  const totalBonif = useMemo(() => filtradas.filter((n) => Number(n.valor) <= 0).length, [filtradas]);
+  const totalVendas = useMemo(
+    () => filtradas.filter((n) => Number(n.valor) > 0).length,
+    [filtradas],
+  );
+  const totalBonif = useMemo(
+    () => filtradas.filter((n) => Number(n.valor) <= 0).length,
+    [filtradas],
+  );
 
   // Enriched rows + column-level Excel-style filters
-  type NfRow = typeof filtradas[number];
-  const colGetters = useMemo(() => ({
-    data: (n: NfRow) => formatDateBR(n.data),
-    numero: (n: NfRow) => String(n.numero ?? ""),
-    cliente: (n: NfRow) => n.clientes?.nome ?? "",
-    status: (n: NfRow) => entregasMap?.[n.numero]?.status ?? "Não Coletada",
-    lead: (n: NfRow) => {
-      const e = entregasMap?.[n.numero];
-      const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
-      if (!d || !n.data) return "";
-      const ms = new Date(d).getTime() - new Date(n.data).getTime();
-      return Number.isFinite(ms) ? String(Math.round(ms / 86400000)) : "";
-    },
-    dataEntrega: (n: NfRow) => {
-      const e = entregasMap?.[n.numero];
-      const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
-      return d ? formatDateBR(d) : "";
-    },
-    operacao: (n: NfRow) => (Number(n.valor) > 0 ? "Venda" : "Bonificação"),
-    valor: (n: NfRow) => String(n.valor ?? 0),
-  }), [entregasMap]);
-  const colTypes = useMemo(() => ({
-    data: "date" as const, numero: "text" as const, cliente: "text" as const,
-    status: "text" as const, lead: "number" as const, dataEntrega: "date" as const,
-    operacao: "text" as const, valor: "number" as const,
-  }), []);
-  const { view, distinct, filters: colFilters, sorts: colSorts, setFilter: setColFilter, setSort: setColSort, reset: resetColFilters } =
-    useColumnFilters(filtradas, colGetters, colTypes);
+  type NfRow = (typeof filtradas)[number];
+  const colGetters = useMemo(
+    () => ({
+      data: (n: NfRow) => formatDateBR(n.data),
+      numero: (n: NfRow) => String(n.numero ?? ""),
+      cliente: (n: NfRow) => n.clientes?.nome ?? "",
+      status: (n: NfRow) => entregasMap?.[n.numero]?.status ?? "Não Coletada",
+      statusColeta: (n: NfRow) => entregasMap?.[n.numero]?.status_coleta ?? "",
+      lead: (n: NfRow) => {
+        const e = entregasMap?.[n.numero];
+        const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+        if (!d || !n.data) return "";
+        const ms = new Date(d).getTime() - new Date(n.data).getTime();
+        return Number.isFinite(ms) ? String(Math.round(ms / 86400000)) : "";
+      },
+      dataEntrega: (n: NfRow) => {
+        const e = entregasMap?.[n.numero];
+        const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+        return d ? formatDateBR(d) : "";
+      },
+      operacao: (n: NfRow) => (Number(n.valor) > 0 ? "Venda" : "Bonificação"),
+      valor: (n: NfRow) => String(n.valor ?? 0),
+    }),
+    [entregasMap],
+  );
+  const colTypes = useMemo(
+    () => ({
+      data: "date" as const,
+      numero: "text" as const,
+      cliente: "text" as const,
+      status: "text" as const,
+      statusColeta: "text" as const,
+      lead: "number" as const,
+      dataEntrega: "date" as const,
+      operacao: "text" as const,
+      valor: "number" as const,
+    }),
+    [],
+  );
+  const {
+    view,
+    distinct,
+    filters: colFilters,
+    sorts: colSorts,
+    setFilter: setColFilter,
+    setSort: setColSort,
+    reset: resetColFilters,
+  } = useColumnFilters(filtradas, colGetters, colTypes);
 
   function toggle(id: string) {
-    setExpanded((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+    setExpanded((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   }
 
   function toggleSelected(id: string) {
-    setSelectedIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   }
 
   const allVisibleSelected = view.length > 0 && view.every((n) => selectedIds.has(n.id));
@@ -369,66 +472,115 @@ function NFsPage() {
     });
   }
 
-
   async function exportarSelecionadas() {
     const selecionadas = filtradas.filter((n) => selectedIds.has(n.id));
     if (selecionadas.length === 0) return;
     setExporting(true);
     try {
       const ids = selecionadas.map((n) => n.id);
-      const itensAll: { nota_fiscal_id: string; produto: string | null; quantidade: number | string; valor_unitario: number | string; valor_total: number | string; ean?: string | null }[] = [];
+      const itensAll: {
+        nota_fiscal_id: string;
+        produto: string | null;
+        quantidade: number | string;
+        valor_unitario: number | string;
+        valor_total: number | string;
+        ean?: string | null;
+      }[] = [];
       const BATCH = 150;
       for (let i = 0; i < ids.length; i += BATCH) {
-        const { data } = await supabase.from("itens_nf").select("*").in("nota_fiscal_id", ids.slice(i, i + BATCH));
+        const { data } = await supabase
+          .from("itens_nf")
+          .select("*")
+          .in("nota_fiscal_id", ids.slice(i, i + BATCH));
         itensAll.push(...((data ?? []) as typeof itensAll));
       }
-      const produtos = Array.from(new Set(itensAll.map((i) => (i.produto ?? "").trim()).filter(Boolean)));
+      const produtos = Array.from(
+        new Set(itensAll.map((i) => (i.produto ?? "").trim()).filter(Boolean)),
+      );
       const eanMap: Record<string, string> = {};
       if (produtos.length > 0) {
         const [a, b] = await Promise.all([
-          supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
-          supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
+          supabase
+            .from("pendencias_produtos")
+            .select("produto,ean")
+            .in("produto", produtos)
+            .not("ean", "is", null),
+          supabase
+            .from("pendencias_anteriores_produtos")
+            .select("produto,ean")
+            .in("produto", produtos)
+            .not("ean", "is", null),
         ]);
-        [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
-          const p = (r.produto ?? "").trim();
-          if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
-        });
+        [...(a.data ?? []), ...(b.data ?? [])].forEach(
+          (r: { produto: string | null; ean: string | null }) => {
+            const p = (r.produto ?? "").trim();
+            if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
+          },
+        );
       }
       const nfById = new Map(selecionadas.map((n) => [n.id, n]));
       // Buscar entregas das NFs selecionadas
       const numerosSel = selecionadas.map((n) => n.numero);
-      const entregasSelMap: Record<string, { status: string; data_entrega: string | null; data_agendamento: string | null; previsao_entrega: string | null }> = {};
+      const entregasSelMap: Record<
+        string,
+        {
+          status: string;
+          data_entrega: string | null;
+          data_agendamento: string | null;
+          previsao_entrega: string | null;
+          status_coleta: string | null;
+          data_coleta: string | null;
+          transportadora: string | null;
+          vendedor: string | null;
+          canal: string | null;
+          gerente_contas: string | null;
+        }
+      > = {};
       const BATCH_E = 500;
       for (let i = 0; i < numerosSel.length; i += BATCH_E) {
         const { data } = await supabase
           .from("nf_entregas")
-          .select("numero,status,data_entrega,data_agendamento,previsao_entrega")
+          .select(
+            "numero,status,data_entrega,data_agendamento,previsao_entrega,status_coleta,data_coleta,transportadora,vendedor,canal,gerente_contas",
+          )
           .in("numero", numerosSel.slice(i, i + BATCH_E));
-        (data ?? []).forEach((d) => { entregasSelMap[d.numero] = d; });
+        (data ?? []).forEach((d) => {
+          entregasSelMap[d.numero] = d;
+        });
       }
       const rows = itensAll.map((i) => {
         const nf = nfById.get(i.nota_fiscal_id);
         const ent = nf ? entregasSelMap[nf.numero] : undefined;
         const dataEnt = ent?.data_entrega ?? ent?.data_agendamento ?? ent?.previsao_entrega ?? null;
-        const lead = (dataEnt && nf?.data)
-          ? Math.round((new Date(dataEnt).getTime() - new Date(nf.data).getTime()) / 86400000)
-          : null;
+        const lead =
+          dataEnt && nf?.data
+            ? Math.round((new Date(dataEnt).getTime() - new Date(nf.data).getTime()) / 86400000)
+            : null;
         return {
           "Data de Faturamento": nf ? formatDateBR(nf.data) : "",
-          "NF": nf?.numero ?? "",
-          "Cliente": nf?.clientes?.nome ?? "",
-          "EAN": i.ean ?? eanMap[(i.produto ?? "").trim()] ?? "",
+          NF: nf?.numero ?? "",
+          Cliente: nf?.clientes?.nome ?? "",
+          EAN: i.ean ?? eanMap[(i.produto ?? "").trim()] ?? "",
           "Descrição do Produto": i.produto ?? "",
-          "Quantidade": Number(i.quantidade ?? 0),
-          "Valor": Number(i.valor_unitario ?? 0),
-          "Total": Number(i.valor_total ?? 0),
+          Quantidade: Number(i.quantidade ?? 0),
+          Valor: Number(i.valor_unitario ?? 0),
+          Total: Number(i.valor_total ?? 0),
+          "Status Coleta": ent?.status_coleta ?? "",
+          "Data Coleta": ent?.data_coleta ? formatDateBR(ent.data_coleta) : "",
           "Status Entrega": ent?.status ?? "Não Coletada",
           "Lead Time (dias)": lead ?? "",
           "Data Entrega": dataEnt ? formatDateBR(dataEnt) : "",
-          "Observação": (nf as { observacao?: string | null } | undefined)?.observacao ?? "",
+          Transportadora: ent?.transportadora ?? "",
+          Vendedor: ent?.vendedor ?? "",
+          Canal: ent?.canal ?? "",
+          "Gerente de Contas": ent?.gerente_contas ?? "",
+          Observação: (nf as { observacao?: string | null } | undefined)?.observacao ?? "",
         };
       });
-      if (rows.length === 0) { toast.error("Nenhum item para exportar."); return; }
+      if (rows.length === 0) {
+        toast.error("Nenhum item para exportar.");
+        return;
+      }
       exportToExcel(rows, `nfs-selecionadas-${selecionadas.length}.xlsx`, "Itens");
       toast.success(`${selecionadas.length} NF(s) exportadas.`);
     } catch (e: unknown) {
@@ -439,14 +591,21 @@ function NFsPage() {
   }
 
   function limparFiltros() {
-    setBusca(""); setClientesSel([]); setOperacoes([]); setResponsavel(""); setStatusEntrega([]); setProdutosSel([]);
+    setBusca("");
+    setClientesSel([]);
+    setOperacoes([]);
+    setResponsavel("");
+    setStatusEntrega([]);
+    setProdutosSel([]);
   }
-
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
       <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
-      <p className="text-muted-foreground mt-1">Pesquise por NF ou produto. Filtre por período, cliente e operação. Clique em uma linha para ver os itens.</p>
+      <p className="text-muted-foreground mt-1">
+        Pesquise por NF ou produto. Filtre por período, cliente e operação. Clique em uma linha para
+        ver os itens.
+      </p>
 
       {/* Barra de busca */}
       <div className="bi-card mt-6 p-4 space-y-3">
@@ -458,11 +617,14 @@ function NFsPage() {
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="          Pesquisar por número da NF, produto ou código..."
-            className={`bi-input-sm w-full pr-10 ${busca ? 'pl-3' : 'pl-10'}`}
+            className={`bi-input-sm w-full pr-10 ${busca ? "pl-3" : "pl-10"}`}
             style={{ height: 44 }}
           />
           {busca && (
-            <button onClick={() => setBusca("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <button
+              onClick={() => setBusca("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
               <X className="h-4 w-4" />
             </button>
           )}
@@ -487,7 +649,9 @@ function NFsPage() {
           <MultiSelect
             width={260}
             placeholder="Todos os clientes"
-            options={(clientes ?? []).filter((c) => !allowedNameSet || allowedNameSet.has(normNome(c.nome))).map((c) => ({ value: c.id, label: c.nome }))}
+            options={(clientes ?? [])
+              .filter((c) => !allowedNameSet || allowedNameSet.has(normNome(c.nome)))
+              .map((c) => ({ value: c.id, label: c.nome }))}
             selected={clientesSel}
             onChange={setClientesSel}
           />
@@ -521,14 +685,23 @@ function NFsPage() {
             onChange={setProdutosSel}
           />
 
-          <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
+          <select
+            value={responsavel}
+            onChange={(e) => setResponsavel(e.target.value)}
+            className="bi-input-sm w-44"
+          >
             <option value="">Representantes</option>
             <option value="Alexandre">Alexandre</option>
             <option value="Eduardo">Eduardo</option>
             <option value="Paulo">Paulo</option>
           </select>
 
-          {(busca || clientesSel.length > 0 || operacoes.length > 0 || responsavel || statusEntrega.length > 0 || produtosSel.length > 0) && (
+          {(busca ||
+            clientesSel.length > 0 ||
+            operacoes.length > 0 ||
+            responsavel ||
+            statusEntrega.length > 0 ||
+            produtosSel.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
             </button>
@@ -540,11 +713,15 @@ function NFsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div className="bi-card p-4">
           <div className="bi-stat-label">NFs encontradas</div>
-          <div className="text-2xl font-bold tabular-nums mt-1">{filtradas.length.toLocaleString("pt-BR")}</div>
+          <div className="text-2xl font-bold tabular-nums mt-1">
+            {filtradas.length.toLocaleString("pt-BR")}
+          </div>
         </div>
         <div className="bi-card p-4">
           <div className="bi-stat-label">Total faturado (filtros aplicados)</div>
-          <div className="text-2xl font-bold tabular-nums mt-1 text-primary">{formatBRL(total)}</div>
+          <div className="text-2xl font-bold tabular-nums mt-1 text-primary">
+            {formatBRL(total)}
+          </div>
         </div>
         <div className="bi-card p-4">
           <div className="bi-stat-label">Operações</div>
@@ -569,143 +746,312 @@ function NFsPage() {
                   type="checkbox"
                   aria-label="Selecionar todas visíveis"
                   checked={allVisibleSelected}
-                  ref={(el) => { if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected; }}
+                  ref={(el) => {
+                    if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected;
+                  }}
                   onChange={toggleSelectAllVisible}
                   className="cursor-pointer"
                 />
               </th>
               <th style={{ width: 38 }}></th>
-              <th><ColumnFilterHeader label="Data" type="date" values={distinct.data ?? []} selected={colFilters.data ?? []} onChange={(v) => setColFilter("data", v)} sort={colSorts.data ?? null} onSortChange={(s) => setColSort("data", s)} /></th>
-              <th><ColumnFilterHeader label="Número" values={distinct.numero ?? []} selected={colFilters.numero ?? []} onChange={(v) => setColFilter("numero", v)} sort={colSorts.numero ?? null} onSortChange={(s) => setColSort("numero", s)} /></th>
-              <th><ColumnFilterHeader label="Cliente" values={distinct.cliente ?? []} selected={colFilters.cliente ?? []} onChange={(v) => setColFilter("cliente", v)} sort={colSorts.cliente ?? null} onSortChange={(s) => setColSort("cliente", s)} /></th>
-              <th className="text-center"><ColumnFilterHeader label="Status Entrega" align="center" values={distinct.status ?? []} selected={colFilters.status ?? []} onChange={(v) => setColFilter("status", v)} sort={colSorts.status ?? null} onSortChange={(s) => setColSort("status", s)} /></th>
-              <th className="text-center"><ColumnFilterHeader label="Lead Time" align="center" type="number" values={distinct.lead ?? []} selected={colFilters.lead ?? []} onChange={(v) => setColFilter("lead", v)} sort={colSorts.lead ?? null} onSortChange={(s) => setColSort("lead", s)} /></th>
-              <th className="text-center"><ColumnFilterHeader label="Data Entrega" align="center" type="date" values={distinct.dataEntrega ?? []} selected={colFilters.dataEntrega ?? []} onChange={(v) => setColFilter("dataEntrega", v)} sort={colSorts.dataEntrega ?? null} onSortChange={(s) => setColSort("dataEntrega", s)} /></th>
-              <th className="text-center"><ColumnFilterHeader label="Operação" align="center" values={distinct.operacao ?? []} selected={colFilters.operacao ?? []} onChange={(v) => setColFilter("operacao", v)} sort={colSorts.operacao ?? null} onSortChange={(s) => setColSort("operacao", s)} /></th>
-              <th className="text-right"><ColumnFilterHeader label="Valor" align="right" type="number" values={distinct.valor ?? []} selected={colFilters.valor ?? []} onChange={(v) => setColFilter("valor", v)} sort={colSorts.valor ?? null} onSortChange={(s) => setColSort("valor", s)} /></th>
+              <th>
+                <ColumnFilterHeader
+                  label="Data"
+                  type="date"
+                  values={distinct.data ?? []}
+                  selected={colFilters.data ?? []}
+                  onChange={(v) => setColFilter("data", v)}
+                  sort={colSorts.data ?? null}
+                  onSortChange={(s) => setColSort("data", s)}
+                />
+              </th>
+              <th>
+                <ColumnFilterHeader
+                  label="Número"
+                  values={distinct.numero ?? []}
+                  selected={colFilters.numero ?? []}
+                  onChange={(v) => setColFilter("numero", v)}
+                  sort={colSorts.numero ?? null}
+                  onSortChange={(s) => setColSort("numero", s)}
+                />
+              </th>
+              <th>
+                <ColumnFilterHeader
+                  label="Cliente"
+                  values={distinct.cliente ?? []}
+                  selected={colFilters.cliente ?? []}
+                  onChange={(v) => setColFilter("cliente", v)}
+                  sort={colSorts.cliente ?? null}
+                  onSortChange={(s) => setColSort("cliente", s)}
+                />
+              </th>
+              <th className="text-center">
+                <ColumnFilterHeader
+                  label="Status Entrega"
+                  align="center"
+                  values={distinct.status ?? []}
+                  selected={colFilters.status ?? []}
+                  onChange={(v) => setColFilter("status", v)}
+                  sort={colSorts.status ?? null}
+                  onSortChange={(s) => setColSort("status", s)}
+                />
+              </th>
+              <th className="text-center">
+                <ColumnFilterHeader
+                  label="Status Coleta"
+                  align="center"
+                  values={distinct.statusColeta ?? []}
+                  selected={colFilters.statusColeta ?? []}
+                  onChange={(v) => setColFilter("statusColeta", v)}
+                  sort={colSorts.statusColeta ?? null}
+                  onSortChange={(s) => setColSort("statusColeta", s)}
+                />
+              </th>
+              <th className="text-center">
+                <ColumnFilterHeader
+                  label="Lead Time"
+                  align="center"
+                  type="number"
+                  values={distinct.lead ?? []}
+                  selected={colFilters.lead ?? []}
+                  onChange={(v) => setColFilter("lead", v)}
+                  sort={colSorts.lead ?? null}
+                  onSortChange={(s) => setColSort("lead", s)}
+                />
+              </th>
+              <th className="text-center">
+                <ColumnFilterHeader
+                  label="Data Entrega"
+                  align="center"
+                  type="date"
+                  values={distinct.dataEntrega ?? []}
+                  selected={colFilters.dataEntrega ?? []}
+                  onChange={(v) => setColFilter("dataEntrega", v)}
+                  sort={colSorts.dataEntrega ?? null}
+                  onSortChange={(s) => setColSort("dataEntrega", s)}
+                />
+              </th>
+              <th className="text-center">
+                <ColumnFilterHeader
+                  label="Operação"
+                  align="center"
+                  values={distinct.operacao ?? []}
+                  selected={colFilters.operacao ?? []}
+                  onChange={(v) => setColFilter("operacao", v)}
+                  sort={colSorts.operacao ?? null}
+                  onSortChange={(s) => setColSort("operacao", s)}
+                />
+              </th>
+              <th className="text-right">
+                <ColumnFilterHeader
+                  label="Valor"
+                  align="right"
+                  type="number"
+                  values={distinct.valor ?? []}
+                  selected={colFilters.valor ?? []}
+                  onChange={(v) => setColFilter("valor", v)}
+                  sort={colSorts.valor ?? null}
+                  onSortChange={(s) => setColSort("valor", s)}
+                />
+              </th>
               <th style={{ width: 60 }}></th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Carregando…</td></tr>}
-            {!isLoading && view.map((n) => {
-              const open = expanded.has(n.id);
-              const isVenda = Number(n.valor) > 0;
-              const entrega = entregasMap?.[n.numero];
-              const dataExibida = entrega?.data_entrega ?? entrega?.data_agendamento ?? entrega?.previsao_entrega ?? null;
-              const statusAtual = entrega?.status ?? "Não Coletada";
-              const leadDays = (() => {
-                if (!dataExibida || !n.data) return null;
-                const ms = new Date(dataExibida).getTime() - new Date(n.data).getTime();
-                if (!Number.isFinite(ms)) return null;
-                return Math.round(ms / 86400000);
-              })();
-              const leadCls = leadDays == null
-                ? "text-muted-foreground"
-                : leadDays <= 10
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : leadDays <= 15
-                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                    : "bg-red-500/20 text-red-400 border border-red-500/30";
-              const isSelected = selectedIds.has(n.id);
-              return (
-                <>
-                  <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        aria-label={`Selecionar NF ${n.numero}`}
-                        checked={isSelected}
-                        onChange={() => toggleSelected(n.id)}
-                        className="cursor-pointer"
-                      />
-                    </td>
-                    <td>{open ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}</td>
-                    <td>{formatDateBR(n.data)}</td>
-                    <td className="font-medium text-primary">
-                      <span className="inline-flex items-center gap-1.5">
-                        {n.numero}
-                        {((n as { observacao?: string | null }).observacao ?? "").trim() && (
-                          <MessageSquareText
-                            className="h-3.5 w-3.5 text-amber-400"
-                            aria-label="Possui observação"
-                          >
-                            <title>Possui observação</title>
-                          </MessageSquareText>
+            {isLoading && (
+              <tr>
+                <td colSpan={12} className="text-center text-muted-foreground py-8">
+                  Carregando…
+                </td>
+              </tr>
+            )}
+            {!isLoading &&
+              view.map((n) => {
+                const open = expanded.has(n.id);
+                const isVenda = Number(n.valor) > 0;
+                const entrega = entregasMap?.[n.numero];
+                const dataExibida =
+                  entrega?.data_entrega ??
+                  entrega?.data_agendamento ??
+                  entrega?.previsao_entrega ??
+                  null;
+                const statusAtual = entrega?.status ?? "Não Coletada";
+                const leadDays = (() => {
+                  if (!dataExibida || !n.data) return null;
+                  const ms = new Date(dataExibida).getTime() - new Date(n.data).getTime();
+                  if (!Number.isFinite(ms)) return null;
+                  return Math.round(ms / 86400000);
+                })();
+                const leadCls =
+                  leadDays == null
+                    ? "text-muted-foreground"
+                    : leadDays <= 10
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                      : leadDays <= 15
+                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        : "bg-red-500/20 text-red-400 border border-red-500/30";
+                const isSelected = selectedIds.has(n.id);
+                return (
+                  <>
+                    <tr key={n.id} onClick={() => toggle(n.id)} className="cursor-pointer">
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Selecionar NF ${n.numero}`}
+                          checked={isSelected}
+                          onChange={() => toggleSelected(n.id)}
+                          className="cursor-pointer"
+                        />
+                      </td>
+                      <td>
+                        {open ? (
+                          <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         )}
-                      </span>
-                    </td>
-                    <td><ClienteLink id={n.cliente_id} nome={n.clientes?.nome} /></td>
-                    <td className="text-center" onClick={(e) => e.stopPropagation()}>
-                      <StatusEntregaBadge
-                        numero={n.numero}
-                        status={statusAtual}
-                        canEdit={canEditEntregas}
-                        onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
-                      />
-                    </td>
-                    <td className="text-center">
-                      {leadDays == null ? (
-                        <span className="text-muted-foreground">—</span>
-                      ) : (
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold tabular-nums ${leadCls}`}>
-                          {leadDays} {leadDays === 1 ? "dia" : "dias"}
+                      </td>
+                      <td>{formatDateBR(n.data)}</td>
+                      <td className="font-medium text-primary">
+                        <span className="inline-flex items-center gap-1.5">
+                          {n.numero}
+                          {((n as { observacao?: string | null }).observacao ?? "").trim() && (
+                            <MessageSquareText
+                              className="h-3.5 w-3.5 text-amber-400"
+                              aria-label="Possui observação"
+                            >
+                              <title>Possui observação</title>
+                            </MessageSquareText>
+                          )}
                         </span>
-                      )}
-                    </td>
-                    <td className="text-center text-sm">
-                      {dataExibida ? formatDateBR(dataExibida) : <span className="text-muted-foreground">—</span>}
-                    </td>
-                    <td className="text-center">{isVenda ? "Venda" : "Bonificação"}</td>
-                    <td className="text-right tabular-nums">{formatBRL(n.valor)}</td>
-                    <td className="text-right">
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const { data: itens } = await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", n.id);
-                          if (!itens || itens.length === 0) { toast.error("Sem itens para exportar."); return; }
-                          const produtos = Array.from(new Set(itens.map((i) => (i.produto ?? "").trim()).filter(Boolean)));
-                          const eanMap: Record<string, string> = {};
-                          if (produtos.length > 0) {
-                            const [a, b] = await Promise.all([
-                              supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
-                              supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtos).not("ean", "is", null),
-                            ]);
-                            [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
-                              const p = (r.produto ?? "").trim();
-                              if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
-                            });
-                          }
-                          const rows = itens.map((i) => ({
-                            "Data de Faturamento": formatDateBR(n.data),
-                            "EAN": (i as { ean?: string | null }).ean ?? eanMap[(i.produto ?? "").trim()] ?? "",
-                            "Descrição do Produto": i.produto ?? "",
-                            "Quantidade": Number(i.quantidade ?? 0),
-                            "Valor": Number(i.valor_unitario ?? 0),
-                            "Total": Number(i.valor_total ?? 0),
-                            "Status Entrega": statusAtual,
-                            "Lead Time (dias)": leadDays ?? "",
-                            "Data Entrega": dataExibida ? formatDateBR(dataExibida) : "",
-                            "Observação": (n as { observacao?: string | null }).observacao ?? "",
-                          }));
-                          exportToExcel(rows, `nf-${n.numero}-${n.clientes?.nome ?? "cliente"}.xlsx`, "Itens");
-                        }}
-                        className="h-7 px-2 rounded bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-xs"
-                        title="Exportar itens em Excel"
+                      </td>
+                      <td>
+                        <ClienteLink id={n.cliente_id} nome={n.clientes?.nome} />
+                      </td>
+                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <StatusEntregaBadge
+                          numero={n.numero}
+                          status={statusAtual}
+                          canEdit={canEditEntregas}
+                          onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
+                        />
+                      </td>
+                      <td
+                        className={`text-center text-[10px] font-semibold uppercase tracking-wider ${statusColetaClasses(entrega?.status_coleta)}`}
                       >
-                        <FileDown className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                  {open && <ItensRow key={n.id + "-items"} nfId={n.id} clienteId={n.cliente_id} highlight={buscaTrim} observacaoInicial={(n as { observacao?: string | null }).observacao ?? ""} onObservacaoSaved={() => qc.invalidateQueries({ queryKey: ["nfs"] })} />}
-                </>
-              );
-            })}
-            {!isLoading && view.length === 0 && <tr><td colSpan={11} className="text-center text-muted-foreground py-8">Nenhuma NF encontrada com os filtros aplicados.</td></tr>}
+                        {entrega?.status_coleta ?? "—"}
+                      </td>
+                      <td className="text-center">
+                        {leadDays == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold tabular-nums ${leadCls}`}
+                          >
+                            {leadDays} {leadDays === 1 ? "dia" : "dias"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="text-center text-sm">
+                        {dataExibida ? (
+                          formatDateBR(dataExibida)
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="text-center">{isVenda ? "Venda" : "Bonificação"}</td>
+                      <td className="text-right tabular-nums">{formatBRL(n.valor)}</td>
+                      <td className="text-right">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const { data: itens } = await supabase
+                              .from("itens_nf")
+                              .select("*")
+                              .eq("nota_fiscal_id", n.id);
+                            if (!itens || itens.length === 0) {
+                              toast.error("Sem itens para exportar.");
+                              return;
+                            }
+                            const produtos = Array.from(
+                              new Set(itens.map((i) => (i.produto ?? "").trim()).filter(Boolean)),
+                            );
+                            const eanMap: Record<string, string> = {};
+                            if (produtos.length > 0) {
+                              const [a, b] = await Promise.all([
+                                supabase
+                                  .from("pendencias_produtos")
+                                  .select("produto,ean")
+                                  .in("produto", produtos)
+                                  .not("ean", "is", null),
+                                supabase
+                                  .from("pendencias_anteriores_produtos")
+                                  .select("produto,ean")
+                                  .in("produto", produtos)
+                                  .not("ean", "is", null),
+                              ]);
+                              [...(a.data ?? []), ...(b.data ?? [])].forEach(
+                                (r: { produto: string | null; ean: string | null }) => {
+                                  const p = (r.produto ?? "").trim();
+                                  if (p && r.ean && !eanMap[p]) eanMap[p] = r.ean;
+                                },
+                              );
+                            }
+                            const rows = itens.map((i) => ({
+                              "Data de Faturamento": formatDateBR(n.data),
+                              EAN:
+                                (i as { ean?: string | null }).ean ??
+                                eanMap[(i.produto ?? "").trim()] ??
+                                "",
+                              "Descrição do Produto": i.produto ?? "",
+                              Quantidade: Number(i.quantidade ?? 0),
+                              Valor: Number(i.valor_unitario ?? 0),
+                              Total: Number(i.valor_total ?? 0),
+                              "Status Coleta": entrega?.status_coleta ?? "",
+                              "Data Coleta": entrega?.data_coleta
+                                ? formatDateBR(entrega.data_coleta)
+                                : "",
+                              "Status Entrega": statusAtual,
+                              "Lead Time (dias)": leadDays ?? "",
+                              "Data Entrega": dataExibida ? formatDateBR(dataExibida) : "",
+                              Observação: (n as { observacao?: string | null }).observacao ?? "",
+                            }));
+                            exportToExcel(
+                              rows,
+                              `nf-${n.numero}-${n.clientes?.nome ?? "cliente"}.xlsx`,
+                              "Itens",
+                            );
+                          }}
+                          className="h-7 px-2 rounded bg-secondary hover:bg-secondary/80 inline-flex items-center gap-1 text-xs"
+                          title="Exportar itens em Excel"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                    {open && (
+                      <ItensRow
+                        key={n.id + "-items"}
+                        nfId={n.id}
+                        clienteId={n.cliente_id}
+                        highlight={buscaTrim}
+                        observacaoInicial={(n as { observacao?: string | null }).observacao ?? ""}
+                        onObservacaoSaved={() => qc.invalidateQueries({ queryKey: ["nfs"] })}
+                      />
+                    )}
+                  </>
+                );
+              })}
+            {!isLoading && view.length === 0 && (
+              <tr>
+                <td colSpan={12} className="text-center text-muted-foreground py-8">
+                  Nenhuma NF encontrada com os filtros aplicados.
+                </td>
+              </tr>
+            )}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={11}>
+              <td colSpan={12}>
                 <div className="flex items-center justify-end">
                   <button
                     type="button"
@@ -731,22 +1077,65 @@ function NFsPage() {
   );
 }
 
-const STATUS_OPCOES = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada", "Devolvida"] as const;
+// A planilha de entregas atual já traz o status de entrega pronto (distingue
+// no prazo/atrasado). Os 4 primeiros vêm da própria planilha; os demais são
+// o cálculo antigo (usado quando a planilha não tem esse status pronto) e as
+// opções de ajuste manual.
+const STATUS_OPCOES = [
+  "Entregue - No Prazo",
+  "Entregue - Atrasado",
+  "Não Entregue - No Prazo",
+  "Não Entregue - Atrasado",
+  "Entregue",
+  "Com Previsão",
+  "Agendada",
+  "Não Coletada",
+  "Extraviada",
+  "Devolvida",
+] as const;
 
 function statusClasses(s: string): string {
   switch (s) {
-    case "Entregue": return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-    case "Agendada": return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
-    case "Com Previsão": return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
-    case "Extraviada": return "bg-red-500/20 text-red-400 border border-red-500/30";
-    case "Devolvida": return "bg-violet-500/20 text-violet-400 border border-violet-500/30";
-    default: return "bg-muted text-muted-foreground border border-border";
+    case "Entregue - No Prazo":
+    case "Entregue":
+      return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+    case "Entregue - Atrasado":
+      return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
+    case "Não Entregue - No Prazo":
+    case "Agendada":
+      return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+    case "Não Entregue - Atrasado":
+      return "bg-red-500/20 text-red-400 border border-red-500/30";
+    case "Com Previsão":
+      return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
+    case "Extraviada":
+      return "bg-red-500/20 text-red-400 border border-red-500/30";
+    case "Devolvida":
+      return "bg-violet-500/20 text-violet-400 border border-violet-500/30";
+    default:
+      return "bg-muted text-muted-foreground border border-border";
   }
 }
 
+/** Cor discreta para o status de coleta (informativo, sem edição manual). */
+function statusColetaClasses(s: string | null | undefined): string {
+  const k = (s ?? "").toLowerCase();
+  if (k.includes("atraso")) return "text-red-400";
+  if (k.includes("prazo")) return "text-emerald-400";
+  return "text-muted-foreground";
+}
+
 function StatusEntregaBadge({
-  numero, status, canEdit, onChanged,
-}: { numero: string; status: string; canEdit: boolean; onChanged: () => void }) {
+  numero,
+  status,
+  canEdit,
+  onChanged,
+}: {
+  numero: string;
+  status: string;
+  canEdit: boolean;
+  onChanged: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -770,12 +1159,21 @@ function StatusEntregaBadge({
   async function change(novo: string) {
     setSaving(true);
     try {
-      const { data: existing } = await supabase.from("nf_entregas").select("id").eq("numero", numero).maybeSingle();
+      const { data: existing } = await supabase
+        .from("nf_entregas")
+        .select("id")
+        .eq("numero", numero)
+        .maybeSingle();
       if (existing) {
-        const { error } = await supabase.from("nf_entregas").update({ status: novo } as never).eq("numero", numero);
+        const { error } = await supabase
+          .from("nf_entregas")
+          .update({ status: novo } as never)
+          .eq("numero", numero);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("nf_entregas").insert({ numero, status: novo } as never);
+        const { error } = await supabase
+          .from("nf_entregas")
+          .insert({ numero, status: novo } as never);
         if (error) throw error;
       }
       toast.success("Status atualizado");
@@ -789,7 +1187,13 @@ function StatusEntregaBadge({
   }
 
   if (!canEdit) {
-    return <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${statusClasses(status)}`}>{status}</span>;
+    return (
+      <span
+        className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${statusClasses(status)}`}
+      >
+        {status}
+      </span>
+    );
   }
 
   return (
@@ -805,27 +1209,29 @@ function StatusEntregaBadge({
         {status}
         <ChevronDown className="h-3 w-3 opacity-60" />
       </button>
-      {open && pos && createPortal(
-        <>
-          <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-          <div
-            className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg overflow-hidden min-w-[160px] -translate-x-1/2"
-            style={{ top: pos.top, left: pos.left }}
-          >
-            {STATUS_OPCOES.map((s) => (
-              <button
-                key={s}
-                onClick={() => change(s)}
-                disabled={saving}
-                className={`block w-full text-left px-3 py-2 text-xs hover:bg-muted ${s === status ? "font-semibold text-primary" : ""}`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </>,
-        document.body
-      )}
+      {open &&
+        pos &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+            <div
+              className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg overflow-hidden min-w-[160px] -translate-x-1/2"
+              style={{ top: pos.top, left: pos.left }}
+            >
+              {STATUS_OPCOES.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => change(s)}
+                  disabled={saving}
+                  className={`block w-full text-left px-3 py-2 text-xs hover:bg-muted ${s === status ? "font-semibold text-primary" : ""}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -839,7 +1245,9 @@ function quantil(sorted: number[], q: number): number {
   const pos = (sorted.length - 1) * q;
   const base = Math.floor(pos);
   const rest = pos - base;
-  return sorted[base + 1] !== undefined ? sorted[base] + rest * (sorted[base + 1] - sorted[base]) : sorted[base];
+  return sorted[base + 1] !== undefined
+    ? sorted[base] + rest * (sorted[base + 1] - sorted[base])
+    : sorted[base];
 }
 
 /** Média dos preços do produto, ignorando valores "Nitro" (outliers extremos). */
@@ -867,7 +1275,19 @@ function mediaSemNitro(valores: number[]): number {
   return base.reduce((s, v) => s + v, 0) / base.length;
 }
 
-function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoSaved }: { nfId: string; clienteId: string; highlight?: string; observacaoInicial?: string; onObservacaoSaved?: () => void }) {
+function ItensRow({
+  nfId,
+  clienteId,
+  highlight,
+  observacaoInicial,
+  onObservacaoSaved,
+}: {
+  nfId: string;
+  clienteId: string;
+  highlight?: string;
+  observacaoInicial?: string;
+  onObservacaoSaved?: () => void;
+}) {
   const [obs, setObs] = useState(observacaoInicial ?? "");
   const [savingObs, setSavingObs] = useState(false);
   const obsDirty = (obs ?? "") !== (observacaoInicial ?? "");
@@ -875,7 +1295,10 @@ function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoS
   async function salvarObs() {
     setSavingObs(true);
     try {
-      const { error } = await supabase.from("notas_fiscais").update({ observacao: obs || null } as never).eq("id", nfId);
+      const { error } = await supabase
+        .from("notas_fiscais")
+        .update({ observacao: obs || null } as never)
+        .eq("id", nfId);
       if (error) throw error;
       toast.success("Observação salva");
       onObservacaoSaved?.();
@@ -888,10 +1311,14 @@ function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoS
 
   const { data: itens, isLoading } = useQuery({
     queryKey: ["nf-itens", nfId],
-    queryFn: async () => (await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", nfId)).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("itens_nf").select("*").eq("nota_fiscal_id", nfId)).data ?? [],
   });
 
-  const produtosItens = useMemo(() => Array.from(new Set((itens ?? []).map((i) => (i.produto ?? "").trim()).filter(Boolean))), [itens]);
+  const produtosItens = useMemo(
+    () => Array.from(new Set((itens ?? []).map((i) => (i.produto ?? "").trim()).filter(Boolean))),
+    [itens],
+  );
 
   const { data: eanMap } = useQuery({
     queryKey: ["ean-by-produto", produtosItens.slice().sort().join("|")],
@@ -899,13 +1326,23 @@ function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoS
     queryFn: async () => {
       const out: Record<string, string> = {};
       const [a, b] = await Promise.all([
-        supabase.from("pendencias_produtos").select("produto,ean").in("produto", produtosItens).not("ean", "is", null),
-        supabase.from("pendencias_anteriores_produtos").select("produto,ean").in("produto", produtosItens).not("ean", "is", null),
+        supabase
+          .from("pendencias_produtos")
+          .select("produto,ean")
+          .in("produto", produtosItens)
+          .not("ean", "is", null),
+        supabase
+          .from("pendencias_anteriores_produtos")
+          .select("produto,ean")
+          .in("produto", produtosItens)
+          .not("ean", "is", null),
       ]);
-      [...(a.data ?? []), ...(b.data ?? [])].forEach((r: { produto: string | null; ean: string | null }) => {
-        const p = (r.produto ?? "").trim();
-        if (p && r.ean && !out[p]) out[p] = r.ean;
-      });
+      [...(a.data ?? []), ...(b.data ?? [])].forEach(
+        (r: { produto: string | null; ean: string | null }) => {
+          const p = (r.produto ?? "").trim();
+          if (p && r.ean && !out[p]) out[p] = r.ean;
+        },
+      );
       return out;
     },
   });
@@ -943,16 +1380,21 @@ function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoS
 
   return (
     <tr>
-      <td colSpan={11} className="bg-muted/30 p-0">
+      <td colSpan={12} className="bg-muted/30 p-0">
         <div className="px-6 py-4">
           <div className="bi-stat-label mb-2">Itens da NF</div>
           {isLoading && <div className="text-sm text-muted-foreground py-2">Carregando…</div>}
-          {!isLoading && itens && itens.length === 0 && <div className="text-sm text-muted-foreground py-2">Sem itens registrados. Importe a planilha de faturamento.</div>}
+          {!isLoading && itens && itens.length === 0 && (
+            <div className="text-sm text-muted-foreground py-2">
+              Sem itens registrados. Importe a planilha de faturamento.
+            </div>
+          )}
           {itens && itens.length > 0 && (
             <table className="bi-table">
               <thead>
                 <tr>
-                  <th>EAN</th><th>Produto</th>
+                  <th>EAN</th>
+                  <th>Produto</th>
                   <th className="text-right">Qtd</th>
                   <th className="text-right">V. Unit</th>
                   <th className="text-right">Ticket Médio</th>
@@ -963,15 +1405,22 @@ function ItensRow({ nfId, clienteId, highlight, observacaoInicial, onObservacaoS
                 {itens.map((i) => {
                   const hit = match(i.produto ?? "") || match(i.codigo_produto ?? "");
                   const tm = ticketMap?.[normProduto(i.produto)];
-                  const eanShow = eanMap?.[(i.produto ?? "").trim()] ?? (i as { ean?: string | null }).ean ?? "—";
+                  const eanShow =
+                    eanMap?.[(i.produto ?? "").trim()] ?? (i as { ean?: string | null }).ean ?? "—";
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
                       <td className="text-xs text-muted-foreground tabular-nums">{eanShow}</td>
                       <td>{i.produto}</td>
-                      <td className="text-right tabular-nums">{Number(i.quantidade).toLocaleString("pt-BR")}</td>
+                      <td className="text-right tabular-nums">
+                        {Number(i.quantidade).toLocaleString("pt-BR")}
+                      </td>
                       <td className="text-right tabular-nums">{formatBRL(i.valor_unitario)}</td>
-                      <td className="text-right tabular-nums text-muted-foreground">{tm != null ? formatBRL(tm) : "—"}</td>
-                      <td className="text-right tabular-nums font-semibold">{formatBRL(i.valor_total)}</td>
+                      <td className="text-right tabular-nums text-muted-foreground">
+                        {tm != null ? formatBRL(tm) : "—"}
+                      </td>
+                      <td className="text-right tabular-nums font-semibold">
+                        {formatBRL(i.valor_total)}
+                      </td>
                     </tr>
                   );
                 })}

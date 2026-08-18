@@ -815,43 +815,67 @@ export type Database = {
       }
       nf_entregas: {
         Row: {
+          canal: string | null
           created_at: string
           data_agendamento: string | null
+          data_coleta: string | null
+          data_emissao_cte: string | null
           data_entrega: string | null
+          gerente_contas: string | null
           id: string
           numero: string
           observacao: string | null
+          previsao_coleta: string | null
           previsao_entrega: string | null
+          previsao_entrega_inicial: string | null
           status: string
+          status_coleta: string | null
           transportadora: string | null
           updated_at: string
           updated_by: string | null
+          vendedor: string | null
         }
         Insert: {
+          canal?: string | null
           created_at?: string
           data_agendamento?: string | null
+          data_coleta?: string | null
+          data_emissao_cte?: string | null
           data_entrega?: string | null
+          gerente_contas?: string | null
           id?: string
           numero: string
           observacao?: string | null
+          previsao_coleta?: string | null
           previsao_entrega?: string | null
+          previsao_entrega_inicial?: string | null
           status?: string
+          status_coleta?: string | null
           transportadora?: string | null
           updated_at?: string
           updated_by?: string | null
+          vendedor?: string | null
         }
         Update: {
+          canal?: string | null
           created_at?: string
           data_agendamento?: string | null
+          data_coleta?: string | null
+          data_emissao_cte?: string | null
           data_entrega?: string | null
+          gerente_contas?: string | null
           id?: string
           numero?: string
           observacao?: string | null
+          previsao_coleta?: string | null
           previsao_entrega?: string | null
+          previsao_entrega_inicial?: string | null
           status?: string
+          status_coleta?: string | null
           transportadora?: string | null
           updated_at?: string
           updated_by?: string | null
+          vendedor?: string | null
         }
         Relationships: []
       }

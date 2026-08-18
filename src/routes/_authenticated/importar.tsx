@@ -11,8 +11,14 @@ import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
 
-
-type TipoImport = "faturamento" | "metas" | "pedidos" | "sell_out" | "pendencias" | "pendencias_anteriores" | "entregas";
+type TipoImport =
+  | "faturamento"
+  | "metas"
+  | "pedidos"
+  | "sell_out"
+  | "pendencias"
+  | "pendencias_anteriores"
+  | "entregas";
 
 type ColorKey = "primary" | "accent" | "success" | "warning" | "destructive" | "blue" | "purple";
 
@@ -56,7 +62,7 @@ const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[]
   {
     key: "entregas",
     label: "Planilha de Entregas",
-    desc: "Cruza por NÚMERO da NF. Atualiza datas (entrega, agendamento, previsão) e status (Entregue, Agendada, Com Previsão, Não Coletada, Extraviada) sem alterar a NF original.",
+    desc: "Cruza por NÚMERO da NF. Traz coleta, agendamento e entrega (com status de atraso já vindo da planilha) e datas/CTE, sem alterar a NF original.",
     color: "purple",
   },
 ];
@@ -183,7 +189,6 @@ function ImportarPage() {
     enabled: canEdit,
   });
 
-
   if (!canEdit) {
     return (
       <div className="p-8 max-w-xl mx-auto">
@@ -307,24 +312,87 @@ function ImportarPage() {
           const nome = String(pickCol(r, "Cliente", "Razão Social", "Razao Social") ?? "").trim();
           const cliente_id = clienteIdFromRazao(nome, idx);
           if (!cliente_id) continue;
-          const codigo = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN", "Código", "Codigo") ?? "").trim();
-          const ean = String(pickCol(r, "EAN", "Código de Barras", "Codigo de Barras", "Cód EAN", "Cod EAN") ?? "").trim() || null;
-          const dataLanc = rowToBRDate(pickCol(r, "Data de Lançamento", "Data Lançamento", "Data de Lancamento", "Data Lancamento", "Lançamento", "Lancamento", "Data"));
+          const codigo = String(
+            pickCol(r, "Código do PN", "Codigo do PN", "Cod PN", "Código", "Codigo") ?? "",
+          ).trim();
+          const ean =
+            String(
+              pickCol(r, "EAN", "Código de Barras", "Codigo de Barras", "Cód EAN", "Cod EAN") ?? "",
+            ).trim() || null;
+          const dataLanc = rowToBRDate(
+            pickCol(
+              r,
+              "Data de Lançamento",
+              "Data Lançamento",
+              "Data de Lancamento",
+              "Data Lancamento",
+              "Lançamento",
+              "Lancamento",
+              "Data",
+            ),
+          );
           const produto = String(pickCol(r, "Descrição", "Descricao", "Produto") ?? "").trim();
-          const preco = rowToBRNumber(pickCol(r, "Preço (R$/und)", "Preco (R$/und)", "Preço Unitário", "Preco Unitario", "Preço", "Preco", "Valor Unitário", "Valor Unitario"));
-          const vol = rowToBRNumber(pickCol(r, "Pend em aberto (VOL)", "Pend em aberto VOL", "Pendencia VOL", "VOL", "Quantidade", "Qtd"));
-          const valor = rowToBRNumber(pickCol(r, "Pend em aberto (R$)", "Pend em aberto R$", "Pendencia (R$)", "Pendencia", "Pendência", "Valor"));
+          const preco = rowToBRNumber(
+            pickCol(
+              r,
+              "Preço (R$/und)",
+              "Preco (R$/und)",
+              "Preço Unitário",
+              "Preco Unitario",
+              "Preço",
+              "Preco",
+              "Valor Unitário",
+              "Valor Unitario",
+            ),
+          );
+          const vol = rowToBRNumber(
+            pickCol(
+              r,
+              "Pend em aberto (VOL)",
+              "Pend em aberto VOL",
+              "Pendencia VOL",
+              "VOL",
+              "Quantidade",
+              "Qtd",
+            ),
+          );
+          const valor = rowToBRNumber(
+            pickCol(
+              r,
+              "Pend em aberto (R$)",
+              "Pend em aberto R$",
+              "Pendencia (R$)",
+              "Pendencia",
+              "Pendência",
+              "Valor",
+            ),
+          );
           if (!vol && !valor) continue;
           const operacao = preco > 0 ? "Venda" : "Bonificação";
           rows.push({
-            cliente_id, codigo_produto: codigo, ean, data_lancamento: dataLanc,
-            produto, preco_unitario: preco, quantidade: vol, valor,
+            cliente_id,
+            codigo_produto: codigo,
+            ean,
+            data_lancamento: dataLanc,
+            produto,
+            preco_unitario: preco,
+            quantidade: vol,
+            valor,
             ...(isAnterior ? { ano: metaAno, mes: metaMes } : { operacao }),
           });
         }
         if (rows.length === 0) throw new Error("Nenhuma pendência válida encontrada.");
         if (isAnterior) {
-          const { error: delErr } = await (supabase.from(tabela).delete() as unknown as { eq: (c: string, v: number) => { eq: (c: string, v: number) => Promise<{ error: unknown }> } }).eq("ano", metaAno).eq("mes", metaMes);
+          const { error: delErr } = await (
+            supabase.from(tabela).delete() as unknown as {
+              eq: (
+                c: string,
+                v: number,
+              ) => { eq: (c: string, v: number) => Promise<{ error: unknown }> };
+            }
+          )
+            .eq("ano", metaAno)
+            .eq("mes", metaMes);
           if (delErr) throw delErr as Error;
         } else {
           const { error: delErr } = await supabase.from(tabela).delete().not("id", "is", null);
@@ -351,12 +419,18 @@ function ImportarPage() {
   }
 
   async function processPasted() {
-    if (!pasteText.trim()) { toast.error("Cole os dados primeiro"); return; }
+    if (!pasteText.trim()) {
+      toast.error("Cole os dados primeiro");
+      return;
+    }
     setLoading(true);
     setResumo(null);
     try {
       const idx = buildClienteIndex(clientes ?? []);
-      const lines = pasteText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const lines = pasteText
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
       let resumoTxt = "";
 
       if (tipo === "pedidos") {
@@ -364,36 +438,56 @@ function ImportarPage() {
         const rows: { data: string; cliente_id: string; valor: number }[] = [];
         const ignoradas: string[] = [];
         for (const line of lines) {
-          const parts = line.split(/\t|;|\s{2,}/).map((p) => p.trim()).filter(Boolean);
-          if (parts.length < 3) { ignoradas.push(line); continue; }
+          const parts = line
+            .split(/\t|;|\s{2,}/)
+            .map((p) => p.trim())
+            .filter(Boolean);
+          if (parts.length < 3) {
+            ignoradas.push(line);
+            continue;
+          }
           const dataISO = parseBRDate(parts[0]);
           const cid = clienteIdFromRazao(parts[1], idx);
           const v = parseBRNumber(parts.slice(2).join(" "));
           if (dataISO && cid && v > 0) rows.push({ data: dataISO, cliente_id: cid, valor: v });
           else ignoradas.push(line);
         }
-        if (rows.length === 0) throw new Error("Nenhuma linha válida (formato: DATA CLIENTE VALOR)");
+        if (rows.length === 0)
+          throw new Error("Nenhuma linha válida (formato: DATA CLIENTE VALOR)");
         const { error } = await supabase.from("pedidos_enviados").upsert(rows as never, {
-          onConflict: "data,cliente_id,valor", ignoreDuplicates: true,
+          onConflict: "data,cliente_id,valor",
+          ignoreDuplicates: true,
         });
         if (error) throw error;
         resumoTxt = `${rows.length} pedidos importados${ignoradas.length ? ` · ${ignoradas.length} linhas ignoradas` : ""}.`;
       } else if (tipo === "metas") {
         // Formato: CLIENTE  R$ VALOR  (uma linha por cliente, ano/mes do seletor)
-        const rows: { cliente_id: string; ano: number; mes: number; valor: number; pendencia_inicial: number }[] = [];
+        const rows: {
+          cliente_id: string;
+          ano: number;
+          mes: number;
+          valor: number;
+          pendencia_inicial: number;
+        }[] = [];
         const ignoradas: string[] = [];
         for (const line of lines) {
           // separa cliente do valor: pega o último token monetário "R$ X" ou número
           const m = line.match(/^(.+?)\s+(R\$\s*)?([\d.,]+)\s*$/i);
-          if (!m) { ignoradas.push(line); continue; }
+          if (!m) {
+            ignoradas.push(line);
+            continue;
+          }
           const nome = m[1].trim();
           const valor = parseBRNumber(m[3]);
           const cid = clienteIdFromRazao(nome, idx);
-          if (cid && valor > 0) rows.push({ cliente_id: cid, ano: metaAno, mes: metaMes, valor, pendencia_inicial: 0 });
+          if (cid && valor > 0)
+            rows.push({ cliente_id: cid, ano: metaAno, mes: metaMes, valor, pendencia_inicial: 0 });
           else ignoradas.push(line);
         }
         if (rows.length === 0) throw new Error("Nenhuma linha válida (formato: CLIENTE R$ VALOR)");
-        const { error } = await supabase.from("metas_mensais").upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
+        const { error } = await supabase
+          .from("metas_mensais")
+          .upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
         if (error) throw error;
         resumoTxt = `${rows.length} metas importadas para ${String(metaMes).padStart(2, "0")}/${metaAno}${ignoradas.length ? ` · ${ignoradas.length} linhas ignoradas` : ""}.`;
       } else {
@@ -413,7 +507,6 @@ function ImportarPage() {
     }
   }
 
-
   return (
     <div className="p-8 max-w-[1100px] mx-auto">
       <header className="mb-6">
@@ -428,13 +521,41 @@ function ImportarPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
         {TIPOS.map((t) => {
           const colorMap: Record<ColorKey, { text: string; border: string; glow: string }> = {
-            primary: { text: "text-primary", border: "border-primary", glow: "oklch(0.70 0.19 50 / 0.4)" },
-            accent: { text: "text-accent", border: "border-accent", glow: "oklch(0.42 0.08 145 / 0.5)" },
-            success: { text: "text-success", border: "border-success", glow: "oklch(0.55 0.15 150 / 0.5)" },
-            warning: { text: "text-warning", border: "border-warning", glow: "oklch(0.70 0.16 80 / 0.5)" },
-            destructive: { text: "text-destructive", border: "border-destructive", glow: "oklch(0.58 0.22 28 / 0.5)" },
-            blue: { text: "text-[#3b82f6]", border: "border-[#3b82f6]", glow: "rgba(59,130,246,0.5)" },
-            purple: { text: "text-[#a855f7]", border: "border-[#a855f7]", glow: "rgba(168,85,247,0.5)" },
+            primary: {
+              text: "text-primary",
+              border: "border-primary",
+              glow: "oklch(0.70 0.19 50 / 0.4)",
+            },
+            accent: {
+              text: "text-accent",
+              border: "border-accent",
+              glow: "oklch(0.42 0.08 145 / 0.5)",
+            },
+            success: {
+              text: "text-success",
+              border: "border-success",
+              glow: "oklch(0.55 0.15 150 / 0.5)",
+            },
+            warning: {
+              text: "text-warning",
+              border: "border-warning",
+              glow: "oklch(0.70 0.16 80 / 0.5)",
+            },
+            destructive: {
+              text: "text-destructive",
+              border: "border-destructive",
+              glow: "oklch(0.58 0.22 28 / 0.5)",
+            },
+            blue: {
+              text: "text-[#3b82f6]",
+              border: "border-[#3b82f6]",
+              glow: "rgba(59,130,246,0.5)",
+            },
+            purple: {
+              text: "text-[#a855f7]",
+              border: "border-[#a855f7]",
+              glow: "rgba(168,85,247,0.5)",
+            },
           };
           const c = colorMap[t.color];
           const selected = tipo === t.key;
@@ -460,7 +581,9 @@ function ImportarPage() {
                   className={"h-5 w-5 mt-0.5 " + (selected ? c.text : "text-muted-foreground")}
                 />
                 <div>
-                  <div className={"font-display font-bold " + (selected ? c.text : "")}>{t.label}</div>
+                  <div className={"font-display font-bold " + (selected ? c.text : "")}>
+                    {t.label}
+                  </div>
                   <div className="text-xs text-muted-foreground mt-1">{t.desc}</div>
                 </div>
               </div>
@@ -471,14 +594,34 @@ function ImportarPage() {
 
       {tipo === "pendencias_anteriores" && (
         <div className="bi-card p-4 mb-4 flex items-center gap-3 flex-wrap">
-          <label className="text-xs font-semibold uppercase text-muted-foreground">Período da Pendência Anterior:</label>
-          <select value={metaMes} onChange={(e) => setMetaMes(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-40">
-            {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+          <label className="text-xs font-semibold uppercase text-muted-foreground">
+            Período da Pendência Anterior:
+          </label>
+          <select
+            value={metaMes}
+            onChange={(e) => setMetaMes(Number(e.target.value))}
+            className="h-10 px-3 bg-input border border-border rounded-md text-sm w-40"
+          >
+            {MESES_BR.map((m, i) => (
+              <option key={i} value={i + 1}>
+                {m}
+              </option>
+            ))}
           </select>
-          <select value={metaAno} onChange={(e) => setMetaAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-28">
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => <option key={a} value={a}>{a}</option>)}
+          <select
+            value={metaAno}
+            onChange={(e) => setMetaAno(Number(e.target.value))}
+            className="h-10 px-3 bg-input border border-border rounded-md text-sm w-28"
+          >
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
           </select>
-          <p className="text-xs text-muted-foreground">Apenas este período será substituído; os demais meses ficam preservados.</p>
+          <p className="text-xs text-muted-foreground">
+            Apenas este período será substituído; os demais meses ficam preservados.
+          </p>
         </div>
       )}
 
@@ -501,7 +644,10 @@ function ImportarPage() {
         <div className="bi-card p-5 mt-4">
           <div className="flex items-center justify-between mb-3">
             <div className="bi-stat-label">Colar manualmente</div>
-            <button onClick={() => setPasteOpen((v) => !v)} className="text-xs text-primary font-semibold flex items-center gap-1">
+            <button
+              onClick={() => setPasteOpen((v) => !v)}
+              className="text-xs text-primary font-semibold flex items-center gap-1"
+            >
               <Clipboard className="h-3 w-3" /> {pasteOpen ? "Fechar" : "Abrir"}
             </button>
           </div>
@@ -509,12 +655,30 @@ function ImportarPage() {
             <div>
               {tipo === "metas" && (
                 <div className="flex items-center gap-3 mb-3">
-                  <label className="text-xs font-semibold uppercase text-muted-foreground">Período:</label>
-                  <select value={metaMes} onChange={(e) => setMetaMes(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-40">
-                    {MESES_BR.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                  <label className="text-xs font-semibold uppercase text-muted-foreground">
+                    Período:
+                  </label>
+                  <select
+                    value={metaMes}
+                    onChange={(e) => setMetaMes(Number(e.target.value))}
+                    className="h-10 px-3 bg-input border border-border rounded-md text-sm w-40"
+                  >
+                    {MESES_BR.map((m, i) => (
+                      <option key={i} value={i + 1}>
+                        {m}
+                      </option>
+                    ))}
                   </select>
-                  <select value={metaAno} onChange={(e) => setMetaAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm w-28">
-                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => <option key={a} value={a}>{a}</option>)}
+                  <select
+                    value={metaAno}
+                    onChange={(e) => setMetaAno(Number(e.target.value))}
+                    className="h-10 px-3 bg-input border border-border rounded-md text-sm w-28"
+                  >
+                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -522,25 +686,27 @@ function ImportarPage() {
                 value={pasteText}
                 onChange={(e) => setPasteText(e.target.value)}
                 rows={tipo === "metas" ? 16 : 8}
-                placeholder={tipo === "pedidos"
-                  ? "12/01/2026\tANDORINHA\tR$ 18.787,62\n12/01/2026\tJK MEDICAMENTOS\tR$ 336.794,64"
-                  : "ANDORINHA R$ 70.000,00\nBANDEIRANTES R$ 45.000,00\nCAMPEÃ R$ 50.000,00\nCG MEDICAMENTOS R$ 50.000,00\nDF DISTRIBUIDORA R$ 50.000,00\nDISMAP R$ 40.000,00\nFARMA CONDE R$ 15.000,00\nIMPACTA MED R$ 35.000,00\nJK MEDICAMENTOS R$ 150.000,00\nMAXIFARMA R$ 10.000,00\nMEDSOL R$ 30.000,00\nMILFARMA R$ 130.000,00\nNAVARRO INTER R$ 130.000,00\nNAVARRO SP R$ 170.000,00\nNUCLEO R$ 80.000,00"}
+                placeholder={
+                  tipo === "pedidos"
+                    ? "12/01/2026\tANDORINHA\tR$ 18.787,62\n12/01/2026\tJK MEDICAMENTOS\tR$ 336.794,64"
+                    : "ANDORINHA R$ 70.000,00\nBANDEIRANTES R$ 45.000,00\nCAMPEÃ R$ 50.000,00\nCG MEDICAMENTOS R$ 50.000,00\nDF DISTRIBUIDORA R$ 50.000,00\nDISMAP R$ 40.000,00\nFARMA CONDE R$ 15.000,00\nIMPACTA MED R$ 35.000,00\nJK MEDICAMENTOS R$ 150.000,00\nMAXIFARMA R$ 10.000,00\nMEDSOL R$ 30.000,00\nMILFARMA R$ 130.000,00\nNAVARRO INTER R$ 130.000,00\nNAVARRO SP R$ 170.000,00\nNUCLEO R$ 80.000,00"
+                }
                 className="w-full bg-input border border-border rounded-md p-3 text-sm font-mono"
               />
               <div className="flex justify-end mt-2">
                 <button
                   disabled={loading}
                   onClick={processPasted}
-                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
-                  Importar {pasteText ? `(${pasteText.split(/\r?\n/).filter(Boolean).length} linhas)` : ""}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50"
+                >
+                  Importar{" "}
+                  {pasteText ? `(${pasteText.split(/\r?\n/).filter(Boolean).length} linhas)` : ""}
                 </button>
               </div>
             </div>
           )}
         </div>
       )}
-
-
 
       {loading && <div className="mt-4 text-sm text-muted-foreground">Processando…</div>}
       {resumo && <div className="mt-4 bi-card p-4 text-sm">{resumo}</div>}
@@ -593,15 +759,48 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
         "Data",
       ),
     );
-    const rs = String(pickCol(r, "Cliente", "Cliente nome", "Cliente Nome", "Razão Social", "Razao Social") ?? "").trim();
+    const rs = String(
+      pickCol(r, "Cliente", "Cliente nome", "Cliente Nome", "Razão Social", "Razao Social") ?? "",
+    ).trim();
     const valor = rowToBRNumber(
-      pickCol(r, "Faturado (R$)", "Soma de Faturado (R$)", "Faturado R$", "Soma de Faturado R$", "Faturado RS", "Faturado", "Valor"),
+      pickCol(
+        r,
+        "Faturado (R$)",
+        "Soma de Faturado (R$)",
+        "Faturado R$",
+        "Soma de Faturado R$",
+        "Faturado RS",
+        "Faturado",
+        "Valor",
+      ),
     );
     const qtd = rowToBRNumber(
-      pickCol(r, "Faturado (VOL)", "Soma de Faturado (VOL)", "Faturado VOL", "Soma de Faturado VOL", "Quantidade", "Qtd", "VOL"),
+      pickCol(
+        r,
+        "Faturado (VOL)",
+        "Soma de Faturado (VOL)",
+        "Faturado VOL",
+        "Soma de Faturado VOL",
+        "Quantidade",
+        "Qtd",
+        "VOL",
+      ),
     );
     const cod = String(pickCol(r, "Código do PN", "Codigo do PN", "Cod PN") ?? "").trim();
-    const ean = String(pickCol(r, "EAN", "Código de Barras", "Codigo de Barras", "Cód EAN", "Cod EAN", "Cód. EAN", "Cod. EAN", "Barcode") ?? "").trim() || null;
+    const ean =
+      String(
+        pickCol(
+          r,
+          "EAN",
+          "Código de Barras",
+          "Codigo de Barras",
+          "Cód EAN",
+          "Cod EAN",
+          "Cód. EAN",
+          "Cod. EAN",
+          "Barcode",
+        ) ?? "",
+      ).trim() || null;
     const desc = String(pickCol(r, "Descrição", "Descricao", "Produto") ?? "").trim();
 
     if (!numero || !dataISO || !rs) {
@@ -650,7 +849,8 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     for (const it of n.itens) {
       if (it.ean) {
         if (it.produto && !eanByProduto.has(it.produto)) eanByProduto.set(it.produto, it.ean);
-        if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) eanByCodigo.set(it.codigo_produto, it.ean);
+        if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto))
+          eanByCodigo.set(it.codigo_produto, it.ean);
       }
     }
   }
@@ -658,12 +858,14 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
   // Cruza com a base atual para preencher EANs faltantes (por nome e por código).
   const produtosFaltando = new Set<string>();
   const codigosFaltando = new Set<string>();
-  for (const n of nfsArr) for (const it of n.itens) {
-    if (!it.ean) {
-      if (it.produto && !eanByProduto.has(it.produto)) produtosFaltando.add(it.produto);
-      if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto)) codigosFaltando.add(it.codigo_produto);
+  for (const n of nfsArr)
+    for (const it of n.itens) {
+      if (!it.ean) {
+        if (it.produto && !eanByProduto.has(it.produto)) produtosFaltando.add(it.produto);
+        if (it.codigo_produto && !eanByCodigo.has(it.codigo_produto))
+          codigosFaltando.add(it.codigo_produto);
+      }
     }
-  }
   const CHUNK = 200;
   if (produtosFaltando.size > 0) {
     const arr = Array.from(produtosFaltando);
@@ -671,13 +873,23 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
       const slice = arr.slice(i, i + CHUNK);
       const [a, b, c] = await Promise.all([
         supabase.from("itens_nf").select("produto,ean").not("ean", "is", null).in("produto", slice),
-        supabase.from("pendencias_produtos").select("produto,ean").not("ean", "is", null).in("produto", slice),
-        supabase.from("pendencias_anteriores_produtos").select("produto,ean").not("ean", "is", null).in("produto", slice),
+        supabase
+          .from("pendencias_produtos")
+          .select("produto,ean")
+          .not("ean", "is", null)
+          .in("produto", slice),
+        supabase
+          .from("pendencias_anteriores_produtos")
+          .select("produto,ean")
+          .not("ean", "is", null)
+          .in("produto", slice),
       ]);
-      [...(a.data ?? []), ...(b.data ?? []), ...(c.data ?? [])].forEach((e: { produto: string | null; ean: string | null }) => {
-        const p = (e.produto ?? "").trim();
-        if (p && e.ean && !eanByProduto.has(p)) eanByProduto.set(p, e.ean);
-      });
+      [...(a.data ?? []), ...(b.data ?? []), ...(c.data ?? [])].forEach(
+        (e: { produto: string | null; ean: string | null }) => {
+          const p = (e.produto ?? "").trim();
+          if (p && e.ean && !eanByProduto.has(p)) eanByProduto.set(p, e.ean);
+        },
+      );
     }
   }
   if (codigosFaltando.size > 0) {
@@ -697,13 +909,14 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
   }
 
   // Aplica catálogo: prioridade NOME do produto, depois código.
-  for (const n of nfsArr) for (const it of n.itens) {
-    if (!it.ean) {
-      const porProd = it.produto ? eanByProduto.get(it.produto) : undefined;
-      const porCod = it.codigo_produto ? eanByCodigo.get(it.codigo_produto) : undefined;
-      it.ean = porProd ?? porCod ?? null;
+  for (const n of nfsArr)
+    for (const it of n.itens) {
+      if (!it.ean) {
+        const porProd = it.produto ? eanByProduto.get(it.produto) : undefined;
+        const porCod = it.codigo_produto ? eanByCodigo.get(it.codigo_produto) : undefined;
+        it.ean = porProd ?? porCod ?? null;
+      }
     }
-  }
 
   // Deduplica itens dentro da mesma NF (mesmo código + produto + EAN): soma quantidade e valor.
   for (const n of nfsArr) {
@@ -716,7 +929,8 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
       } else {
         cur.quantidade += it.quantidade;
         cur.valor_total += it.valor_total;
-        cur.valor_unitario = cur.quantidade > 0 ? cur.valor_total / cur.quantidade : cur.valor_unitario;
+        cur.valor_unitario =
+          cur.quantidade > 0 ? cur.valor_total / cur.quantidade : cur.valor_unitario;
       }
     }
     n.itens = Array.from(dedup.values());
@@ -769,10 +983,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
   // Sell In = soma de notas_fiscais. Reconstrói a base inteira a partir das NFs do banco
   // para garantir paridade com "Faturado por cliente" em qualquer cliente/período.
   void sellInAgg;
-  const totais = new Map<
-    string,
-    { cliente_id: string; ano: number; mes: number; valor: number }
-  >();
+  const totais = new Map<string, { cliente_id: string; ano: number; mes: number; valor: number }>();
   // Pagina (limite padrão 1000) para não perder NFs em bases grandes.
   const PAGE = 1000;
   let from = 0;
@@ -815,8 +1026,15 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
 
 /**
  * Importa planilha de Entregas. Cruza por NÚMERO da NF e atualiza apenas
- * informações logísticas (não toca em notas_fiscais nem itens). Status é
- * inferido das datas presentes; "Extraviada" tem prioridade quando indicada.
+ * informações logísticas (não toca em notas_fiscais nem itens).
+ *
+ * O status de entrega e o status de coleta usam, sempre que a planilha já
+ * traz essa informação pronta (ex: "ENTREGUE - ATRASADO", "COLETADO COM
+ * ATRASO"), o valor da própria planilha — que já distingue no prazo/atrasado
+ * e é mais confiável do que qualquer coisa que o sistema poderia adivinhar.
+ * Só cai no cálculo antigo (baseado em quais datas estão preenchidas) quando
+ * a planilha não traz esse status pronto. "Extraviada" tem prioridade sobre
+ * tudo quando indicada em qualquer um dos campos de status/observação.
  */
 async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<string> {
   type EntregaRow = {
@@ -824,59 +1042,156 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     data_entrega: string | null;
     data_agendamento: string | null;
     previsao_entrega: string | null;
+    previsao_entrega_inicial: string | null;
     status: string;
     transportadora: string | null;
     observacao: string | null;
+    status_coleta: string | null;
+    data_coleta: string | null;
+    previsao_coleta: string | null;
+    data_emissao_cte: string | null;
+    vendedor: string | null;
+    canal: string | null;
+    gerente_contas: string | null;
   };
+
+  // Normaliza pra comparar valores de status: minusculas, sem acento, sem
+  // espaco/pontuacao -- assim "ENTREGUE - ATRASADO" e qualquer variacao de
+  // escrita equivalente viram a mesma chave.
+  const chave = (s: unknown) =>
+    String(s ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+
+  const norm = (s: unknown) =>
+    String(s ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  /** Status de entrega ja pronto na planilha (mais preciso: distingue atraso). */
+  function statusDaPlanilha(bruto: string): string | null {
+    const k = chave(bruto);
+    switch (k) {
+      case "entregueatrasado":
+        return "Entregue - Atrasado";
+      case "entreguenoprazo":
+        return "Entregue - No Prazo";
+      case "naoentregueatrasado":
+        return "Não Entregue - Atrasado";
+      case "naoentreguenoprazo":
+        return "Não Entregue - No Prazo";
+      default:
+        return null; // ex: "#N/A", em branco, ou formato desconhecido
+    }
+  }
 
   function inferirStatus(args: {
     extraviada: boolean;
+    statusEntregaPlanilha: string;
     data_entrega: string | null;
     data_agendamento: string | null;
     previsao_entrega: string | null;
   }): string {
     if (args.extraviada) return "Extraviada";
+    const daPlanilha = statusDaPlanilha(args.statusEntregaPlanilha);
+    if (daPlanilha) return daPlanilha;
+    // Planilha sem esse status pronto: mantem o calculo antigo por datas.
     if (args.data_entrega) return "Entregue";
     if (args.data_agendamento) return "Agendada";
     if (args.previsao_entrega) return "Com Previsão";
     return "Não Coletada";
   }
 
-  const norm = (s: unknown) =>
-    String(s ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
   const dedup = new Map<string, EntregaRow>();
   let puladas = 0;
   for (const r of rows) {
     const rawNum = pickCol(r, "NOTA", "NF", "Número", "Numero", "Número da NF", "Numero da NF");
-    const numero = String(rawNum ?? "").trim().replace(/\.0$/, "");
-    if (!numero || numero === "undefined") { puladas++; continue; }
+    const numero = String(rawNum ?? "")
+      .trim()
+      .replace(/\.0$/, "");
+    if (!numero || numero === "undefined") {
+      puladas++;
+      continue;
+    }
 
-    const data_entrega = rowToBRDate(pickCol(r, "DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega"));
-    const data_agendamento = rowToBRDate(pickCol(r, "DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento"));
-    const previsao_entrega = rowToBRDate(
-      pickCol(r, "PREVISÃO DE ENTREGA SITE", "PREVISAO DE ENTREGA SITE", "Previsão de Entrega", "Previsao de Entrega",
-        "PREVISÃO ENTREGA TABELA TRANSPORTADORA", "PREVISAO ENTREGA TABELA TRANSPORTADORA"),
+    const data_entrega = rowToBRDate(
+      pickCol(r, "DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega"),
     );
-    const transportadora = String(pickCol(r, "TRANSPORTADORA", "Transportadora") ?? "").trim() || null;
+    const data_agendamento = rowToBRDate(
+      pickCol(r, "DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento"),
+    );
+    const previsao_entrega = rowToBRDate(
+      pickCol(
+        r,
+        "PREVISÃO DE ENTREGA SITE",
+        "PREVISAO DE ENTREGA SITE",
+        "Previsão de Entrega",
+        "Previsao de Entrega",
+        "PREVISÃO ENTREGA TABELA TRANSPORTADORA",
+        "PREVISAO ENTREGA TABELA TRANSPORTADORA",
+        "PREVISÃO DE ENTREGA SITE TRASP",
+        "PREVISAO DE ENTREGA SITE TRASP",
+      ),
+    );
+    const previsao_entrega_inicial = rowToBRDate(
+      pickCol(r, "PREVISÃO ENTREGA INICIAL", "PREVISAO ENTREGA INICIAL"),
+    );
+    const transportadora =
+      String(pickCol(r, "TRANSPORTADORA", "Transportadora") ?? "").trim() || null;
     const obsRaw = pickCol(r, "STATUS", "OBSERVAÇÃO", "OBSERVACAO", "Observação", "Observacao");
     const observacao = String(obsRaw ?? "").trim() || null;
-    const statusOk = String(pickCol(r, "STATUS ENTREGA - OK (NÃO ALTERAR NADA)", "STATUS ENTREGA - OK", "STATUS ENTREGA") ?? "");
+    const statusEntregaPlanilha = String(
+      pickCol(
+        r,
+        "STATUS ENTREGA - OK (NÃO ALTERAR NADA)",
+        "STATUS ENTREGA - OK",
+        "STATUS ENTREGA",
+      ) ?? "",
+    );
     const statusAgend = String(pickCol(r, "STATUS AGENDAMENTO") ?? "");
+    const statusAgendDetalhe = String(pickCol(r, "STATUS DE AGENDAMENTO") ?? "").trim() || null;
+
+    // Novos campos da planilha atual de entregas.
+    const status_coleta = String(pickCol(r, "STATUS COLETA") ?? "").trim() || null;
+    const data_coleta = rowToBRDate(pickCol(r, "DATA COLETA"));
+    const previsao_coleta = rowToBRDate(pickCol(r, "DATA PREVISÃO COLETA", "DATA PREVISAO COLETA"));
+    const data_emissao_cte = rowToBRDate(pickCol(r, "DATA EMISSÃO CTE", "DATA EMISSAO CTE"));
+    const vendedor = String(pickCol(r, "VENDEDOR") ?? "").trim() || null;
+    const canal = String(pickCol(r, "CANAL") ?? "").trim() || null;
+    const gerente_contas =
+      String(pickCol(r, "GERENTE DE CONTAS", "GERENTE DE CONTA") ?? "").trim() || null;
 
     const extraviada =
       norm(observacao).includes("extrav") ||
-      norm(statusOk).includes("extrav") ||
-      norm(statusAgend).includes("extrav");
+      norm(statusEntregaPlanilha).includes("extrav") ||
+      norm(statusAgend).includes("extrav") ||
+      norm(statusAgendDetalhe).includes("extrav");
 
     dedup.set(numero, {
       numero,
       data_entrega,
       data_agendamento,
       previsao_entrega,
-      status: inferirStatus({ extraviada, data_entrega, data_agendamento, previsao_entrega }),
+      previsao_entrega_inicial,
+      status: inferirStatus({
+        extraviada,
+        statusEntregaPlanilha,
+        data_entrega,
+        data_agendamento,
+        previsao_entrega,
+      }),
       transportadora,
-      observacao,
+      observacao: observacao ?? statusAgendDetalhe,
+      status_coleta,
+      data_coleta,
+      previsao_coleta,
+      data_emissao_cte,
+      vendedor,
+      canal,
+      gerente_contas,
     });
   }
 
