@@ -28,12 +28,12 @@ export const STATUS_CORES: Record<string, string> = {
   Entregue: "#10b981",
   "Com Previsão": "#38bdf8",
   Agendada: "#eab308",
-  "Não Coletada": "#9ca39a",
+  "Sem Previsão": "#9ca39a",
   Extraviada: "#ef4444",
   Devolvida: "#a78bfa",
 };
 
-const ORDEM = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada", "Devolvida"];
+const ORDEM = ["Entregue", "Com Previsão", "Agendada", "Sem Previsão", "Extraviada", "Devolvida"];
 
 type Props = {
   periodo: string;

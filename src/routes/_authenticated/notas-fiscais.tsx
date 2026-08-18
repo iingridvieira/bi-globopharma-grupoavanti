@@ -288,7 +288,7 @@ function NFsPage() {
       if (respSet && !respSet.has(n.cliente_id)) return false;
       if (allowedIdSet && !allowedIdSet.has(n.cliente_id)) return false;
       if (statusEntrega.length > 0) {
-        const s = entregasMap?.[n.numero]?.status ?? "Não Coletada";
+        const s = entregasMap?.[n.numero]?.status ?? "Sem Previsão";
         if (!statusEntrega.includes(s)) return false;
       }
       return true;
@@ -417,7 +417,7 @@ function NFsPage() {
       data: (n: NfRow) => formatDateBR(n.data),
       numero: (n: NfRow) => String(n.numero ?? ""),
       cliente: (n: NfRow) => n.clientes?.nome ?? "",
-      status: (n: NfRow) => entregasMap?.[n.numero]?.status ?? "Não Coletada",
+      status: (n: NfRow) => entregasMap?.[n.numero]?.status ?? "Sem Previsão",
       lead: (n: NfRow) => {
         const e = entregasMap?.[n.numero];
         const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
@@ -583,7 +583,7 @@ function NFsPage() {
           Total: Number(i.valor_total ?? 0),
           "Status Coleta": ent?.status_coleta ?? "",
           "Data Coleta": ent?.data_coleta ? formatDateBR(ent.data_coleta) : "",
-          "Status Entrega": ent?.status ?? "Não Coletada",
+          "Status Entrega": ent?.status ?? "Sem Previsão",
           "Lead Time (dias)": lead ?? "",
           "Data Entrega": dataEnt ? formatDateBR(dataEnt) : "",
           Transportadora: ent?.transportadora ?? "",
@@ -623,7 +623,7 @@ function NFsPage() {
         dataFaturamento: formatDateBR(n.data),
         dataEntrega: d ? formatDateBR(d) : "",
         dias: dias != null && Number.isFinite(dias) ? dias : null,
-        status: e?.status ?? "Não Coletada",
+        status: e?.status ?? "Sem Previsão",
         etapas: {
           agendada: !!e?.data_agendamento,
           agendadaAtraso: contemAtraso(e?.status_agendamento_detalhe),
@@ -978,7 +978,7 @@ function NFsPage() {
                   entrega?.data_agendamento ??
                   entrega?.previsao_entrega ??
                   null;
-                const statusAtual = entrega?.status ?? "Não Coletada";
+                const statusAtual = entrega?.status ?? "Sem Previsão";
                 const leadDays = (() => {
                   if (!dataExibida || !n.data) return null;
                   const ms = new Date(dataExibida).getTime() - new Date(n.data).getTime();
@@ -1194,7 +1194,7 @@ const STATUS_OPCOES = [
   "Entregue",
   "Com Previsão",
   "Agendada",
-  "Não Coletada",
+  "Sem Previsão",
   "Extraviada",
   "Devolvida",
 ] as const;

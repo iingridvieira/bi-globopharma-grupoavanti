@@ -1081,7 +1081,7 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     if (args.data_entrega) return "Entregue";
     if (args.data_agendamento) return "Agendada";
     if (args.previsao_entrega) return "Com Previsão";
-    return "Não Coletada";
+    return "Sem Previsão";
   }
 
   // Meses anteriores a julho/2026 não podem ser alterados por essa
