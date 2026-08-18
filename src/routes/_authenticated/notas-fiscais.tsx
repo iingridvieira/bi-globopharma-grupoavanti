@@ -14,6 +14,7 @@ import {
   MessageSquareText,
   ImageDown,
   CalendarCheck,
+  Zap,
   PackageCheck,
   Truck,
   CircleCheckBig,
@@ -243,6 +244,28 @@ function NFsPage() {
   }, [allowedNameSet, clientes]);
 
   const numerosNFAll = useMemo(() => (nfs ?? []).map((n) => n.numero), [nfs]);
+  const idsNFAll = useMemo(() => (nfs ?? []).map((n) => n.id), [nfs]);
+
+  // NFs que têm pelo menos um item Nitro (verba/preço especial) — pra
+  // sinalizar na lista, sem precisar abrir a NF pra descobrir.
+  const { data: nfsComNitro } = useQuery({
+    queryKey: ["nf-nitro", idsNFAll.slice().sort().join("|")],
+    enabled: idsNFAll.length > 0,
+    queryFn: async () => {
+      const set = new Set<string>();
+      const BATCH = 500;
+      for (let i = 0; i < idsNFAll.length; i += BATCH) {
+        const { data } = await supabase
+          .from("itens_nf")
+          .select("nota_fiscal_id")
+          .eq("nitro", true)
+          .in("nota_fiscal_id", idsNFAll.slice(i, i + BATCH));
+        (data ?? []).forEach((r) => set.add(r.nota_fiscal_id));
+      }
+      return set;
+    },
+  });
+
   const { data: entregasMap } = useQuery({
     queryKey: ["nf-entregas", numerosNFAll.slice().sort().join("|")],
     enabled: numerosNFAll.length > 0,
@@ -501,6 +524,7 @@ function NFsPage() {
         valor_unitario: number | string;
         valor_total: number | string;
         ean?: string | null;
+        nitro?: boolean;
       }[] = [];
       const BATCH = 150;
       for (let i = 0; i < ids.length; i += BATCH) {
@@ -578,6 +602,7 @@ function NFsPage() {
           Cliente: nf?.clientes?.nome ?? "",
           EAN: i.ean ?? eanMap[(i.produto ?? "").trim()] ?? "",
           "Descrição do Produto": i.produto ?? "",
+          Nitro: i.nitro ? "Sim" : "Não",
           Quantidade: Number(i.quantidade ?? 0),
           Valor: Number(i.valor_unitario ?? 0),
           Total: Number(i.valor_total ?? 0),
@@ -1008,6 +1033,14 @@ function NFsPage() {
                               <title>Possui observação</title>
                             </MessageSquareText>
                           )}
+                          {nfsComNitro?.has(n.id) && (
+                            <Zap
+                              className="h-3.5 w-3.5 text-violet-400 fill-violet-400"
+                              aria-label="Contém item Nitro"
+                            >
+                              <title>Contém item Nitro</title>
+                            </Zap>
+                          )}
                         </span>
                       </td>
                       <td>
@@ -1087,6 +1120,7 @@ function NFsPage() {
                                 eanMap[(i.produto ?? "").trim()] ??
                                 "",
                               "Descrição do Produto": i.produto ?? "",
+                              Nitro: i.nitro ? "Sim" : "Não",
                               Quantidade: Number(i.quantidade ?? 0),
                               Valor: Number(i.valor_unitario ?? 0),
                               Total: Number(i.valor_total ?? 0),
@@ -1489,7 +1523,12 @@ function quantil(sorted: number[], q: number): number {
     : sorted[base];
 }
 
-/** Média dos preços do produto, ignorando valores "Nitro" (outliers extremos). */
+/**
+ * Média dos preços do produto, ignorando outliers extremos. Hoje os itens
+ * Nitro de verdade já são excluídos antes (pelo campo real "nitro" da
+ * planilha) — isso aqui é só uma rede de segurança estatística pra
+ * importações antigas que não tinham essa coluna.
+ */
 function mediaSemNitro(valores: number[]): number {
   if (valores.length === 0) return NaN;
   const sorted = [...valores].sort((a, b) => a - b);
@@ -1592,20 +1631,26 @@ function ItensRow({
     queryFn: async () => {
       const { data } = await supabase
         .from("itens_nf")
-        .select("produto,valor_unitario,notas_fiscais!inner(cliente_id)")
+        .select("produto,valor_unitario,nitro,notas_fiscais!inner(cliente_id)")
         .eq("notas_fiscais.cliente_id", clienteId)
         .limit(10000);
-      // Agrupa preços por produto (nome normalizado)
+      // Agrupa preços por produto (nome normalizado), já excluindo os itens
+      // marcados como Nitro de verdade (verba/preço especial da planilha).
+      // O que sobrar ainda passa pelo filtro estatístico de outliers, pra
+      // pegar Nitros de importações antigas que não tinham essa coluna.
       const grupos = new Map<string, number[]>();
-      (data ?? []).forEach((r: { produto: string | null; valor_unitario: number | string }) => {
-        const k = normProduto(r.produto);
-        if (!k) return;
-        const v = Number(r.valor_unitario);
-        if (!Number.isFinite(v) || v <= 0) return;
-        const arr = grupos.get(k) ?? [];
-        arr.push(v);
-        grupos.set(k, arr);
-      });
+      (data ?? []).forEach(
+        (r: { produto: string | null; valor_unitario: number | string; nitro: boolean }) => {
+          if (r.nitro) return;
+          const k = normProduto(r.produto);
+          if (!k) return;
+          const v = Number(r.valor_unitario);
+          if (!Number.isFinite(v) || v <= 0) return;
+          const arr = grupos.get(k) ?? [];
+          arr.push(v);
+          grupos.set(k, arr);
+        },
+      );
       const out: Record<string, number> = {};
       grupos.forEach((valores, k) => {
         out[k] = mediaSemNitro(valores);
@@ -1649,7 +1694,19 @@ function ItensRow({
                   return (
                     <tr key={i.id} className={hit ? "bg-primary/10" : undefined}>
                       <td className="text-xs text-muted-foreground tabular-nums">{eanShow}</td>
-                      <td>{i.produto}</td>
+                      <td>
+                        <span className="inline-flex items-center gap-1.5">
+                          {i.produto}
+                          {i.nitro && (
+                            <Zap
+                              className="h-3.5 w-3.5 text-violet-400 fill-violet-400 shrink-0"
+                              aria-label="Item Nitro"
+                            >
+                              <title>Item Nitro</title>
+                            </Zap>
+                          )}
+                        </span>
+                      </td>
                       <td className="text-right tabular-nums">
                         {Number(i.quantidade).toLocaleString("pt-BR")}
                       </td>

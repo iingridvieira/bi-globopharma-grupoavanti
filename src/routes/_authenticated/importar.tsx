@@ -736,6 +736,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
       quantidade: number;
       valor_unitario: number;
       valor_total: number;
+      nitro: boolean;
     }>;
   };
   const nfMap = new Map<string, NFAgg>();
@@ -802,6 +803,10 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
         ) ?? "",
       ).trim() || null;
     const desc = String(pickCol(r, "Descrição", "Descricao", "Produto") ?? "").trim();
+    const nitroRaw = String(pickCol(r, "Nitro (S/N)", "Nitro", "Nitro S/N") ?? "")
+      .trim()
+      .toUpperCase();
+    const nitro = nitroRaw === "S" || nitroRaw === "SIM" || nitroRaw === "YES";
 
     if (!numero || !dataISO || !rs) {
       puladas++;
@@ -826,6 +831,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
       quantidade: qtd,
       valor_unitario: qtd > 0 ? valor / qtd : valor,
       valor_total: valor,
+      nitro,
     });
 
     const d = new Date(dataISO);
@@ -931,6 +937,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
         cur.valor_total += it.valor_total;
         cur.valor_unitario =
           cur.quantidade > 0 ? cur.valor_total / cur.quantidade : cur.valor_unitario;
+        cur.nitro = cur.nitro || it.nitro;
       }
     }
     n.itens = Array.from(dedup.values());
