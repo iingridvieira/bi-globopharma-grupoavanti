@@ -13,6 +13,11 @@ import {
   FileDown,
   MessageSquareText,
   ImageDown,
+  CalendarCheck,
+  PackageCheck,
+  Truck,
+  CircleCheckBig,
+  type LucideIcon,
 } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
 import {
@@ -1214,76 +1219,155 @@ type EntregaInfo = {
   status_agendamento_detalhe: string | null;
 };
 
-/** Uma etapa da linha do tempo de entrega (bolinha + linha conectora). */
-function EtapaDot({
+/** Um ícone de etapa: cinza/apagado = pendente, azul = feito, âmbar = feito com atraso sinalizado. */
+function EtapaIcone({
+  Icon,
   feita,
-  cor,
-  titulo,
-  ultima,
+  atrasada,
 }: {
+  Icon: LucideIcon;
   feita: boolean;
-  cor: string;
-  titulo: string;
-  ultima?: boolean;
+  atrasada: boolean;
 }) {
+  const cor = !feita
+    ? "text-muted-foreground/50 bg-muted/60"
+    : atrasada
+      ? "text-amber-500 bg-amber-500/15"
+      : "text-blue-500 bg-blue-500/15";
   return (
-    <div className="flex items-center flex-1" title={titulo}>
-      <div
-        className={`h-2.5 w-2.5 rounded-full shrink-0 ${feita ? cor : "bg-muted border border-border"}`}
-      />
-      {!ultima && <div className={`h-px flex-1 ${feita ? "bg-border" : "bg-border/40"}`} />}
+    <div className={`h-6 w-6 rounded-md flex items-center justify-center shrink-0 ${cor}`}>
+      <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
     </div>
   );
 }
 
+type EtapaDetalhe = {
+  label: string;
+  Icon: LucideIcon;
+  feita: boolean;
+  atrasada: boolean;
+  data: string | null;
+  detalhe: string | null;
+};
+
 /**
- * Linha do tempo compacta: Agendada -> Coletada -> Expedida -> Entregue.
- * Não substitui o "Status Entrega" (que continua sendo o cálculo
- * automático de sempre) — é só uma visão rápida de em que pé está a NF,
- * usando os dados que a planilha de entregas já traz prontos.
+ * Linha do tempo compacta: Agendada -> Coletada -> Expedida -> Entregue,
+ * cada etapa com um ícone próprio (calendário, caixa, caminhão, check) pra
+ * dar pra reconhecer o que é sem precisar decorar a ordem. Clique abre um
+ * painel com a data e o detalhe de cada etapa (mais confiável que hover,
+ * que não funciona bem em telas de toque nem com alvos pequenos). Não
+ * substitui o "Status Entrega" (que continua sendo o cálculo automático de
+ * sempre) — é só uma visão rápida de em que pé está a NF.
  */
 function EntregaTimeline({ entrega }: { entrega?: EntregaInfo }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const update = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 4, left: r.left + r.width / 2 });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open]);
+
   if (!entrega || entrega.status === "Extraviada" || entrega.status === "Devolvida") {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
 
-  const agendada = !!entrega.data_agendamento;
-  const coletada = !!entrega.data_coleta;
-  const expedida = !!entrega.data_emissao_cte;
-  const entregue = !!entrega.data_entrega;
-
   const atraso = (s: string | null) => (s ?? "").toLowerCase().includes("atraso");
 
-  const corAgendada = atraso(entrega.status_agendamento_detalhe) ? "bg-amber-400" : "bg-blue-400";
-  const corColetada = atraso(entrega.status_coleta) ? "bg-amber-400" : "bg-blue-400";
-  const corExpedida = "bg-blue-400";
-  const corEntregue = atraso(entrega.status_entrega_planilha) ? "bg-amber-400" : "bg-blue-400";
-
-  const dataOuPendente = (d: string | null) => (d ? formatDateBR(d) : "Pendente");
+  const etapas: EtapaDetalhe[] = [
+    {
+      label: "Agendada",
+      Icon: CalendarCheck,
+      feita: !!entrega.data_agendamento,
+      atrasada: atraso(entrega.status_agendamento_detalhe),
+      data: entrega.data_agendamento,
+      detalhe: entrega.status_agendamento_detalhe,
+    },
+    {
+      label: "Coletada",
+      Icon: PackageCheck,
+      feita: !!entrega.data_coleta,
+      atrasada: atraso(entrega.status_coleta),
+      data: entrega.data_coleta,
+      detalhe: entrega.status_coleta,
+    },
+    {
+      label: "Expedida (CTE)",
+      Icon: Truck,
+      feita: !!entrega.data_emissao_cte,
+      atrasada: false,
+      data: entrega.data_emissao_cte,
+      detalhe: null,
+    },
+    {
+      label: "Entregue",
+      Icon: CircleCheckBig,
+      feita: !!entrega.data_entrega,
+      atrasada: atraso(entrega.status_entrega_planilha),
+      data: entrega.data_entrega,
+      detalhe: entrega.status_entrega_planilha,
+    },
+  ];
 
   return (
-    <div className="flex items-center w-full max-w-[130px] mx-auto">
-      <EtapaDot
-        feita={agendada}
-        cor={corAgendada}
-        titulo={`Agendada: ${dataOuPendente(entrega.data_agendamento)}${entrega.status_agendamento_detalhe ? ` · ${entrega.status_agendamento_detalhe}` : ""}`}
-      />
-      <EtapaDot
-        feita={coletada}
-        cor={corColetada}
-        titulo={`Coletada: ${dataOuPendente(entrega.data_coleta)}${entrega.status_coleta ? ` · ${entrega.status_coleta}` : ""}`}
-      />
-      <EtapaDot
-        feita={expedida}
-        cor={corExpedida}
-        titulo={`Expedida (CTE): ${dataOuPendente(entrega.data_emissao_cte)}`}
-      />
-      <EtapaDot
-        feita={entregue}
-        cor={corEntregue}
-        titulo={`Entregue: ${dataOuPendente(entrega.data_entrega)}${entrega.status_entrega_planilha ? ` · ${entrega.status_entrega_planilha}` : ""}`}
-        ultima
-      />
+    <div className="relative inline-block">
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center justify-center gap-1 rounded-md p-0.5 hover:bg-muted/60"
+        title="Clique para ver detalhes"
+      >
+        {etapas.map((e) => (
+          <EtapaIcone key={e.label} Icon={e.Icon} feita={e.feita} atrasada={e.atrasada} />
+        ))}
+      </button>
+      {open &&
+        pos &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+            <div
+              className="fixed z-[9999] bg-popover border border-border rounded-md shadow-lg p-3 min-w-[220px] -translate-x-1/2 space-y-2"
+              style={{ top: pos.top, left: pos.left }}
+            >
+              {etapas.map((e) => (
+                <div key={e.label} className="flex items-start gap-2">
+                  <div
+                    className={`h-5 w-5 rounded flex items-center justify-center shrink-0 mt-0.5 ${
+                      !e.feita
+                        ? "text-muted-foreground/50 bg-muted/60"
+                        : e.atrasada
+                          ? "text-amber-500 bg-amber-500/15"
+                          : "text-blue-500 bg-blue-500/15"
+                    }`}
+                  >
+                    <e.Icon className="h-3 w-3" strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold">{e.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {e.data ? formatDateBR(e.data) : "Pendente"}
+                      {e.detalhe ? ` · ${e.detalhe}` : ""}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
