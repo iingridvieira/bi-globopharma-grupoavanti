@@ -251,6 +251,9 @@ function NFsPage() {
           previsao_entrega: string | null;
           status_coleta: string | null;
           data_coleta: string | null;
+          data_emissao_cte: string | null;
+          status_entrega_planilha: string | null;
+          status_agendamento_detalhe: string | null;
         }
       > = {};
       const BATCH = 500;
@@ -258,7 +261,7 @@ function NFsPage() {
         const { data } = await supabase
           .from("nf_entregas")
           .select(
-            "numero,status,data_entrega,data_agendamento,previsao_entrega,status_coleta,data_coleta",
+            "numero,status,data_entrega,data_agendamento,previsao_entrega,status_coleta,data_coleta,data_emissao_cte,status_entrega_planilha,status_agendamento_detalhe",
           )
           .in("numero", numerosNFAll.slice(i, i + BATCH));
         (data ?? []).forEach((d) => {
@@ -410,7 +413,6 @@ function NFsPage() {
       numero: (n: NfRow) => String(n.numero ?? ""),
       cliente: (n: NfRow) => n.clientes?.nome ?? "",
       status: (n: NfRow) => entregasMap?.[n.numero]?.status ?? "Não Coletada",
-      statusColeta: (n: NfRow) => entregasMap?.[n.numero]?.status_coleta ?? "",
       lead: (n: NfRow) => {
         const e = entregasMap?.[n.numero];
         const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
@@ -434,7 +436,6 @@ function NFsPage() {
       numero: "text" as const,
       cliente: "text" as const,
       status: "text" as const,
-      statusColeta: "text" as const,
       lead: "number" as const,
       dataEntrega: "date" as const,
       operacao: "text" as const,
@@ -877,17 +878,7 @@ function NFsPage() {
                   onSortChange={(s) => setColSort("status", s)}
                 />
               </th>
-              <th className="text-center">
-                <ColumnFilterHeader
-                  label="Status Coleta"
-                  align="center"
-                  values={distinct.statusColeta ?? []}
-                  selected={colFilters.statusColeta ?? []}
-                  onChange={(v) => setColFilter("statusColeta", v)}
-                  sort={colSorts.statusColeta ?? null}
-                  onSortChange={(s) => setColSort("statusColeta", s)}
-                />
-              </th>
+              <th className="text-center">Andamento</th>
               <th className="text-center">
                 <ColumnFilterHeader
                   label="Lead Time"
@@ -1016,10 +1007,8 @@ function NFsPage() {
                           onChanged={() => qc.invalidateQueries({ queryKey: ["nf-entregas"] })}
                         />
                       </td>
-                      <td
-                        className={`text-center text-[10px] font-semibold uppercase tracking-wider ${statusColetaClasses(entrega?.status_coleta)}`}
-                      >
-                        {entrega?.status_coleta ?? "—"}
+                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <EntregaTimeline entrega={entrega} />
                       </td>
                       <td className="text-center">
                         {leadDays == null ? (
@@ -1171,10 +1160,6 @@ function NFsPage() {
 // o cálculo antigo (usado quando a planilha não tem esse status pronto) e as
 // opções de ajuste manual.
 const STATUS_OPCOES = [
-  "Entregue - No Prazo",
-  "Entregue - Atrasado",
-  "Não Entregue - No Prazo",
-  "Não Entregue - Atrasado",
   "Entregue",
   "Com Previsão",
   "Agendada",
@@ -1185,16 +1170,10 @@ const STATUS_OPCOES = [
 
 function statusClasses(s: string): string {
   switch (s) {
-    case "Entregue - No Prazo":
     case "Entregue":
       return "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-    case "Entregue - Atrasado":
-      return "bg-orange-500/20 text-orange-400 border border-orange-500/30";
-    case "Não Entregue - No Prazo":
     case "Agendada":
       return "bg-blue-500/20 text-blue-400 border border-blue-500/30";
-    case "Não Entregue - Atrasado":
-      return "bg-red-500/20 text-red-400 border border-red-500/30";
     case "Com Previsão":
       return "bg-amber-500/20 text-amber-400 border border-amber-500/30";
     case "Extraviada":
@@ -1206,12 +1185,90 @@ function statusClasses(s: string): string {
   }
 }
 
-/** Cor discreta para o status de coleta (informativo, sem edição manual). */
-function statusColetaClasses(s: string | null | undefined): string {
-  const k = (s ?? "").toLowerCase();
-  if (k.includes("atraso")) return "text-red-400";
-  if (k.includes("prazo")) return "text-emerald-400";
-  return "text-muted-foreground";
+type EntregaInfo = {
+  status: string;
+  data_entrega: string | null;
+  data_agendamento: string | null;
+  previsao_entrega: string | null;
+  status_coleta: string | null;
+  data_coleta: string | null;
+  data_emissao_cte: string | null;
+  status_entrega_planilha: string | null;
+  status_agendamento_detalhe: string | null;
+};
+
+/** Uma etapa da linha do tempo de entrega (bolinha + linha conectora). */
+function EtapaDot({
+  feita,
+  cor,
+  titulo,
+  ultima,
+}: {
+  feita: boolean;
+  cor: string;
+  titulo: string;
+  ultima?: boolean;
+}) {
+  return (
+    <div className="flex items-center flex-1" title={titulo}>
+      <div
+        className={`h-2.5 w-2.5 rounded-full shrink-0 ${feita ? cor : "bg-muted border border-border"}`}
+      />
+      {!ultima && <div className={`h-px flex-1 ${feita ? "bg-border" : "bg-border/40"}`} />}
+    </div>
+  );
+}
+
+/**
+ * Linha do tempo compacta: Agendada -> Coletada -> Expedida -> Entregue.
+ * Não substitui o "Status Entrega" (que continua sendo o cálculo
+ * automático de sempre) — é só uma visão rápida de em que pé está a NF,
+ * usando os dados que a planilha de entregas já traz prontos.
+ */
+function EntregaTimeline({ entrega }: { entrega?: EntregaInfo }) {
+  if (!entrega || entrega.status === "Extraviada" || entrega.status === "Devolvida") {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  const agendada = !!entrega.data_agendamento;
+  const coletada = !!entrega.data_coleta;
+  const expedida = !!entrega.data_emissao_cte;
+  const entregue = !!entrega.data_entrega;
+
+  const atraso = (s: string | null) => (s ?? "").toLowerCase().includes("atraso");
+
+  const corAgendada = atraso(entrega.status_agendamento_detalhe) ? "bg-amber-400" : "bg-blue-400";
+  const corColetada = atraso(entrega.status_coleta) ? "bg-amber-400" : "bg-emerald-400";
+  const corExpedida = "bg-blue-400";
+  const corEntregue = atraso(entrega.status_entrega_planilha) ? "bg-orange-400" : "bg-emerald-400";
+
+  const dataOuPendente = (d: string | null) => (d ? formatDateBR(d) : "Pendente");
+
+  return (
+    <div className="flex items-center w-full max-w-[130px] mx-auto">
+      <EtapaDot
+        feita={agendada}
+        cor={corAgendada}
+        titulo={`Agendada: ${dataOuPendente(entrega.data_agendamento)}${entrega.status_agendamento_detalhe ? ` · ${entrega.status_agendamento_detalhe}` : ""}`}
+      />
+      <EtapaDot
+        feita={coletada}
+        cor={corColetada}
+        titulo={`Coletada: ${dataOuPendente(entrega.data_coleta)}${entrega.status_coleta ? ` · ${entrega.status_coleta}` : ""}`}
+      />
+      <EtapaDot
+        feita={expedida}
+        cor={corExpedida}
+        titulo={`Expedida (CTE): ${dataOuPendente(entrega.data_emissao_cte)}`}
+      />
+      <EtapaDot
+        feita={entregue}
+        cor={corEntregue}
+        titulo={`Entregue: ${dataOuPendente(entrega.data_entrega)}${entrega.status_entrega_planilha ? ` · ${entrega.status_entrega_planilha}` : ""}`}
+        ultima
+      />
+    </div>
+  );
 }
 
 function StatusEntregaBadge({

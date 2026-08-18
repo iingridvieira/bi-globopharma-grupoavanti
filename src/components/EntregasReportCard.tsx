@@ -10,10 +10,6 @@ export type EntregaReportRow = {
 };
 
 export const STATUS_CORES: Record<string, string> = {
-  "Entregue - No Prazo": "#10b981",
-  "Entregue - Atrasado": "#f97316",
-  "Não Entregue - No Prazo": "#3b82f6",
-  "Não Entregue - Atrasado": "#ef4444",
   Entregue: "#10b981",
   "Com Previsão": "#38bdf8",
   Agendada: "#eab308",
@@ -22,18 +18,7 @@ export const STATUS_CORES: Record<string, string> = {
   Devolvida: "#a78bfa",
 };
 
-const ORDEM = [
-  "Entregue - No Prazo",
-  "Entregue - Atrasado",
-  "Não Entregue - No Prazo",
-  "Não Entregue - Atrasado",
-  "Entregue",
-  "Com Previsão",
-  "Agendada",
-  "Não Coletada",
-  "Extraviada",
-  "Devolvida",
-];
+const ORDEM = ["Entregue", "Com Previsão", "Agendada", "Não Coletada", "Extraviada", "Devolvida"];
 
 type Props = {
   periodo: string;
@@ -58,9 +43,7 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
     .forEach((s) => resumo.push({ status: s, qtd: counts.get(s) ?? 0, cor: "#9ca39a" }));
 
   const maxQtd = Math.max(1, ...resumo.map((r) => r.qtd));
-  // Conta "Entregue" (status antigo) e as duas variações novas que também
-  // significam entregue (no prazo ou atrasado).
-  const entregues = rows.filter((r) => r.status.startsWith("Entregue")).length;
+  const entregues = counts.get("Entregue") ?? 0;
   const comDias = rows.filter((r) => r.dias != null).map((r) => r.dias as number);
   const mediaDias = comDias.length ? comDias.reduce((a, b) => a + b, 0) / comDias.length : null;
   const pctEntregue = total ? (entregues / total) * 100 : 0;

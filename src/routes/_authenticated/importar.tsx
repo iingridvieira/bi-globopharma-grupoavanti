@@ -62,7 +62,7 @@ const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[]
   {
     key: "entregas",
     label: "Planilha de Entregas",
-    desc: "Cruza por NÚMERO da NF. Traz coleta, agendamento e entrega (com status de atraso já vindo da planilha) e datas/CTE, sem alterar a NF original.",
+    desc: "Cruza por NÚMERO da NF. Atualiza datas e status (entrega, coleta, agendamento, CTE) sem alterar a NF original. Não mexe em NFs de antes de julho/2026.",
     color: "purple",
   },
 ];
@@ -1028,13 +1028,19 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
  * Importa planilha de Entregas. Cruza por NÚMERO da NF e atualiza apenas
  * informações logísticas (não toca em notas_fiscais nem itens).
  *
- * O status de entrega e o status de coleta usam, sempre que a planilha já
- * traz essa informação pronta (ex: "ENTREGUE - ATRASADO", "COLETADO COM
- * ATRASO"), o valor da própria planilha — que já distingue no prazo/atrasado
- * e é mais confiável do que qualquer coisa que o sistema poderia adivinhar.
- * Só cai no cálculo antigo (baseado em quais datas estão preenchidas) quando
- * a planilha não traz esse status pronto. "Extraviada" tem prioridade sobre
- * tudo quando indicada em qualquer um dos campos de status/observação.
+ * O status de entrega ("status") continua sendo calculado exatamente como
+ * antes, a partir das datas presentes (Entregue/Agendada/Com Previsão/Não
+ * Coletada, com "Extraviada" tendo prioridade) — esse cálculo não foi
+ * alterado. A planilha atual também traz outros dados prontos (status de
+ * coleta, status de agendamento detalhado, status de entrega com
+ * atraso/no prazo, datas de coleta/CTE, vendedor/canal/gerente de contas):
+ * esses são guardados em campos separados, usados na tela para montar a
+ * visualização em etapas (agendada -> coletada -> expedida -> entregue),
+ * sem substituir o status calculado.
+ *
+ * Proteção: se a planilha trouxer a coluna "DATA EMISSÃO NF", linhas de NFs
+ * emitidas antes de 01/07/2026 são ignoradas — meses anteriores a julho não
+ * são tocados por essa importação.
  */
 async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<string> {
   type EntregaRow = {
@@ -1053,17 +1059,9 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     vendedor: string | null;
     canal: string | null;
     gerente_contas: string | null;
+    status_entrega_planilha: string | null;
+    status_agendamento_detalhe: string | null;
   };
-
-  // Normaliza pra comparar valores de status: minusculas, sem acento, sem
-  // espaco/pontuacao -- assim "ENTREGUE - ATRASADO" e qualquer variacao de
-  // escrita equivalente viram a mesma chave.
-  const chave = (s: unknown) =>
-    String(s ?? "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]/g, "");
 
   const norm = (s: unknown) =>
     String(s ?? "")
@@ -1071,42 +1069,28 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
 
-  /** Status de entrega ja pronto na planilha (mais preciso: distingue atraso). */
-  function statusDaPlanilha(bruto: string): string | null {
-    const k = chave(bruto);
-    switch (k) {
-      case "entregueatrasado":
-        return "Entregue - Atrasado";
-      case "entreguenoprazo":
-        return "Entregue - No Prazo";
-      case "naoentregueatrasado":
-        return "Não Entregue - Atrasado";
-      case "naoentreguenoprazo":
-        return "Não Entregue - No Prazo";
-      default:
-        return null; // ex: "#N/A", em branco, ou formato desconhecido
-    }
-  }
-
+  // Cálculo de status original — sem alteração: prioriza Extraviada, depois
+  // olha só se as datas de entrega/agendamento/previsão estão preenchidas.
   function inferirStatus(args: {
     extraviada: boolean;
-    statusEntregaPlanilha: string;
     data_entrega: string | null;
     data_agendamento: string | null;
     previsao_entrega: string | null;
   }): string {
     if (args.extraviada) return "Extraviada";
-    const daPlanilha = statusDaPlanilha(args.statusEntregaPlanilha);
-    if (daPlanilha) return daPlanilha;
-    // Planilha sem esse status pronto: mantem o calculo antigo por datas.
     if (args.data_entrega) return "Entregue";
     if (args.data_agendamento) return "Agendada";
     if (args.previsao_entrega) return "Com Previsão";
     return "Não Coletada";
   }
 
+  // Meses anteriores a julho/2026 não podem ser alterados por essa
+  // importação, mesmo que a planilha traga uma NF antiga por engano.
+  const CUTOFF = new Date(2026, 6, 1); // 01/07/2026
+
   const dedup = new Map<string, EntregaRow>();
   let puladas = 0;
+  let ignoradasPorData = 0;
   for (const r of rows) {
     const rawNum = pickCol(r, "NOTA", "NF", "Número", "Numero", "Número da NF", "Numero da NF");
     const numero = String(rawNum ?? "")
@@ -1114,6 +1098,12 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
       .replace(/\.0$/, "");
     if (!numero || numero === "undefined") {
       puladas++;
+      continue;
+    }
+
+    const dataEmissaoNf = rowToBRDate(pickCol(r, "DATA EMISSÃO NF", "DATA EMISSAO NF"));
+    if (dataEmissaoNf && new Date(dataEmissaoNf) < CUTOFF) {
+      ignoradasPorData++;
       continue;
     }
 
@@ -1143,18 +1133,21 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
       String(pickCol(r, "TRANSPORTADORA", "Transportadora") ?? "").trim() || null;
     const obsRaw = pickCol(r, "STATUS", "OBSERVAÇÃO", "OBSERVACAO", "Observação", "Observacao");
     const observacao = String(obsRaw ?? "").trim() || null;
-    const statusEntregaPlanilha = String(
-      pickCol(
-        r,
-        "STATUS ENTREGA - OK (NÃO ALTERAR NADA)",
-        "STATUS ENTREGA - OK",
-        "STATUS ENTREGA",
-      ) ?? "",
-    );
+    const status_entrega_planilha =
+      String(
+        pickCol(
+          r,
+          "STATUS ENTREGA - OK (NÃO ALTERAR NADA)",
+          "STATUS ENTREGA - OK",
+          "STATUS ENTREGA",
+        ) ?? "",
+      ).trim() || null;
     const statusAgend = String(pickCol(r, "STATUS AGENDAMENTO") ?? "");
-    const statusAgendDetalhe = String(pickCol(r, "STATUS DE AGENDAMENTO") ?? "").trim() || null;
+    const status_agendamento_detalhe =
+      String(pickCol(r, "STATUS DE AGENDAMENTO") ?? "").trim() || null;
 
-    // Novos campos da planilha atual de entregas.
+    // Campos da planilha atual de entregas (usados na visualização em
+    // etapas, não no cálculo de "status").
     const status_coleta = String(pickCol(r, "STATUS COLETA") ?? "").trim() || null;
     const data_coleta = rowToBRDate(pickCol(r, "DATA COLETA"));
     const previsao_coleta = rowToBRDate(pickCol(r, "DATA PREVISÃO COLETA", "DATA PREVISAO COLETA"));
@@ -1166,9 +1159,9 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
 
     const extraviada =
       norm(observacao).includes("extrav") ||
-      norm(statusEntregaPlanilha).includes("extrav") ||
+      norm(status_entrega_planilha).includes("extrav") ||
       norm(statusAgend).includes("extrav") ||
-      norm(statusAgendDetalhe).includes("extrav");
+      norm(status_agendamento_detalhe).includes("extrav");
 
     dedup.set(numero, {
       numero,
@@ -1176,15 +1169,9 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
       data_agendamento,
       previsao_entrega,
       previsao_entrega_inicial,
-      status: inferirStatus({
-        extraviada,
-        statusEntregaPlanilha,
-        data_entrega,
-        data_agendamento,
-        previsao_entrega,
-      }),
+      status: inferirStatus({ extraviada, data_entrega, data_agendamento, previsao_entrega }),
       transportadora,
-      observacao: observacao ?? statusAgendDetalhe,
+      observacao,
       status_coleta,
       data_coleta,
       previsao_coleta,
@@ -1192,12 +1179,18 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
       vendedor,
       canal,
       gerente_contas,
+      status_entrega_planilha,
+      status_agendamento_detalhe,
     });
   }
 
   const linhas = Array.from(dedup.values());
   if (linhas.length === 0) {
-    return `Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NOTA).`;
+    const aviso2 =
+      ignoradasPorData > 0
+        ? ` (${ignoradasPorData} ignoradas por serem de antes de julho/2026)`
+        : "";
+    return `Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NOTA)${aviso2}.`;
   }
 
   // Conta novas vs atualizadas antes do upsert
@@ -1233,6 +1226,8 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     created_by: userData.user?.id ?? null,
   } as never);
 
-  const aviso = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
-  return `${linhas.length} NFs processadas · ${novas} novas · ${atualizadas} atualizadas${aviso}.`;
+  const avisoPuladas = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
+  const avisoData =
+    ignoradasPorData > 0 ? ` · ${ignoradasPorData} de antes de julho/2026 ignoradas` : "";
+  return `${linhas.length} NFs processadas · ${novas} novas · ${atualizadas} atualizadas${avisoPuladas}${avisoData}.`;
 }

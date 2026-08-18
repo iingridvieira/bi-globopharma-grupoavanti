@@ -829,7 +829,9 @@ export type Database = {
           previsao_entrega: string | null
           previsao_entrega_inicial: string | null
           status: string
+          status_agendamento_detalhe: string | null
           status_coleta: string | null
+          status_entrega_planilha: string | null
           transportadora: string | null
           updated_at: string
           updated_by: string | null
@@ -850,7 +852,9 @@ export type Database = {
           previsao_entrega?: string | null
           previsao_entrega_inicial?: string | null
           status?: string
+          status_agendamento_detalhe?: string | null
           status_coleta?: string | null
+          status_entrega_planilha?: string | null
           transportadora?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -871,7 +875,9 @@ export type Database = {
           previsao_entrega?: string | null
           previsao_entrega_inicial?: string | null
           status?: string
+          status_agendamento_detalhe?: string | null
           status_coleta?: string | null
+          status_entrega_planilha?: string | null
           transportadora?: string | null
           updated_at?: string
           updated_by?: string | null
