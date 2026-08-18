@@ -1110,7 +1110,7 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     const data_entrega = rowToBRDate(
       pickCol(r, "DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega"),
     );
-    const data_agendamento = rowToBRDate(
+    let data_agendamento = rowToBRDate(
       pickCol(r, "DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento"),
     );
     const previsao_entrega = rowToBRDate(
@@ -1145,6 +1145,16 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     const statusAgend = String(pickCol(r, "STATUS AGENDAMENTO") ?? "");
     const status_agendamento_detalhe =
       String(pickCol(r, "STATUS DE AGENDAMENTO") ?? "").trim() || null;
+
+    // Quando a coluna "DATA AGENDAMENTO" está vazia, mas o detalhe do
+    // agendamento já diz que o cliente marcou um dia (ex: "AGENDAMENTO PELO
+    // CLIENTE PARA DIA 10/08/2026"), usa essa data como data de agendamento —
+    // isso já basta pra NF virar "Agendada" e a data aparecer em "Data
+    // Entrega" (o resto do sistema já sabe usar data_agendamento assim).
+    if (!data_agendamento && status_agendamento_detalhe) {
+      const m = status_agendamento_detalhe.match(/dia\s+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
+      if (m) data_agendamento = parseBRDate(m[1]);
+    }
 
     // Campos da planilha atual de entregas (usados na visualização em
     // etapas, não no cálculo de "status").
