@@ -607,26 +607,35 @@ function NFsPage() {
   }
 
   // ===== Relatório de entregas em PNG (mês selecionado) =====
-  const entregasReportRows = useMemo<EntregaReportRow[]>(
-    () =>
-      view.map((n) => {
-        const e = entregasMap?.[n.numero];
-        const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
-        const dias =
-          d && n.data
-            ? Math.round((new Date(d).getTime() - new Date(n.data).getTime()) / 86400000)
-            : null;
-        return {
-          numero: String(n.numero ?? ""),
-          cliente: n.clientes?.nome ?? "",
-          dataFaturamento: formatDateBR(n.data),
-          dataEntrega: d ? formatDateBR(d) : "",
-          dias: dias != null && Number.isFinite(dias) ? dias : null,
-          status: e?.status ?? "Não Coletada",
-        };
-      }),
-    [view, entregasMap],
-  );
+  const entregasReportRows = useMemo<EntregaReportRow[]>(() => {
+    const contemAtraso = (s: string | null | undefined) =>
+      (s ?? "").toLowerCase().includes("atraso");
+    return view.map((n) => {
+      const e = entregasMap?.[n.numero];
+      const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
+      const dias =
+        d && n.data
+          ? Math.round((new Date(d).getTime() - new Date(n.data).getTime()) / 86400000)
+          : null;
+      return {
+        numero: String(n.numero ?? ""),
+        cliente: n.clientes?.nome ?? "",
+        dataFaturamento: formatDateBR(n.data),
+        dataEntrega: d ? formatDateBR(d) : "",
+        dias: dias != null && Number.isFinite(dias) ? dias : null,
+        status: e?.status ?? "Não Coletada",
+        etapas: {
+          agendada: !!e?.data_agendamento,
+          agendadaAtraso: contemAtraso(e?.status_agendamento_detalhe),
+          coletada: !!e?.data_coleta,
+          coletadaAtraso: contemAtraso(e?.status_coleta),
+          expedida: !!e?.data_emissao_cte,
+          entregue: !!e?.data_entrega,
+          entregueAtraso: contemAtraso(e?.status_entrega_planilha),
+        },
+      };
+    });
+  }, [view, entregasMap]);
 
   const periodoLabel = useMemo(() => {
     const anosLbl = anos.length > 0 ? anos.slice().sort().join(", ") : "Todos os anos";

@@ -7,7 +7,22 @@ export type EntregaReportRow = {
   dataEntrega: string;
   dias: number | null;
   status: string;
+  etapas: {
+    agendada: boolean;
+    agendadaAtraso: boolean;
+    coletada: boolean;
+    coletadaAtraso: boolean;
+    expedida: boolean;
+    entregue: boolean;
+    entregueAtraso: boolean;
+  };
 };
+
+/** Cor de um quadradinho de etapa: cinza = pendente, azul = feito, âmbar = atraso sinalizado. */
+function corEtapa(feita: boolean, atraso: boolean): string {
+  if (!feita) return "#3a3f34";
+  return atraso ? "#f59e0b" : "#3b82f6";
+}
 
 export const STATUS_CORES: Record<string, string> = {
   Entregue: "#10b981",
@@ -47,6 +62,32 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
   const comDias = rows.filter((r) => r.dias != null).map((r) => r.dias as number);
   const mediaDias = comDias.length ? comDias.reduce((a, b) => a + b, 0) / comDias.length : null;
   const pctEntregue = total ? (entregues / total) * 100 : 0;
+
+  // Resumo das 4 etapas (Agendada -> Coletada -> Expedida -> Entregue), pra
+  // ver de relance quantas NFs já passaram por cada uma e onde tem atraso
+  // sinalizado pela própria planilha.
+  const etapasResumo = [
+    {
+      label: "Agendada",
+      feitas: rows.filter((r) => r.etapas.agendada).length,
+      atrasadas: rows.filter((r) => r.etapas.agendada && r.etapas.agendadaAtraso).length,
+    },
+    {
+      label: "Coletada",
+      feitas: rows.filter((r) => r.etapas.coletada).length,
+      atrasadas: rows.filter((r) => r.etapas.coletada && r.etapas.coletadaAtraso).length,
+    },
+    {
+      label: "Expedida (CTE)",
+      feitas: rows.filter((r) => r.etapas.expedida).length,
+      atrasadas: 0,
+    },
+    {
+      label: "Entregue",
+      feitas: rows.filter((r) => r.etapas.entregue).length,
+      atrasadas: rows.filter((r) => r.etapas.entregue && r.etapas.entregueAtraso).length,
+    },
+  ];
 
   const lista = [...rows].sort(
     (a, b) =>
@@ -142,6 +183,60 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
         ))}
       </div>
 
+      {/* Etapas do processo */}
+      <div
+        style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid #3a3f34",
+          borderRadius: 8,
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: "#9ca39a" }}>
+            ETAPAS DO PROCESSO
+          </div>
+          <div style={{ fontSize: 10, color: "#9ca39a" }}>
+            <span style={{ color: "#3b82f6" }}>●</span> concluído &nbsp;
+            <span style={{ color: "#f59e0b" }}>●</span> atraso sinalizado
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16 }}>
+          {etapasResumo.map((e) => (
+            <div key={e.label}>
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  color: "#9ca39a",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}
+              >
+                {e.label}
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4 }}>
+                {e.feitas}
+                <span style={{ fontSize: 13, color: "#9ca39a", fontWeight: 600 }}> / {total}</span>
+              </div>
+              {e.atrasadas > 0 && (
+                <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginTop: 2 }}>
+                  {e.atrasadas} com atraso sinalizado
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Gráfico por situação */}
       <div
         style={{
@@ -220,27 +315,30 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
                 <col style={{ width: 80 }} />
                 <col style={{ width: 80 }} />
                 <col style={{ width: 42 }} />
+                <col style={{ width: 60 }} />
                 <col style={{ width: 95 }} />
               </colgroup>
               <thead>
                 <tr style={{ background: "rgba(255,255,255,0.06)" }}>
-                  {["NF", "Cliente", "Fat.", "Ent.", "Dias", "Situação"].map((h, i) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "8px 8px",
-                        textAlign: i >= 2 ? (i === 5 ? "right" : "center") : "left",
-                        fontSize: 10,
-                        letterSpacing: 1,
-                        textTransform: "uppercase",
-                        color: "#9ca39a",
-                        fontWeight: 700,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  {["NF", "Cliente", "Fat.", "Ent.", "Dias", "Andamento", "Situação"].map(
+                    (h, i) => (
+                      <th
+                        key={h}
+                        style={{
+                          padding: "8px 8px",
+                          textAlign: i >= 2 ? (i === 6 ? "right" : "center") : "left",
+                          fontSize: 10,
+                          letterSpacing: 1,
+                          textTransform: "uppercase",
+                          color: "#9ca39a",
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -284,6 +382,27 @@ export const EntregasReportCard = forwardRef<HTMLDivElement, Props>(function Ent
                     </td>
                     <td style={{ padding: "6px 8px", textAlign: "center", fontWeight: 700 }}>
                       {r.dias == null ? "—" : r.dias}
+                    </td>
+                    <td style={{ padding: "6px 8px", textAlign: "center" }}>
+                      <div style={{ display: "inline-flex", gap: 3 }}>
+                        {[
+                          corEtapa(r.etapas.agendada, r.etapas.agendadaAtraso),
+                          corEtapa(r.etapas.coletada, r.etapas.coletadaAtraso),
+                          corEtapa(r.etapas.expedida, false),
+                          corEtapa(r.etapas.entregue, r.etapas.entregueAtraso),
+                        ].map((cor, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              display: "inline-block",
+                              width: 7,
+                              height: 7,
+                              borderRadius: 2,
+                              background: cor,
+                            }}
+                          />
+                        ))}
+                      </div>
                     </td>
                     <td style={{ padding: "6px 8px", textAlign: "right" }}>
                       <span
