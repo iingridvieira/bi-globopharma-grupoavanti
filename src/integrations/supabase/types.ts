@@ -669,7 +669,6 @@ export type Database = {
           desconto: number
           ean: string | null
           id: string
-          nitro: boolean
           nota_fiscal_id: string
           produto: string
           quantidade: number
@@ -681,7 +680,6 @@ export type Database = {
           desconto?: number
           ean?: string | null
           id?: string
-          nitro?: boolean
           nota_fiscal_id: string
           produto: string
           quantidade?: number
@@ -693,7 +691,6 @@ export type Database = {
           desconto?: number
           ean?: string | null
           id?: string
-          nitro?: boolean
           nota_fiscal_id?: string
           produto?: string
           quantidade?: number
