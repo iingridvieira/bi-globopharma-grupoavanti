@@ -709,7 +709,15 @@ function ImportarPage() {
       )}
 
       {loading && <div className="mt-4 text-sm text-muted-foreground">Processando…</div>}
-      {resumo && <div className="mt-4 bi-card p-4 text-sm">{resumo}</div>}
+      {resumo &&
+        (resumo.startsWith("⚠️") ? (
+          <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300 flex gap-2">
+            <span className="shrink-0">⚠️</span>
+            <span className="whitespace-pre-wrap">{resumo.replace(/^⚠️\s*/, "")}</span>
+          </div>
+        ) : (
+          <div className="mt-4 bi-card p-4 text-sm whitespace-pre-wrap">{resumo}</div>
+        ))}
     </div>
   );
 }
