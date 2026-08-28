@@ -1314,5 +1314,18 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
   const avisoPuladas = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
   const avisoData =
     ignoradasPorData > 0 ? ` · ${ignoradasPorData} de antes de julho/2026 ignoradas` : "";
-  return `${linhas.length} NFs processadas · ${novas} novas · ${atualizadas} atualizadas${avisoPuladas}${avisoData}.`;
+  const base = `${linhas.length} NFs processadas · ${novas} novas · ${atualizadas} atualizadas${avisoPuladas}${avisoData}.`;
+
+  if (ausentes.length > 0) {
+    const blocos: string[] = [];
+    if (!temBlocoEntrega) blocos.push("entrega (DATA ENTREGA / PREVISÃO DE ENTREGA)");
+    if (!temBlocoColeta) blocos.push("coleta (STATUS COLETA / DATA COLETA)");
+    return (
+      `⚠️ Planilha fora do padrão: o arquivo "${arquivo}" não tem todas as colunas das planilhas padrão.\n` +
+      (blocos.length ? `Blocos ausentes: ${blocos.join(" e ")}.\n` : "") +
+      `Colunas não encontradas: ${ausentes.join(", ")}.\n` +
+      `Esses campos foram PRESERVADOS como estavam (nada foi apagado).\n\n${base}`
+    );
+  }
+  return base;
 }
