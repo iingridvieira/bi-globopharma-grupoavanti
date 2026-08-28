@@ -814,6 +814,17 @@ function NFsPage() {
             onChange={setProdutosSel}
           />
 
+          <MultiSelect
+            width={170}
+            placeholder="Nitro"
+            options={[
+              { value: "sim", label: "Com item Nitro" },
+              { value: "nao", label: "Sem item Nitro" },
+            ]}
+            selected={nitroSel}
+            onChange={setNitroSel}
+          />
+
           <select
             value={responsavel}
             onChange={(e) => setResponsavel(e.target.value)}
@@ -830,6 +841,7 @@ function NFsPage() {
             operacoes.length > 0 ||
             responsavel ||
             statusEntrega.length > 0 ||
+            nitroSel.length > 0 ||
             produtosSel.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
