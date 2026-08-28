@@ -705,6 +705,7 @@ function NFsPage() {
     setResponsavel("");
     setStatusEntrega([]);
     setProdutosSel([]);
+    setNitroSel([]);
   }
 
   return (
