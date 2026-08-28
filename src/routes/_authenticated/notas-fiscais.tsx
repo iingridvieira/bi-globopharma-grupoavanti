@@ -77,6 +77,7 @@ function NFsPage() {
   const [operacoes, setOperacoes] = useState<string[]>([]);
   const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
   const [produtosSel, setProdutosSel] = useState<string[]>([]);
+  const [nitroSel, setNitroSel] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
@@ -314,6 +315,10 @@ function NFsPage() {
         const s = entregasMap?.[n.numero]?.status ?? "Sem Previsão";
         if (!statusEntrega.includes(s)) return false;
       }
+      if (nitroSel.length > 0 && nitroSel.length < 2) {
+        const isNitro = nfsComNitro?.has(n.id) ?? false;
+        if (!nitroSel.includes(isNitro ? "sim" : "nao")) return false;
+      }
       return true;
     });
   }, [
@@ -324,6 +329,8 @@ function NFsPage() {
     allowedIdSet,
     statusEntrega,
     entregasMap,
+    nitroSel,
+    nfsComNitro,
   ]);
 
   const buscaAtiva = buscaTrim.length >= 2;
@@ -705,6 +712,7 @@ function NFsPage() {
     setResponsavel("");
     setStatusEntrega([]);
     setProdutosSel([]);
+    setNitroSel([]);
   }
 
   return (
@@ -806,6 +814,17 @@ function NFsPage() {
             onChange={setProdutosSel}
           />
 
+          <MultiSelect
+            width={170}
+            placeholder="Nitro"
+            options={[
+              { value: "sim", label: "Com item Nitro" },
+              { value: "nao", label: "Sem item Nitro" },
+            ]}
+            selected={nitroSel}
+            onChange={setNitroSel}
+          />
+
           <select
             value={responsavel}
             onChange={(e) => setResponsavel(e.target.value)}
@@ -822,6 +841,7 @@ function NFsPage() {
             operacoes.length > 0 ||
             responsavel ||
             statusEntrega.length > 0 ||
+            nitroSel.length > 0 ||
             produtosSel.length > 0) && (
             <button onClick={limparFiltros} className="text-sm text-primary hover:underline">
               Limpar filtros
