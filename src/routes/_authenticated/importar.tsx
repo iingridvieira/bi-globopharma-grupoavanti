@@ -1209,14 +1209,74 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     });
   }
 
-  const linhas = Array.from(dedup.values());
+  // ------------------------------------------------------------------
+  // Proteção contra planilha fora do padrão: só grava as colunas que a
+  // planilha realmente tem. Se o arquivo não trouxer o bloco de entrega,
+  // os dados de entrega já cadastrados são preservados (antes eram
+  // apagados). E devolve um aviso visual quando o layout não bate.
+  // ------------------------------------------------------------------
+  const normH = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, "");
+  const headers = new Set<string>();
+  rows.slice(0, 30).forEach((r) => Object.keys(r).forEach((k) => headers.add(normH(k))));
+  const hasCol = (...names: string[]) => names.some((n) => headers.has(normH(n)));
+
+  const COLUNAS: Record<string, string[]> = {
+    data_entrega: ["DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega"],
+    data_agendamento: ["DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento", "STATUS DE AGENDAMENTO"],
+    previsao_entrega: [
+      "PREVISÃO DE ENTREGA SITE",
+      "PREVISAO DE ENTREGA SITE",
+      "Previsão de Entrega",
+      "Previsao de Entrega",
+      "PREVISÃO ENTREGA TABELA TRANSPORTADORA",
+      "PREVISAO ENTREGA TABELA TRANSPORTADORA",
+      "PREVISÃO DE ENTREGA SITE TRASP",
+      "PREVISAO DE ENTREGA SITE TRASP",
+    ],
+    previsao_entrega_inicial: ["PREVISÃO ENTREGA INICIAL", "PREVISAO ENTREGA INICIAL"],
+    transportadora: ["TRANSPORTADORA", "Transportadora"],
+    observacao: ["STATUS", "OBSERVAÇÃO", "OBSERVACAO", "Observação", "Observacao"],
+    status_entrega_planilha: [
+      "STATUS ENTREGA - OK (NÃO ALTERAR NADA)",
+      "STATUS ENTREGA - OK",
+      "STATUS ENTREGA",
+    ],
+    status_agendamento_detalhe: ["STATUS DE AGENDAMENTO"],
+    status_coleta: ["STATUS COLETA"],
+    data_coleta: ["DATA COLETA"],
+    previsao_coleta: ["DATA PREVISÃO COLETA", "DATA PREVISAO COLETA"],
+    data_emissao_cte: ["DATA EMISSÃO CTE", "DATA EMISSAO CTE"],
+    vendedor: ["VENDEDOR"],
+    canal: ["CANAL"],
+    gerente_contas: ["GERENTE DE CONTAS", "GERENTE DE CONTA"],
+  };
+
+  const ausentes = Object.keys(COLUNAS).filter((f) => !hasCol(...COLUNAS[f]));
+  const temBlocoEntrega = hasCol(...COLUNAS.data_entrega, ...COLUNAS.previsao_entrega);
+  const temBlocoColeta = hasCol(...COLUNAS.status_coleta, ...COLUNAS.data_coleta);
+
+  const linhas = Array.from(dedup.values()).map((l) => {
+    const out: Record<string, unknown> = { numero: l.numero };
+    (Object.keys(COLUNAS) as (keyof typeof l)[]).forEach((f) => {
+      if (!ausentes.includes(f as string)) out[f as string] = l[f];
+    });
+    // O status calculado só é regravado se a planilha trouxer o bloco de entrega.
+    if (temBlocoEntrega) out.status = l.status;
+    return out as typeof l;
+  });
   if (linhas.length === 0) {
     const aviso2 =
       ignoradasPorData > 0
         ? ` (${ignoradasPorData} ignoradas por serem de antes de julho/2026)`
         : "";
-    return `Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NOTA)${aviso2}.`;
+    return `⚠️ Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NOTA)${aviso2}.`;
   }
+
 
   // Conta novas vs atualizadas antes do upsert
   const numeros = linhas.map((l) => l.numero);
