@@ -315,6 +315,10 @@ function NFsPage() {
         const s = entregasMap?.[n.numero]?.status ?? "Sem Previsão";
         if (!statusEntrega.includes(s)) return false;
       }
+      if (nitroSel.length > 0 && nitroSel.length < 2) {
+        const isNitro = nfsComNitro?.has(n.id) ?? false;
+        if (!nitroSel.includes(isNitro ? "sim" : "nao")) return false;
+      }
       return true;
     });
   }, [
@@ -325,6 +329,8 @@ function NFsPage() {
     allowedIdSet,
     statusEntrega,
     entregasMap,
+    nitroSel,
+    nfsComNitro,
   ]);
 
   const buscaAtiva = buscaTrim.length >= 2;
