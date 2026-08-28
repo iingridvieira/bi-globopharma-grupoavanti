@@ -77,6 +77,7 @@ function NFsPage() {
   const [operacoes, setOperacoes] = useState<string[]>([]);
   const [statusEntrega, setStatusEntrega] = useState<string[]>([]);
   const [produtosSel, setProdutosSel] = useState<string[]>([]);
+  const [nitroSel, setNitroSel] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
