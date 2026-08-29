@@ -341,7 +341,7 @@
   .page-glow {
     background-image: radial-gradient(
       ellipse 80% 50% at 50% -20%,
-      color-mix(in oklab, var(--color-primary) 16%, transparent),
+      color-mix(in oklab, var(--primary) 16%, transparent),
       transparent 60%
     );
     background-attachment: fixed;
@@ -363,7 +363,7 @@
       0 8px 24px -12px oklch(0 0 0 / 0.5);
   }
   .bi-card-accent {
-    background: linear-gradient(135deg, var(--color-primary) 0%, oklch(0.6 0.2 40) 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, oklch(0.6 0.2 40) 100%);
     color: var(--color-primary-foreground);
     border: 1px solid oklch(0.75 0.18 55);
     border-radius: var(--radius-md);
@@ -392,14 +392,14 @@
     font-size: 14px;
   }
   .bi-table tbody tr:hover {
-    background: color-mix(in oklab, var(--color-primary) 6%, transparent);
+    background: color-mix(in oklab, var(--primary) 6%, transparent);
   }
   .bi-table tfoot td {
     padding: 14px;
     font-family: var(--font-display);
     font-weight: 700;
     background: var(--color-surface-2);
-    border-top: 2px solid var(--color-primary);
+    border-top: 2px solid var(--primary);
   }
 
   /* Coluna fixa (sticky) — nome do cliente em tabelas com rolagem horizontal */
@@ -418,7 +418,7 @@
     background: var(--color-surface-2);
   }
   .bi-table tbody tr:hover td.bi-col-sticky {
-    background: color-mix(in oklab, var(--color-primary) 6%, var(--color-surface));
+    background: color-mix(in oklab, var(--primary) 6%, var(--color-surface));
   }
 
   .bi-stat-label {
@@ -457,6 +457,6 @@
   /* Sombra do item ativo no menu lateral: acompanha a cor do módulo atual
      (laranja/verde/azul) em vez de ficar fixa em laranja. */
   .nav-active-glow {
-    box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--color-primary) 60%, transparent);
+    box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--primary) 60%, transparent);
   }
 }
