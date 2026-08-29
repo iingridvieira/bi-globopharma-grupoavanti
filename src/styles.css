@@ -318,12 +318,12 @@
   }
   .dark body {
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.22 0.04 50 / 0.18), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in oklab, var(--color-primary) 16%, transparent), transparent 60%),
       linear-gradient(180deg, var(--color-background) 0%, oklch(0.16 0.01 130) 100%);
   }
   :root:not(.dark) body {
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -20%, oklch(0.85 0.05 50 / 0.2), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in oklab, var(--color-primary) 14%, transparent), transparent 60%),
       linear-gradient(180deg, var(--color-background) 0%, oklch(0.96 0.004 100) 100%);
   }
   h1,
