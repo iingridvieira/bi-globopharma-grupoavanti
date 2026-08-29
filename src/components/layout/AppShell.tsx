@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navSectionLabel = isCrm ? "CRM" : isImec ? "IMEC" : "Operação";
 
   return (
-    <div className={`min-h-screen flex ${isGreenScope ? "crm" : isImec ? "bi-imec" : ""}`}>
+    <div className={`min-h-screen flex page-glow ${isGreenScope ? "crm" : isImec ? "bi-imec" : ""}`}>
       <aside className="w-[260px] shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col">
         <div className="px-5 py-5 border-b border-sidebar-border">
           <Link
