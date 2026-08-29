@@ -336,6 +336,18 @@
 }
 
 @layer components {
+  /* Brilho radial do topo da página: usa a cor primária do módulo ativo
+     (laranja Globo / verde CRM / azul IMEC) em vez de laranja fixo. */
+  .page-glow {
+    background-image: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      color-mix(in oklab, var(--color-primary) 16%, transparent),
+      transparent 60%
+    );
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
   .bi-card {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
