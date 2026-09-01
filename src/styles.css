@@ -363,11 +363,15 @@
       0 8px 24px -12px oklch(0 0 0 / 0.5);
   }
   .bi-card-accent {
-    background: linear-gradient(135deg, var(--primary) 0%, oklch(0.6 0.2 40) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--primary) 0%,
+      color-mix(in oklab, var(--primary) 85%, black) 100%
+    );
     color: var(--color-primary-foreground);
-    border: 1px solid oklch(0.75 0.18 55);
+    border: 1px solid color-mix(in oklab, var(--primary) 75%, white);
     border-radius: var(--radius-md);
-    box-shadow: 0 12px 32px -8px oklch(0.5 0.2 40 / 0.45);
+    box-shadow: 0 12px 32px -8px color-mix(in oklab, var(--primary) 45%, transparent);
   }
   .bi-table {
     width: 100%;
