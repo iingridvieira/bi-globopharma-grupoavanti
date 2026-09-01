@@ -351,7 +351,7 @@ function ImecPedidosPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <div className="rounded-md p-5 bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_var(--color-primary)]">
+        <div className="rounded-md p-5 bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_var(--primary)]">
           <div className="flex items-start justify-between">
             <div className="text-primary-foreground/80 bi-stat-label">
               Total de pedidos enviados
@@ -638,7 +638,7 @@ function ImecPedidosPage() {
 
       <style>{`
         .bi-input-sm { height: 40px; padding: 0 12px; background: var(--color-input); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-foreground); font-size: 14px; outline: none; }
-        .bi-input-sm:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-ring); }
+        .bi-input-sm:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
       `}</style>
     </div>
   );

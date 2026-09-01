@@ -278,7 +278,7 @@ function StatCard({
     <div
       className={
         accent
-          ? "rounded-md p-5 bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_var(--color-primary)]"
+          ? "rounded-md p-5 bg-primary text-primary-foreground shadow-[0_12px_32px_-10px_var(--primary)]"
           : "bi-card p-5"
       }
     >

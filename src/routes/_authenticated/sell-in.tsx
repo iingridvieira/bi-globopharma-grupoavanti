@@ -166,7 +166,7 @@ function SellInPage() {
 
       <style>{`
         .bi-desc-input { background: var(--color-input); border: 1px solid var(--color-border); border-radius: 6px; padding: 10px 12px; font-size: 14px; color: var(--color-foreground); outline: none; width: 100%; }
-        .bi-desc-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-ring); }
+        .bi-desc-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
       `}</style>
     </div>
   );
