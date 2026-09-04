@@ -206,6 +206,13 @@ function ClienteDetalhe() {
   }
 
 
+  const nomeClienteNorm = (cliente?.nome ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+  const ocultarSellOutEPositivacao = nomeClienteNorm === "BANDEIRANTES";
+
   return (
     <div className="p-8 max-w-[1500px] mx-auto">
       <Link to="/por-clientes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
@@ -229,7 +236,9 @@ function ClienteDetalhe() {
       {anoSel === ALL ? (
         <>
           <MultiYearSection title="Sell In" rows={sellInAll ?? []} anos={anosDisponiveis} colorVar="var(--color-chart-1)" />
-          <MultiYearSection title="Sell Out" rows={sellOutAll ?? []} anos={anosDisponiveis} colorVar="var(--color-chart-2)" />
+          {!ocultarSellOutEPositivacao && (
+            <MultiYearSection title="Sell Out" rows={sellOutAll ?? []} anos={anosDisponiveis} colorVar="var(--color-chart-2)" />
+          )}
         </>
       ) : (
         <>
@@ -238,36 +247,31 @@ function ClienteDetalhe() {
             agg={buildAgg((sellInAll ?? []).filter((r) => Number(r.ano) === anoSel))}
             colorVar="var(--color-chart-1)"
           />
-          <MonthlyTable
-            title={`Sell Out · ${anoSel}`}
-            agg={buildAgg((sellOutAll ?? []).filter((r) => Number(r.ano) === anoSel))}
-            colorVar="var(--color-chart-2)"
-          />
+          {!ocultarSellOutEPositivacao && (
+            <MonthlyTable
+              title={`Sell Out · ${anoSel}`}
+              agg={buildAgg((sellOutAll ?? []).filter((r) => Number(r.ano) === anoSel))}
+              colorVar="var(--color-chart-2)"
+            />
+          )}
         </>
       )}
 
-      {(() => {
-        const nomeNorm = (cliente?.nome ?? "")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toUpperCase()
-          .trim();
-        if (nomeNorm === "NAVARRO INTER") {
-          return (
-            <section className="bi-card mb-6 overflow-hidden">
-              <header className="px-6 py-4 border-b border-border">
-                <h2 className="font-display text-lg font-semibold">Positivação</h2>
-              </header>
-              <div className="px-6 py-5">
-                <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground leading-relaxed">
-                  A Positivação da <span className="font-semibold text-foreground">NAVARRO INTER</span> não é apresentada de forma individual, pois seus resultados são consolidados juntamente com a <span className="font-semibold text-foreground">NAVARRO SP</span>. Para análise de positivação, considere os dados exibidos no card da NAVARRO SP.
-                </div>
-              </div>
-            </section>
-          );
-        }
-        return <PositivacaoSection clienteId={clienteId} ano={anoSel === ALL ? currentYear : anoSel} />;
-      })()}
+      {ocultarSellOutEPositivacao ? null : nomeClienteNorm === "NAVARRO INTER" ? (
+        <section className="bi-card mb-6 overflow-hidden">
+          <header className="px-6 py-4 border-b border-border">
+            <h2 className="font-display text-lg font-semibold">Positivação</h2>
+          </header>
+          <div className="px-6 py-5">
+            <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground leading-relaxed">
+              A Positivação da <span className="font-semibold text-foreground">NAVARRO INTER</span> não é apresentada de forma individual, pois seus resultados são consolidados juntamente com a <span className="font-semibold text-foreground">NAVARRO SP</span>. Para análise de positivação, considere os dados exibidos no card da NAVARRO SP.
+            </div>
+          </div>
+        </section>
+      ) : (
+        <PositivacaoSection clienteId={clienteId} ano={anoSel === ALL ? currentYear : anoSel} />
+      )}
+
 
 
 
