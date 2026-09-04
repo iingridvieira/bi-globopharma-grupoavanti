@@ -206,6 +206,13 @@ function ClienteDetalhe() {
   }
 
 
+  const nomeClienteNorm = (cliente?.nome ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+  const ocultarSellOutEPositivacao = nomeClienteNorm === "BANDEIRANTES";
+
   return (
     <div className="p-8 max-w-[1500px] mx-auto">
       <Link to="/por-clientes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
