@@ -712,7 +712,15 @@ function ImportarPage() {
       )}
 
       {loading && <div className="mt-4 text-sm text-muted-foreground">Processando…</div>}
-      {resumo && <div className="mt-4 bi-card p-4 text-sm">{resumo}</div>}
+      {resumo &&
+        (resumo.startsWith("⚠️") ? (
+          <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300 flex gap-2">
+            <span className="shrink-0">⚠️</span>
+            <span className="whitespace-pre-wrap">{resumo.replace(/^⚠️\s*/, "")}</span>
+          </div>
+        ) : (
+          <div className="mt-4 bi-card p-4 text-sm whitespace-pre-wrap">{resumo}</div>
+        ))}
     </div>
   );
 }
@@ -1055,13 +1063,14 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
  * importação.
  */
 async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<string> {
-  const { linhas, puladas, ignoradasPorData } = parseEntregas(rows);
+  const { linhas, puladas, ignoradasPorData, colunasFaltando, blocosFaltando } =
+    parseEntregas(rows);
   if (linhas.length === 0) {
     const aviso2 =
       ignoradasPorData > 0
         ? ` (${ignoradasPorData} ignoradas por serem de antes de julho/2026)`
         : "";
-    return `Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NF)${aviso2}.`;
+    return `⚠️ Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NF)${aviso2}.`;
   }
 
   // Conta novas vs atualizadas antes do upsert
@@ -1105,5 +1114,15 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
   const avisoPuladas = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
   const avisoData =
     ignoradasPorData > 0 ? ` · ${ignoradasPorData} de antes de julho/2026 ignoradas` : "";
-  return `${linhas.length} NFs processadas · ${novas} novas · ${atualizadas} atualizadas${avisoPuladas}${avisoData}.`;
+  const base = `${linhas.length} NFs processadas · ${novas} novas · ${atualizadas} atualizadas${avisoPuladas}${avisoData}.`;
+
+  if (colunasFaltando.length > 0) {
+    return (
+      `⚠️ Planilha fora do padrão: o arquivo "${arquivo}" não tem todas as colunas do modelo atual.\n` +
+      (blocosFaltando.length ? `Blocos ausentes: ${blocosFaltando.join(" e ")}.\n` : "") +
+      `Colunas não encontradas: ${colunasFaltando.join(", ")}.\n` +
+      `Esses campos foram PRESERVADOS como estavam (nada foi apagado).\n\n${base}`
+    );
+  }
+  return base;
 }

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/por-clientes/")({ componen
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
 const CLIENTES_PERMITIDOS = new Set([
-  "ANDORINHA", "CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "DISMAP",
+  "ANDORINHA", "BANDEIRANTES", "CAMPEÃ", "CG MEDICAMENTOS", "DF COMERCIAL", "DISMAP",
   "JK MEDICAMENTOS", "MAXIFARMA", "MEDSOL", "MILFARMA",
   "NAVARRO INTER", "NAVARRO SP", "NÚCLEO FARMA",
 ].map(norm));

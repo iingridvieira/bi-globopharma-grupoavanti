@@ -698,7 +698,7 @@ export function SmallStyles() {
   return (
     <style>{`
       .bi-input-sm { height: 40px; padding: 0 12px; background: var(--color-input); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-foreground); font-size: 14px; outline: none; }
-      .bi-input-sm:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-ring); }
+      .bi-input-sm:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
     `}</style>
   );
 }

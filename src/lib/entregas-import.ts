@@ -87,6 +87,28 @@ const CAMPOS_OPCIONAIS = [
   "gerente_contas",
 ] as const satisfies readonly (keyof EntregaRow & keyof typeof COLS)[];
 
+/**
+ * Colunas do modelo ATUAL da planilha. Se o arquivo não trouxer alguma delas,
+ * a importação continua (preservando o que já está salvo) mas avisa.
+ * Colunas que só existiam no modelo antigo (PREVISÃO ENTREGA INICIAL, DATA
+ * EMISSÃO CTE, CANAL) continuam aceitas quando vêm, mas não fazem falta.
+ */
+const PADRAO_ATUAL = {
+  data_entrega: "DATA ENTREGA",
+  data_agendamento: "DATA AGENDAMENTO",
+  previsao_entrega: "PREVISÃO DE ENTREGA",
+  transportadora: "TRANSPORTADORA",
+  observacao: "OBS DE RASTREIO",
+  status_entrega_planilha: "STATUS ENTREGA",
+  status_agendamento_detalhe: "STATUS DE AGENDAMENTO",
+  status_coleta: "STATUS COLETA",
+  data_coleta: "DATA COLETA",
+  previsao_coleta: "DATA PREVISÃO COLETA",
+  cte: "CTE",
+  vendedor: "VENDEDOR",
+  gerente_contas: "GERENTE DE CONTAS",
+} as const satisfies Partial<Record<keyof EntregaRow, string>>;
+
 const norm = (s: unknown) =>
   String(s ?? "")
     .toLowerCase()
@@ -116,9 +138,13 @@ const CUTOFF_ISO = "2026-07-01";
 
 export type EntregasParseadas = {
   /** Uma por NF (a última linha da planilha vence, se a NF se repetir). */
-  linhas: (Pick<EntregaRow, "numero" | "status"> & Partial<EntregaRow>)[];
+  linhas: (Pick<EntregaRow, "numero"> & Partial<EntregaRow>)[];
   puladas: number;
   ignoradasPorData: number;
+  /** Colunas do modelo atual que a planilha não trouxe (vazio = planilha no padrão). */
+  colunasFaltando: string[];
+  /** "entrega" e/ou "coleta", quando o bloco inteiro de colunas não veio. */
+  blocosFaltando: string[];
 };
 
 /**
@@ -128,10 +154,21 @@ export type EntregasParseadas = {
  * modelo da planilha não traz, por exemplo, "CANAL" ou "DATA EMISSÃO CTE", o
  * valor que já está salvo no banco é preservado (o upsert não sobrescreve com
  * vazio). Coluna presente mas com célula vazia continua limpando o campo.
+ * O `status` calculado só é regravado se a planilha trouxer o bloco de entrega
+ * (DATA ENTREGA / PREVISÃO DE ENTREGA); sem ele, o status atual é mantido.
  */
 export function parseEntregas(rows: ExcelRow[]): EntregasParseadas {
   const presentes = new Set<string>(
     CAMPOS_OPCIONAIS.filter((campo) => hasCol(rows[0], ...COLS[campo])),
+  );
+
+  const temBlocoEntrega = presentes.has("data_entrega") || presentes.has("previsao_entrega");
+  const temBlocoColeta = presentes.has("status_coleta") || presentes.has("data_coleta");
+  const colunasFaltando = (Object.keys(PADRAO_ATUAL) as (keyof typeof PADRAO_ATUAL)[])
+    .filter((campo) => !presentes.has(campo))
+    .map((campo) => PADRAO_ATUAL[campo]);
+  const blocosFaltando = [!temBlocoEntrega && "entrega", !temBlocoColeta && "coleta"].filter(
+    (b): b is string => !!b,
   );
 
   const dedup = new Map<string, EntregasParseadas["linhas"][number]>();
@@ -199,15 +236,19 @@ export function parseEntregas(rows: ExcelRow[]): EntregasParseadas {
       status_agendamento_detalhe,
     };
 
-    const linha: EntregasParseadas["linhas"][number] = {
-      numero,
-      status: completa.status,
-    };
+    const linha: EntregasParseadas["linhas"][number] = { numero };
+    if (temBlocoEntrega) linha.status = completa.status;
     for (const campo of presentes) {
       (linha as Record<string, unknown>)[campo] = completa[campo as keyof EntregaRow];
     }
     dedup.set(numero, linha);
   }
 
-  return { linhas: Array.from(dedup.values()), puladas, ignoradasPorData };
+  return {
+    linhas: Array.from(dedup.values()),
+    puladas,
+    ignoradasPorData,
+    colunasFaltando,
+    blocosFaltando,
+  };
 }
