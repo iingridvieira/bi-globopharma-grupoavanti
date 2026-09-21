@@ -6,6 +6,7 @@ import { Upload, FileSpreadsheet, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildClienteIndex, clienteIdFromRazao, normalizeKey } from "@/lib/cliente-mapping";
+import { parseEntregas } from "@/lib/entregas-import";
 import { useAuth } from "@/hooks/use-auth";
 import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 
@@ -62,7 +63,7 @@ const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[]
   {
     key: "entregas",
     label: "Planilha de Entregas",
-    desc: "Cruza por NÚMERO da NF. Atualiza datas e status (entrega, coleta, agendamento, CTE) sem alterar a NF original. Não mexe em NFs de antes de julho/2026.",
+    desc: "Aceita o CSV (ou Excel) exportado da plataforma de entregas. Cruza por NÚMERO da NF (coluna NF). Atualiza datas e status (entrega, coleta, agendamento, CTE) sem alterar a NF original. Não mexe em NFs de antes de julho/2026.",
     color: "purple",
   },
 ];
@@ -627,13 +628,15 @@ function ImportarPage() {
 
       <label className="bi-card p-10 border-dashed border-2 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
         <Upload className="h-10 w-10 text-primary mb-3" />
-        <div className="font-display font-semibold">Clique para selecionar o arquivo .xlsx</div>
+        <div className="font-display font-semibold">
+          Clique para selecionar o arquivo {tipo === "entregas" ? ".csv ou .xlsx" : ".xlsx"}
+        </div>
         <div className="text-xs text-muted-foreground mt-1">
           Tipo selecionado: {TIPOS.find((t) => t.key === tipo)?.label}
         </div>
         <input
           type="file"
-          accept=".xlsx,.xls"
+          accept={tipo === "entregas" ? ".xlsx,.xls,.csv" : ".xlsx,.xls"}
           className="hidden"
           disabled={loading}
           onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
@@ -1035,179 +1038,30 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
  * Importa planilha de Entregas. Cruza por NÚMERO da NF e atualiza apenas
  * informações logísticas (não toca em notas_fiscais nem itens).
  *
- * O status de entrega ("status") continua sendo calculado exatamente como
- * antes, a partir das datas presentes (Entregue/Agendada/Com Previsão/Não
- * Coletada, com "Extraviada" tendo prioridade) — esse cálculo não foi
- * alterado. A planilha atual também traz outros dados prontos (status de
- * coleta, status de agendamento detalhado, status de entrega com
- * atraso/no prazo, datas de coleta/CTE, vendedor/canal/gerente de contas):
- * esses são guardados em campos separados, usados na tela para montar a
- * visualização em etapas (agendada -> coletada -> expedida -> entregue),
- * sem substituir o status calculado.
+ * Aceita .xlsx/.xls e .csv (o modelo atual é um CSV exportado da plataforma de
+ * rastreio: separador ";", UTF-8). A leitura das colunas e o cálculo do
+ * status ficam em `parseEntregas` (src/lib/entregas-import.ts).
  *
- * Proteção: se a planilha trouxer a coluna "DATA EMISSÃO NF", linhas de NFs
- * emitidas antes de 01/07/2026 são ignoradas — meses anteriores a julho não
- * são tocados por essa importação.
+ * O status de entrega ("status") é calculado a partir das datas presentes
+ * (Entregue/Agendada/Com Previsão/Sem Previsão, com "Extraviada" tendo
+ * prioridade). A planilha também traz dados prontos (status de coleta,
+ * status de entrega com atraso/no prazo, CTE, detalhe do agendamento,
+ * vendedor/gerente de contas): esses são guardados em campos separados, usados
+ * na tela para montar a visualização em etapas (agendada -> coletada ->
+ * expedida -> entregue), sem substituir o status calculado.
+ *
+ * Proteção: linhas de NFs emitidas antes de 01/07/2026 (coluna "DATA EMISSÃO
+ * NF") são ignoradas — meses anteriores a julho não são tocados por essa
+ * importação.
  */
 async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<string> {
-  type EntregaRow = {
-    numero: string;
-    data_entrega: string | null;
-    data_agendamento: string | null;
-    previsao_entrega: string | null;
-    previsao_entrega_inicial: string | null;
-    status: string;
-    transportadora: string | null;
-    observacao: string | null;
-    status_coleta: string | null;
-    data_coleta: string | null;
-    previsao_coleta: string | null;
-    data_emissao_cte: string | null;
-    vendedor: string | null;
-    canal: string | null;
-    gerente_contas: string | null;
-    status_entrega_planilha: string | null;
-    status_agendamento_detalhe: string | null;
-  };
-
-  const norm = (s: unknown) =>
-    String(s ?? "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-
-  // Cálculo de status original — sem alteração: prioriza Extraviada, depois
-  // olha só se as datas de entrega/agendamento/previsão estão preenchidas.
-  function inferirStatus(args: {
-    extraviada: boolean;
-    data_entrega: string | null;
-    data_agendamento: string | null;
-    previsao_entrega: string | null;
-  }): string {
-    if (args.extraviada) return "Extraviada";
-    if (args.data_entrega) return "Entregue";
-    if (args.data_agendamento) return "Agendada";
-    if (args.previsao_entrega) return "Com Previsão";
-    return "Sem Previsão";
-  }
-
-  // Meses anteriores a julho/2026 não podem ser alterados por essa
-  // importação, mesmo que a planilha traga uma NF antiga por engano.
-  const CUTOFF = new Date(2026, 6, 1); // 01/07/2026
-
-  const dedup = new Map<string, EntregaRow>();
-  let puladas = 0;
-  let ignoradasPorData = 0;
-  for (const r of rows) {
-    const rawNum = pickCol(r, "NOTA", "NF", "Número", "Numero", "Número da NF", "Numero da NF");
-    const numero = String(rawNum ?? "")
-      .trim()
-      .replace(/\.0$/, "");
-    if (!numero || numero === "undefined") {
-      puladas++;
-      continue;
-    }
-
-    const dataEmissaoNf = rowToBRDate(pickCol(r, "DATA EMISSÃO NF", "DATA EMISSAO NF"));
-    if (dataEmissaoNf && new Date(dataEmissaoNf) < CUTOFF) {
-      ignoradasPorData++;
-      continue;
-    }
-
-    const data_entrega = rowToBRDate(
-      pickCol(r, "DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega"),
-    );
-    let data_agendamento = rowToBRDate(
-      pickCol(r, "DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento"),
-    );
-    const previsao_entrega = rowToBRDate(
-      pickCol(
-        r,
-        "PREVISÃO DE ENTREGA SITE",
-        "PREVISAO DE ENTREGA SITE",
-        "Previsão de Entrega",
-        "Previsao de Entrega",
-        "PREVISÃO ENTREGA TABELA TRANSPORTADORA",
-        "PREVISAO ENTREGA TABELA TRANSPORTADORA",
-        "PREVISÃO DE ENTREGA SITE TRASP",
-        "PREVISAO DE ENTREGA SITE TRASP",
-      ),
-    );
-    const previsao_entrega_inicial = rowToBRDate(
-      pickCol(r, "PREVISÃO ENTREGA INICIAL", "PREVISAO ENTREGA INICIAL"),
-    );
-    const transportadora =
-      String(pickCol(r, "TRANSPORTADORA", "Transportadora") ?? "").trim() || null;
-    const obsRaw = pickCol(r, "STATUS", "OBSERVAÇÃO", "OBSERVACAO", "Observação", "Observacao");
-    const observacao = String(obsRaw ?? "").trim() || null;
-    const status_entrega_planilha =
-      String(
-        pickCol(
-          r,
-          "STATUS ENTREGA - OK (NÃO ALTERAR NADA)",
-          "STATUS ENTREGA - OK",
-          "STATUS ENTREGA",
-        ) ?? "",
-      ).trim() || null;
-    const statusAgend = String(pickCol(r, "STATUS AGENDAMENTO") ?? "");
-    const status_agendamento_detalhe =
-      String(pickCol(r, "STATUS DE AGENDAMENTO") ?? "").trim() || null;
-
-    // Quando a coluna "DATA AGENDAMENTO" está vazia, mas o detalhe do
-    // agendamento já diz que o cliente marcou um dia (ex: "AGENDAMENTO PELO
-    // CLIENTE PARA DIA 10/08/2026"), usa essa data como data de agendamento —
-    // isso já basta pra NF virar "Agendada" e a data aparecer em "Data
-    // Entrega" (o resto do sistema já sabe usar data_agendamento assim).
-    if (!data_agendamento && status_agendamento_detalhe) {
-      const m = status_agendamento_detalhe.match(/dia\s+(\d{1,2}\/\d{1,2}\/\d{2,4})/i);
-      if (m) data_agendamento = parseBRDate(m[1]);
-    }
-
-    // Campos da planilha atual de entregas (usados na visualização em
-    // etapas, não no cálculo de "status").
-    const status_coleta = String(pickCol(r, "STATUS COLETA") ?? "").trim() || null;
-    const data_coleta = rowToBRDate(pickCol(r, "DATA COLETA"));
-    const previsao_coleta = rowToBRDate(pickCol(r, "DATA PREVISÃO COLETA", "DATA PREVISAO COLETA"));
-    const data_emissao_cte = rowToBRDate(pickCol(r, "DATA EMISSÃO CTE", "DATA EMISSAO CTE"));
-    const vendedor = String(pickCol(r, "VENDEDOR") ?? "").trim() || null;
-    const canal = String(pickCol(r, "CANAL") ?? "").trim() || null;
-    const gerente_contas =
-      String(pickCol(r, "GERENTE DE CONTAS", "GERENTE DE CONTA") ?? "").trim() || null;
-
-    const extraviada =
-      norm(observacao).includes("extrav") ||
-      norm(status_entrega_planilha).includes("extrav") ||
-      norm(statusAgend).includes("extrav") ||
-      norm(status_agendamento_detalhe).includes("extrav");
-
-    dedup.set(numero, {
-      numero,
-      data_entrega,
-      data_agendamento,
-      previsao_entrega,
-      previsao_entrega_inicial,
-      status: inferirStatus({ extraviada, data_entrega, data_agendamento, previsao_entrega }),
-      transportadora,
-      observacao,
-      status_coleta,
-      data_coleta,
-      previsao_coleta,
-      data_emissao_cte,
-      vendedor,
-      canal,
-      gerente_contas,
-      status_entrega_planilha,
-      status_agendamento_detalhe,
-    });
-  }
-
-  const linhas = Array.from(dedup.values());
+  const { linhas, puladas, ignoradasPorData } = parseEntregas(rows);
   if (linhas.length === 0) {
     const aviso2 =
       ignoradasPorData > 0
         ? ` (${ignoradasPorData} ignoradas por serem de antes de julho/2026)`
         : "";
-    return `Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NOTA)${aviso2}.`;
+    return `Nenhuma linha válida encontrada. ${puladas} linhas puladas (verifique a coluna NF)${aviso2}.`;
   }
 
   // Conta novas vs atualizadas antes do upsert
@@ -1228,7 +1082,12 @@ async function processEntregas(rows: ExcelRow[], arquivo: string): Promise<strin
     const { error } = await supabase
       .from("nf_entregas")
       .upsert(slice as never, { onConflict: "numero" });
-    if (error) throw new Error(`Entregas lote ${i / BATCH + 1}: ${error.message}`);
+    if (error) {
+      const semColuna = /column|schema cache/i.test(error.message)
+        ? " — o banco parece estar sem a coluna nova (aplique a migração 20260921120000_nf_entregas_cte.sql)"
+        : "";
+      throw new Error(`Entregas lote ${i / BATCH + 1}: ${error.message}${semColuna}`);
+    }
   }
 
   const atualizadas = linhas.filter((l) => existentes.has(l.numero)).length;

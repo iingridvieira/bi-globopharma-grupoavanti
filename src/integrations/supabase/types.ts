@@ -820,6 +820,7 @@ export type Database = {
         Row: {
           canal: string | null
           created_at: string
+          cte: string | null
           data_agendamento: string | null
           data_coleta: string | null
           data_emissao_cte: string | null
@@ -843,6 +844,7 @@ export type Database = {
         Insert: {
           canal?: string | null
           created_at?: string
+          cte?: string | null
           data_agendamento?: string | null
           data_coleta?: string | null
           data_emissao_cte?: string | null
@@ -866,6 +868,7 @@ export type Database = {
         Update: {
           canal?: string | null
           created_at?: string
+          cte?: string | null
           data_agendamento?: string | null
           data_coleta?: string | null
           data_emissao_cte?: string | null

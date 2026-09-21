@@ -280,6 +280,7 @@ function NFsPage() {
           status_coleta: string | null;
           data_coleta: string | null;
           data_emissao_cte: string | null;
+          cte: string | null;
           status_entrega_planilha: string | null;
           status_agendamento_detalhe: string | null;
         }
@@ -289,7 +290,7 @@ function NFsPage() {
         const { data } = await supabase
           .from("nf_entregas")
           .select(
-            "numero,status,data_entrega,data_agendamento,previsao_entrega,status_coleta,data_coleta,data_emissao_cte,status_entrega_planilha,status_agendamento_detalhe",
+            "numero,status,data_entrega,data_agendamento,previsao_entrega,status_coleta,data_coleta,data_emissao_cte,cte,status_entrega_planilha,status_agendamento_detalhe",
           )
           .in("numero", numerosNFAll.slice(i, i + BATCH));
         (data ?? []).forEach((d) => {
@@ -633,8 +634,7 @@ function NFsPage() {
 
   // ===== Relatório de entregas em PNG (mês selecionado) =====
   const entregasReportRows = useMemo<EntregaReportRow[]>(() => {
-    const contemAtraso = (s: string | null | undefined) =>
-      (s ?? "").toLowerCase().includes("atraso");
+    const contemAtraso = (s: string | null | undefined) => /atras/i.test(s ?? "");
     return view.map((n) => {
       const e = entregasMap?.[n.numero];
       const d = e?.data_entrega ?? e?.data_agendamento ?? e?.previsao_entrega ?? null;
@@ -654,7 +654,7 @@ function NFsPage() {
           agendadaAtraso: contemAtraso(e?.status_agendamento_detalhe),
           coletada: !!e?.data_coleta,
           coletadaAtraso: contemAtraso(e?.status_coleta),
-          expedida: !!e?.data_emissao_cte,
+          expedida: !!(e?.data_emissao_cte || e?.cte),
           entregue: !!e?.data_entrega,
           entregueAtraso: contemAtraso(e?.status_entrega_planilha),
         },
@@ -1241,6 +1241,7 @@ type EntregaInfo = {
   status_coleta: string | null;
   data_coleta: string | null;
   data_emissao_cte: string | null;
+  cte: string | null;
   status_entrega_planilha: string | null;
   status_agendamento_detalhe: string | null;
 };
@@ -1309,7 +1310,8 @@ function EntregaTimeline({ entrega }: { entrega?: EntregaInfo }) {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
 
-  const atraso = (s: string | null) => (s ?? "").toLowerCase().includes("atraso");
+  // "atras" pega "COLETADO COM ATRASO" e "ENTREGUE - ATRASADO".
+  const atraso = (s: string | null) => /atras/i.test(s ?? "");
 
   const etapas: EtapaDetalhe[] = [
     {
@@ -1331,10 +1333,10 @@ function EntregaTimeline({ entrega }: { entrega?: EntregaInfo }) {
     {
       label: "Expedida (CTE)",
       Icon: Truck,
-      feita: !!entrega.data_emissao_cte,
+      feita: !!(entrega.data_emissao_cte || entrega.cte),
       atrasada: false,
       data: entrega.data_emissao_cte,
-      detalhe: null,
+      detalhe: entrega.cte ? `CTE ${entrega.cte}` : null,
     },
     {
       label: "Entregue",
