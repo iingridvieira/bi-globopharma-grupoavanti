@@ -83,6 +83,7 @@ function ImecClienteDetalhe() {
       "Código do Produto": item.codigo_produto ?? "",
       Produto: item.produto,
       "Preço Unitário": Number(item.preco_unitario),
+      Operação: Number(item.preco_unitario) > 0 ? "Venda" : "Bonificação",
       Quantidade: Number(item.quantidade),
       Valor: Number(item.valor),
     })), `imec-pendencias-${clienteNome}.xlsx`, "Pendências");
@@ -114,11 +115,11 @@ function ImecClienteDetalhe() {
             <Button variant="secondary" onClick={exportar} disabled={pendencias.length === 0}><Download /> Excel</Button>
           </div>
         </header>
-        <div className="overflow-x-auto"><table className="bi-table"><thead><tr><th>Empresa</th><th>Nº Pedido</th><th>Data Emissão</th><th>Previsão Entrega</th><th>Produto</th><th className="text-right">Preço Unit.</th><th className="text-right">Quantidade</th><th className="text-right">Valor</th></tr></thead><tbody>
-          {isLoading && <tr><td colSpan={8} className="text-center text-muted-foreground py-10">Carregando…</td></tr>}
-          {!isLoading && pendencias.length === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground py-10">Nenhuma pendência registrada.</td></tr>}
-          {pendencias.map((item) => <tr key={item.id}><td>{item.empresa}</td><td>{item.numero_pedido || "—"}</td><td>{item.data_emissao ? formatDateBR(item.data_emissao) : "—"}</td><td>{item.data_entrega ? formatDateBR(item.data_entrega) : "—"}</td><td className="font-medium">{item.produto}</td><td className="text-right tabular-nums">{formatBRL(Number(item.preco_unitario))}</td><td className="text-right tabular-nums">{Number(item.quantidade).toLocaleString("pt-BR")}</td><td className="text-right tabular-nums font-semibold">{formatBRL(Number(item.valor))}</td></tr>)}
-        </tbody><tfoot><tr><td colSpan={6}>TOTAL</td><td className="text-right tabular-nums">{totalQuantidade.toLocaleString("pt-BR")}</td><td className="text-right tabular-nums text-primary">{formatBRL(totalValor)}</td></tr></tfoot></table></div>
+        <div className="overflow-x-auto"><table className="bi-table"><thead><tr><th>Empresa</th><th>Nº Pedido</th><th>Data Emissão</th><th>Previsão Entrega</th><th>Produto</th><th>Operação</th><th className="text-right">Preço Unit.</th><th className="text-right">Quantidade</th><th className="text-right">Valor</th></tr></thead><tbody>
+          {isLoading && <tr><td colSpan={9} className="text-center text-muted-foreground py-10">Carregando…</td></tr>}
+          {!isLoading && pendencias.length === 0 && <tr><td colSpan={9} className="text-center text-muted-foreground py-10">Nenhuma pendência registrada.</td></tr>}
+          {pendencias.map((item) => <tr key={item.id}><td>{item.empresa}</td><td>{item.numero_pedido || "—"}</td><td>{item.data_emissao ? formatDateBR(item.data_emissao) : "—"}</td><td>{item.data_entrega ? formatDateBR(item.data_entrega) : "—"}</td><td className="font-medium">{item.produto}</td><td><span className={Number(item.preco_unitario) > 0 ? "inline-flex rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success" : "inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"}>{Number(item.preco_unitario) > 0 ? "Venda" : "Bonificação"}</span></td><td className="text-right tabular-nums">{formatBRL(Number(item.preco_unitario))}</td><td className="text-right tabular-nums">{Number(item.quantidade).toLocaleString("pt-BR")}</td><td className="text-right tabular-nums font-semibold">{formatBRL(Number(item.valor))}</td></tr>)}
+        </tbody><tfoot><tr><td colSpan={7}>TOTAL</td><td className="text-right tabular-nums">{totalQuantidade.toLocaleString("pt-BR")}</td><td className="text-right tabular-nums text-primary">{formatBRL(totalValor)}</td></tr></tfoot></table></div>
       </section>
     </div>
   );
