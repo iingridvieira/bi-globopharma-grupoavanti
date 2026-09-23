@@ -58,7 +58,7 @@ function ImecDashboard() {
         supabase.from("imec_clientes").select("id,nome").eq("ativo", true).order("nome"),
         supabase.from("imec_pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
         supabase.from("imec_notas_fiscais").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
-        supabase.from("imec_notas_fiscais").select("cliente_id,data,valor").gte("data", recentStart).lte("data", end).limit(10000),
+        supabase.from("imec_notas_fiscais").select("cliente_id,data,valor").lte("data", end).limit(20000),
         supabase.from("imec_pendencias_produtos").select("cliente_id,valor").limit(10000),
         supabase.from("imec_metas_mensais").select("valor").eq("ano", ano).eq("mes", mes).maybeSingle(),
       ]);
