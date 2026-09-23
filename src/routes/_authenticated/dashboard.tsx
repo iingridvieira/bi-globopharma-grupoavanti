@@ -416,135 +416,104 @@ function StatCard({ label, value, icon: Icon, accent, sub, negative, pct }: {
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardImpl(props, ref) {
     const { mes, ano, metaGlobo, metaAvanti, previsao, enviado, faturado, pendencia, pendAnt, gap, pctGlobo, pctAvanti, pctProjecao, rows } = props;
     const mesNome = MESES_BR[mes - 1];
-    const sorted = [...rows].sort((a, b) => b.faturado - a.faturado);
+    const sorted = [...rows].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     const fmtPct = (p: number) => `${p.toFixed(1).replace(".", ",")}%`;
-    const pctColor = (p: number) => p >= 100 ? "#10b981" : p >= 70 ? "#F26A1F" : "#eab308";
+    const pctColor = (p: number) => p >= 100 ? "#34D399" : p >= 70 ? "#F26A1F" : "#FBBF24";
+    const LARANJA = "#F26A1F";
+    const LARANJA_CLARO = "#FDBA8C";
+    const BORDA = "rgba(242,106,31,0.30)";
+    const MUTADO = "#A39B8F";
+    const barra = (pct: number, hero = false) => (
+      <div style={{ marginTop: 14, height: 8, borderRadius: 99, background: hero ? "rgba(255,255,255,0.22)" : "rgba(253,186,140,0.14)", overflow: "hidden" }}>
+        <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: "100%", borderRadius: 99, background: hero ? "linear-gradient(90deg, #FFEDD5, #fff)" : `linear-gradient(90deg, #EA580C, ${LARANJA_CLARO})` }} />
+      </div>
+    );
+    const stat = (label: string, value: string, color = "#fff", sub?: string, pct?: number) => (
+      <div style={{ background: "rgba(38,31,22,0.75)", border: `1px solid ${BORDA}`, borderRadius: 14, padding: 20 }}>
+        <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: MUTADO, textTransform: "uppercase" }}>{label}</div>
+        <div style={{ fontSize: 26, fontWeight: 800, marginTop: 8, color, fontVariantNumeric: "tabular-nums", letterSpacing: -0.5 }}>{value}</div>
+        {sub && <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4, color: LARANJA_CLARO }}>{sub}</div>}
+        {typeof pct === "number" && barra(pct)}
+      </div>
+    );
     return (
       <div
         ref={ref}
         style={{
           width: 1080,
-          background: "linear-gradient(180deg, #0E0F0C 0%, #1A1D17 100%)",
-          color: "#E5E7E1",
+          background: "radial-gradient(circle at 85% 0%, rgba(242,106,31,0.35) 0%, rgba(242,106,31,0) 45%), linear-gradient(180deg, #100E0A 0%, #1B1813 100%)",
+          color: "#EDE8E0",
           fontFamily: "'Inter', system-ui, sans-serif",
           padding: 48,
           boxSizing: "border-box",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, borderBottom: "2px solid #F26A1F", paddingBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, paddingBottom: 22, borderBottom: `2px solid ${LARANJA}` }}>
           <div>
-            <div style={{ fontSize: 14, letterSpacing: 3, color: "#F26A1F", fontWeight: 700, textTransform: "uppercase" }}>BI Globo Pharma · Dashboard Executivo</div>
-            <div style={{ fontSize: 44, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{mesNome} <span style={{ color: "#F26A1F" }}>{ano}</span></div>
+            <div style={{ fontSize: 14, letterSpacing: 3, color: LARANJA_CLARO, fontWeight: 700, textTransform: "uppercase" }}>BI Globo Pharma · Dashboard Executivo</div>
+            <div style={{ fontSize: 46, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{mesNome} <span style={{ color: LARANJA }}>{ano}</span></div>
           </div>
-          <div style={{ textAlign: "right", fontSize: 13, color: "#9ca39a" }}>
+          <div style={{ textAlign: "right", fontSize: 13, color: MUTADO }}>
             <div>Gerado em</div>
-            <div style={{ fontSize: 18, color: "#E5E7E1", fontWeight: 600 }}>{new Date().toLocaleDateString("pt-BR")}</div>
+            <div style={{ fontSize: 18, color: "#fff", fontWeight: 600 }}>{new Date().toLocaleDateString("pt-BR")}</div>
           </div>
         </div>
 
-        {/* Metas */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
-          {[
-            { label: "META GLOBO", value: metaGlobo, pct: pctGlobo, accent: true },
-            { label: "META AVANTI (+20%)", value: metaAvanti, pct: pctAvanti },
-            { label: "PREVISÃO SELL IN", value: previsao, pct: pctProjecao },
-          ].map((m) => {
-            const clamped = Math.max(0, Math.min(100, m.pct));
-            const hasFill = m.value > 0;
-            return (
-              <div
-                key={m.label}
-                style={{
-                  position: "relative",
-                  background: "rgba(242,106,31,0.10)",
-                  borderRadius: 8,
-                  padding: 20,
-                  border: "1px solid #3a3f34",
-                  overflow: "hidden",
-                }}
-              >
-                {hasFill && (
-                  <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${clamped}%`, background: "rgba(242,106,31,0.85)" }} />
-                )}
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: "#E5E7E1" }}>{m.label}</div>
-                  <div style={{ fontSize: 30, fontWeight: 800, marginTop: 6, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{formatBRLSmart(m.value)}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4, color: hasFill ? "#fff" : pctColor(m.pct) }}>{hasFill ? `${fmtPct(m.pct)} atingido` : "Sem meta"}</div>
-                </div>
-              </div>
-            );
-          })}
+        {/* Meta em destaque + Meta Avanti */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div style={{ background: "linear-gradient(135deg, #F26A1F 0%, #9A3412 100%)", borderRadius: 16, padding: 26, boxShadow: "0 20px 40px -20px rgba(242,106,31,0.6)" }}>
+            <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: "#FFEDD5" }}>META GLOBO</div>
+            <div style={{ fontSize: 40, fontWeight: 800, marginTop: 8, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{metaGlobo > 0 ? formatBRLSmart(metaGlobo) : "Sem meta"}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 14, fontWeight: 700, color: "#FFEDD5" }}>
+              <span>Faturado {formatBRLSmart(faturado)}</span>
+              <span>{metaGlobo > 0 ? `${fmtPct(pctGlobo)} atingido` : "—"}</span>
+            </div>
+            <div style={{ marginTop: 16, height: 12, borderRadius: 99, background: "rgba(255,255,255,0.20)", overflow: "hidden" }}>
+              <div style={{ width: `${Math.max(0, Math.min(100, pctGlobo))}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #FFEDD5, #fff)" }} />
+            </div>
+          </div>
+          {stat("Meta Avanti (+20%)", formatBRLSmart(metaAvanti), "#fff", metaAvanti > 0 ? `${fmtPct(pctAvanti)} atingido` : "Sem meta", metaAvanti > 0 ? pctAvanti : undefined)}
         </div>
 
-        {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
-          {[
-            { label: "PEDIDOS ENVIADOS", value: enviado, color: "#fff", pct: previsao > 0 ? (enviado / previsao) * 100 : undefined },
-            { label: "PEDIDOS FATURADOS", value: faturado, color: "#10b981", pct: undefined as number | undefined },
-            { label: "GAP (Previsão - Faturado)", value: gap, color: gap > 0 ? "#eab308" : "#10b981", pct: undefined as number | undefined },
-          ].map((s) => {
-            const hasFill = typeof s.pct === "number";
-            const clamped = hasFill ? Math.max(0, Math.min(100, s.pct!)) : 0;
-            return (
-              <div
-                key={s.label}
-                style={{
-                  position: "relative",
-                  background: hasFill ? "rgba(242,106,31,0.10)" : "#2A2E26",
-                  borderRadius: 8,
-                  padding: 18,
-                  border: "1px solid #3a3f34",
-                  overflow: "hidden",
-                }}
-              >
-                {hasFill && (
-                  <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: `${clamped}%`, background: "rgba(242,106,31,0.85)" }} />
-                )}
-                <div style={{ position: "relative", zIndex: 1 }}>
-                  <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: hasFill ? "#E5E7E1" : "#9ca39a" }}>{s.label}</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, marginTop: 6, color: hasFill ? "#fff" : s.color, fontVariantNumeric: "tabular-nums" }}>{formatBRL(s.value)}</div>
-                  {hasFill && (
-                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4, color: "#fff" }}>{fmtPct(s.pct!)} da previsão</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        {/* Indicadores */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginBottom: 26 }}>
+          {stat("Previsão Sell In", formatBRLSmart(previsao), "#fff", previsao > 0 ? `${fmtPct(pctProjecao)} projetado` : undefined, previsao > 0 ? pctProjecao : undefined)}
+          {stat("Pedidos enviados", formatBRL(enviado), "#fff", previsao > 0 ? `${fmtPct((enviado / previsao) * 100)} da previsão` : undefined, previsao > 0 ? (enviado / previsao) * 100 : undefined)}
+          {stat("Pedidos faturados", formatBRL(faturado), "#34D399", previsao > 0 ? `${fmtPct((faturado / previsao) * 100)} da previsão` : undefined, previsao > 0 ? (faturado / previsao) * 100 : undefined)}
+          {stat("GAP (Previsão - Faturado)", formatBRL(gap), gap > 0 ? "#FBBF24" : "#34D399", gap > 0 ? "Falta para a previsão" : "Previsão atingida")}
         </div>
 
         {/* Tabela clientes */}
-        <div style={{ background: "#141612", borderRadius: 8, border: "1px solid #3a3f34", overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", borderBottom: "1px solid #3a3f34", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: "#F26A1F", textTransform: "uppercase" }}>
-            Resumo por cliente
-          </div>
+        <div style={{ background: "rgba(16,14,10,0.85)", borderRadius: 14, border: `1px solid ${BORDA}`, overflow: "hidden" }}>
+          <div style={{ padding: "14px 20px", borderBottom: `1px solid ${BORDA}`, fontSize: 14, fontWeight: 700, letterSpacing: 2, color: LARANJA_CLARO, textTransform: "uppercase" }}>Resumo por cliente</div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
             <thead>
-              <tr style={{ background: "#1A1D17", color: "#9ca39a", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
-                <th style={{ textAlign: "left", padding: "10px 14px", fontWeight: 700 }}>Cliente</th>
-                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Pend. Ant.</th>
-                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Enviado</th>
-                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Previsão</th>
-                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Faturado</th>
-                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>%</th>
-                <th style={{ textAlign: "right", padding: "10px 14px", fontWeight: 700 }}>Pendência</th>
+              <tr style={{ color: MUTADO, fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+                <th style={{ textAlign: "left", padding: "12px 14px", fontWeight: 700 }}>Cliente</th>
+                <th style={{ textAlign: "right", padding: "12px 14px", fontWeight: 700 }}>Pend. Ant.</th>
+                <th style={{ textAlign: "right", padding: "12px 14px", fontWeight: 700 }}>Enviado</th>
+                <th style={{ textAlign: "right", padding: "12px 14px", fontWeight: 700 }}>Previsão</th>
+                <th style={{ textAlign: "right", padding: "12px 14px", fontWeight: 700 }}>Faturado</th>
+                <th style={{ textAlign: "right", padding: "12px 14px", fontWeight: 700 }}>%</th>
+                <th style={{ textAlign: "right", padding: "12px 14px", fontWeight: 700 }}>Pendência</th>
               </tr>
             </thead>
             <tbody>
-              {sorted.map((r, i) => {
+              {sorted.map((r) => {
                 const p = r.meta > 0 ? (r.faturado / r.meta) * 100 : 0;
                 return (
-                  <tr key={r.nome} style={{ background: i % 2 ? "#161915" : "transparent", borderTop: "1px solid #262a22" }}>
-                    <td style={{ padding: "9px 14px", fontWeight: 600 }}>{r.nome}</td>
-                    <td style={{ padding: "9px 14px", textAlign: "right" }}>{r.pendAnt > 0 ? formatBRL(r.pendAnt) : "—"}</td>
-                    <td style={{ padding: "9px 14px", textAlign: "right" }}>{formatBRL(r.enviado)}</td>
-                    <td style={{ padding: "9px 14px", textAlign: "right" }}>{formatBRL(r.meta)}</td>
-                    <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700 }}>{formatBRL(r.faturado)}</td>
-                    <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.meta > 0 ? pctColor(p) : "#5a5f52" }}>{r.meta > 0 ? fmtPct(p) : "—"}</td>
-                    <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.pendencia > 0 ? "#F2B90C" : "#5a5f52" }}>{r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}</td>
+                  <tr key={r.nome} style={{ borderTop: "1px solid rgba(242,106,31,0.14)" }}>
+                    <td style={{ padding: "10px 14px", fontWeight: 600 }}>{r.nome}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "right" }}>{r.pendAnt > 0 ? formatBRL(r.pendAnt) : "—"}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "right" }}>{formatBRL(r.enviado)}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "right" }}>{formatBRL(r.meta)}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700 }}>{formatBRL(r.faturado)}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: r.meta > 0 ? pctColor(p) : "#6b6558" }}>{r.meta > 0 ? fmtPct(p) : "—"}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: 700, color: r.pendencia > 0 ? "#F2B90C" : "#6b6558" }}>{r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}</td>
                   </tr>
                 );
               })}
-              <tr style={{ background: "#F26A1F", color: "#fff", fontWeight: 800 }}>
+              <tr style={{ background: "linear-gradient(90deg, #F26A1F, #EA580C)", color: "#fff", fontWeight: 800 }}>
                 <td style={{ padding: "12px 14px" }}>TOTAL GERAL</td>
                 <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(pendAnt)}</td>
                 <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(enviado)}</td>
@@ -554,12 +523,14 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCardI
                 <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(pendencia)}</td>
               </tr>
             </tbody>
-
           </table>
         </div>
 
-        <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: "#5a5f52", letterSpacing: 2, textTransform: "uppercase" }}>
-          Pendência total do mês: <span style={{ color: "#F26A1F", fontWeight: 700 }}>{formatBRL(pendencia)}</span>
+        <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: MUTADO, letterSpacing: 2, textTransform: "uppercase" }}>
+          Pendência total do mês: <span style={{ color: LARANJA, fontWeight: 700 }}>{formatBRL(pendencia)}</span>
+        </div>
+        <div style={{ marginTop: 10, textAlign: "center", fontSize: 11, color: "#6b6558", letterSpacing: 2, textTransform: "uppercase" }}>
+          BI Globo Pharma · Grupo Avanti
         </div>
       </div>
     );
