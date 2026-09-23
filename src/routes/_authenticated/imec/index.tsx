@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Factory,
   Wallet,
+  Users,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/imec/")({
@@ -25,6 +26,8 @@ export const Route = createFileRoute("/_authenticated/imec/")({
         content:
           "Inteligência comercial IMEC/Nutivit: dashboard, pedidos, notas fiscais e sell in.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ImecHome,
@@ -54,6 +57,12 @@ const MENU_ITEMS = [
     label: "Sell In",
     desc: "Consolidado mensal e anual de vendas Sell In",
     icon: TrendingUp,
+  },
+  {
+    to: "/imec/por-clientes",
+    label: "Por Clientes",
+    desc: "Sell In e pendências em aberto por cliente",
+    icon: Users,
   },
   {
     to: "/imec/investimento",
