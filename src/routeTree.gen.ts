@@ -29,6 +29,7 @@ import { Route as AuthenticatedCrmIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedSellOutClienteIdRouteImport } from './routes/_authenticated/sell-out.$clienteId'
 import { Route as AuthenticatedPorClientesGeralRouteImport } from './routes/_authenticated/por-clientes.geral'
 import { Route as AuthenticatedPorClientesClienteIdRouteImport } from './routes/_authenticated/por-clientes.$clienteId'
+import { Route as AuthenticatedImecSellOutRouteImport } from './routes/_authenticated/imec/sell-out'
 import { Route as AuthenticatedImecSellInRouteImport } from './routes/_authenticated/imec/sell-in'
 import { Route as AuthenticatedImecPedidosRouteImport } from './routes/_authenticated/imec/pedidos'
 import { Route as AuthenticatedImecNotasFiscaisRouteImport } from './routes/_authenticated/imec/notas-fiscais'
@@ -148,6 +149,12 @@ const AuthenticatedPorClientesClienteIdRoute =
     path: '/por-clientes/$clienteId',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedImecSellOutRoute =
+  AuthenticatedImecSellOutRouteImport.update({
+    id: '/sell-out',
+    path: '/sell-out',
+    getParentRoute: () => AuthenticatedImecRoute,
+  } as any)
 const AuthenticatedImecSellInRoute = AuthenticatedImecSellInRouteImport.update({
   id: '/sell-in',
   path: '/sell-in',
@@ -242,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/imec/sell-in': typeof AuthenticatedImecSellInRoute
+  '/imec/sell-out': typeof AuthenticatedImecSellOutRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
@@ -273,6 +281,7 @@ export interface FileRoutesByTo {
   '/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/imec/sell-in': typeof AuthenticatedImecSellInRoute
+  '/imec/sell-out': typeof AuthenticatedImecSellOutRoute
   '/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
@@ -308,6 +317,7 @@ export interface FileRoutesById {
   '/_authenticated/imec/notas-fiscais': typeof AuthenticatedImecNotasFiscaisRoute
   '/_authenticated/imec/pedidos': typeof AuthenticatedImecPedidosRoute
   '/_authenticated/imec/sell-in': typeof AuthenticatedImecSellInRoute
+  '/_authenticated/imec/sell-out': typeof AuthenticatedImecSellOutRoute
   '/_authenticated/por-clientes/$clienteId': typeof AuthenticatedPorClientesClienteIdRoute
   '/_authenticated/por-clientes/geral': typeof AuthenticatedPorClientesGeralRoute
   '/_authenticated/sell-out/$clienteId': typeof AuthenticatedSellOutClienteIdRoute
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/imec/notas-fiscais'
     | '/imec/pedidos'
     | '/imec/sell-in'
+    | '/imec/sell-out'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
     | '/sell-out/$clienteId'
@@ -374,6 +385,7 @@ export interface FileRouteTypes {
     | '/imec/notas-fiscais'
     | '/imec/pedidos'
     | '/imec/sell-in'
+    | '/imec/sell-out'
     | '/por-clientes/$clienteId'
     | '/por-clientes/geral'
     | '/sell-out/$clienteId'
@@ -408,6 +420,7 @@ export interface FileRouteTypes {
     | '/_authenticated/imec/notas-fiscais'
     | '/_authenticated/imec/pedidos'
     | '/_authenticated/imec/sell-in'
+    | '/_authenticated/imec/sell-out'
     | '/_authenticated/por-clientes/$clienteId'
     | '/_authenticated/por-clientes/geral'
     | '/_authenticated/sell-out/$clienteId'
@@ -567,6 +580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPorClientesClienteIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/imec/sell-out': {
+      id: '/_authenticated/imec/sell-out'
+      path: '/sell-out'
+      fullPath: '/imec/sell-out'
+      preLoaderRoute: typeof AuthenticatedImecSellOutRouteImport
+      parentRoute: typeof AuthenticatedImecRoute
+    }
     '/_authenticated/imec/sell-in': {
       id: '/_authenticated/imec/sell-in'
       path: '/sell-in'
@@ -680,6 +700,7 @@ interface AuthenticatedImecRouteChildren {
   AuthenticatedImecNotasFiscaisRoute: typeof AuthenticatedImecNotasFiscaisRoute
   AuthenticatedImecPedidosRoute: typeof AuthenticatedImecPedidosRoute
   AuthenticatedImecSellInRoute: typeof AuthenticatedImecSellInRoute
+  AuthenticatedImecSellOutRoute: typeof AuthenticatedImecSellOutRoute
   AuthenticatedImecIndexRoute: typeof AuthenticatedImecIndexRoute
   AuthenticatedImecPorClientesClienteIdRoute: typeof AuthenticatedImecPorClientesClienteIdRoute
   AuthenticatedImecPorClientesIndexRoute: typeof AuthenticatedImecPorClientesIndexRoute
@@ -692,6 +713,7 @@ const AuthenticatedImecRouteChildren: AuthenticatedImecRouteChildren = {
   AuthenticatedImecNotasFiscaisRoute: AuthenticatedImecNotasFiscaisRoute,
   AuthenticatedImecPedidosRoute: AuthenticatedImecPedidosRoute,
   AuthenticatedImecSellInRoute: AuthenticatedImecSellInRoute,
+  AuthenticatedImecSellOutRoute: AuthenticatedImecSellOutRoute,
   AuthenticatedImecIndexRoute: AuthenticatedImecIndexRoute,
   AuthenticatedImecPorClientesClienteIdRoute:
     AuthenticatedImecPorClientesClienteIdRoute,

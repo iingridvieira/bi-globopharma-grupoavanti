@@ -27,7 +27,54 @@ export const Route = createFileRoute("/_authenticated/imec/importar")({
   component: ImecImportarPage,
 });
 
-type TipoImport = "faturamento" | "pendencias";
+type TipoImport = "faturamento" | "pendencias" | "sell_out";
+
+const MESES_NOME: Record<string, number> = { jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12 };
+function parseMesHeader(h: string): { mes: number; ano: number | null } | null {
+  const t = h.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const m = t.match(/^([a-z]{3})[a-z]*[\s/.-]*(\d{2,4})?$/);
+  if (!m || !MESES_NOME[m[1]]) return null;
+  const ano = m[2] ? (m[2].length === 2 ? 2000 + Number(m[2]) : Number(m[2])) : null;
+  return { mes: MESES_NOME[m[1]], ano };
+}
+
+async function gravarSellOutImec(file: File, anoPadrao: number): Promise<string> {
+  const XLSX = await import("xlsx");
+  const wb = XLSX.read(await file.arrayBuffer());
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const matriz = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
+  const hIdx = matriz.findIndex((r) => (r ?? []).some((c) => typeof c === "string" && parseMesHeader(c)));
+  if (hIdx < 0) throw new Error("Cabeçalho de meses não encontrado (ex.: JANEIRO, FEVEREIRO…).");
+  const header = matriz[hIdx] ?? [];
+  const cols = header
+    .map((c, i) => ({ i, p: typeof c === "string" ? parseMesHeader(c) : null }))
+    .filter((x) => x.p) as { i: number; p: { mes: number; ano: number | null } }[];
+  const { data: clientes } = await supabase.from("imec_clientes").select("id,nome").eq("ativo", true);
+  const lista = (clientes ?? []).map((c) => ({ id: c.id, k: normalizeKey(c.nome) })).sort((a, b) => a.k.length - b.k.length);
+  const acharCliente = (nome: string) => {
+    const k = normalizeKey(nome);
+    return lista.find((c) => c.k === k)?.id ?? lista.find((c) => c.k.startsWith(k) || k.startsWith(c.k))?.id;
+  };
+  const rows: { cliente_id: string; ano: number; mes: number; valor: number }[] = [];
+  const naoEncontrados: string[] = [];
+  for (const r of matriz.slice(hIdx + 1)) {
+    const nome = String(r?.[0] ?? "").trim();
+    if (!nome || /^total/i.test(nome)) continue;
+    const cliente_id = acharCliente(nome);
+    if (!cliente_id) { naoEncontrados.push(nome); continue; }
+    for (const { i, p } of cols) {
+      const v = r?.[i];
+      const valor = typeof v === "number" ? v : Number(String(v ?? "").replace(/\./g, "").replace(",", "."));
+      if (!valor || Number.isNaN(valor)) continue;
+      rows.push({ cliente_id, ano: p.ano ?? anoPadrao, mes: p.mes, valor: Math.round(valor * 100) / 100 });
+    }
+  }
+  if (rows.length === 0) throw new Error("Nenhuma linha válida encontrada na planilha.");
+  const { error } = await supabase.from("imec_sell_out").upsert(rows as never, { onConflict: "cliente_id,ano,mes" });
+  if (error) throw error;
+  return `${rows.length} registros de sell out atualizados (períodos fora do arquivo preservados).` +
+    (naoEncontrados.length ? `\nClientes não encontrados: ${naoEncontrados.join(", ")}` : "");
+}
 
 function detectarEmpresa(nomeArquivo: string): Empresa {
   return /nutivit/i.test(nomeArquivo) ? "NUTIVIT" : "IMEC";
@@ -56,6 +103,7 @@ function ImecImportarPage() {
   const [loading, setLoading] = useState(false);
   const [empresa, setEmpresa] = useState<Empresa | "auto">("auto");
   const [resumo, setResumo] = useState<string | null>(null);
+  const [anoSO, setAnoSO] = useState(new Date().getFullYear());
 
   if (!isAdmin) {
     return (
@@ -76,7 +124,9 @@ function ImecImportarPage() {
     try {
       const empresaPadrao: Empresa = empresa === "auto" ? detectarEmpresa(file.name) : empresa;
       let txt: string;
-      if (tipo === "faturamento") {
+      if (tipo === "sell_out") {
+        txt = await gravarSellOutImec(file, anoSO);
+      } else if (tipo === "faturamento") {
         const linhas = await lerPlanilhaImec(file, empresaPadrao);
         if (linhas.length === 0) throw new Error("Nenhuma linha válida encontrada na planilha.");
         txt = await gravarFaturamento(linhas);
@@ -103,7 +153,9 @@ function ImecImportarPage() {
         <div className="bi-stat-label">Atualização de dados · IMEC</div>
         <h1 className="font-display text-3xl font-bold mt-1">Importar Excel</h1>
         <p className="text-muted-foreground mt-2">
-          {tipo === "faturamento"
+          {tipo === "sell_out"
+            ? "Planilha de Sell Out: 1ª coluna com o cliente e demais colunas com os meses (JANEIRO, FEVEREIRO…). Apenas os meses presentes no arquivo são atualizados."
+            : tipo === "faturamento"
             ? "Planilha “Itens das Notas Fiscais de Saída”. Aceita o modelo atual (uma aba por empresa, nomeada IMEC e/ou NUTIVIT) e o modelo antigo (uma aba com todos os itens de uma única empresa). Os clientes são reconhecidos e padronizados automaticamente, como no BI Globo."
             : "Planilha de pedidos em aberto (backlog ainda não faturado). Mesma convenção de abas por empresa (IMEC/NUTIVIT). Substitui a base de pendências da(s) empresa(s) presentes no arquivo — as demais ficam preservadas."}
         </p>
@@ -119,8 +171,17 @@ function ImecImportarPage() {
           >
             <option value="faturamento">Faturamento (Itens das NFs)</option>
             <option value="pendencias">Pendências (pedidos em aberto)</option>
+            <option value="sell_out">Sell Out (consolidado por cliente)</option>
           </select>
         </label>
+        {tipo === "sell_out" ? (
+          <label className="block">
+            <span className="bi-stat-label block mb-1.5">Ano de referência</span>
+            <select value={anoSO} onChange={(e) => setAnoSO(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md text-sm">
+              {[anoSO - 1, anoSO, anoSO + 1].map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+        ) : (
         <label className="block">
           <span className="bi-stat-label block mb-1.5">Empresa de origem</span>
           <select
@@ -133,6 +194,7 @@ function ImecImportarPage() {
             <option value="NUTIVIT">NUTIVIT</option>
           </select>
         </label>
+        )}
         <p className="text-xs text-muted-foreground max-w-md">
           {tipo === "faturamento"
             ? "Notas já importadas são atualizadas (mesmo número + empresa), sem duplicar registros."
