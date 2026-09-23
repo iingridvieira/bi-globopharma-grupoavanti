@@ -59,6 +59,12 @@ const MENU_ITEMS = [
     icon: TrendingUp,
   },
   {
+    to: "/imec/sell-out",
+    label: "Sell Out",
+    desc: "Consolidado mensal e anual de vendas Sell Out",
+    icon: TrendingUp,
+  },
+  {
     to: "/imec/por-clientes",
     label: "Por Clientes",
     desc: "Sell In e pendências em aberto por cliente",
