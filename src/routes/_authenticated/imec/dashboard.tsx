@@ -54,6 +54,7 @@ function ImecDashboard() {
       const start = `${ano}-${String(mes).padStart(2, "0")}-01`;
       const end = new Date(ano, mes, 0).toISOString().slice(0, 10);
       const recentStart = new Date(ano, mes - 6, 1).toISOString().slice(0, 10);
+      void recentStart;
       const [clientesRes, pedidosRes, nfsRes, recentNfsRes, pendRes, metaRes] = await Promise.all([
         supabase.from("imec_clientes").select("id,nome").eq("ativo", true).order("nome"),
         supabase.from("imec_pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
