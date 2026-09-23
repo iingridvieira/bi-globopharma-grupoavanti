@@ -56,6 +56,7 @@ const IMEC_NAV: NavItem[] = [
 
   { to: "/imec/notas-fiscais", label: "Notas Fiscais", icon: FileText },
   { to: "/imec/sell-in", label: "Sell In", icon: TrendingUp },
+  { to: "/imec/sell-out", label: "Sell Out", icon: TrendingUp },
   { to: "/imec/investimento", label: "Investimento", icon: Wallet },
   { to: "/imec/por-clientes", label: "Por Clientes", icon: Users },
   { to: "/imec/importar", label: "Importar Excel", icon: Upload, adminOnly: true },
