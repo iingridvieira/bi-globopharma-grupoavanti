@@ -74,6 +74,7 @@ function ImecClienteDetalhe() {
   const totalValor = pendencias.reduce((total, item) => total + Number(item.valor), 0);
 
   function exportar() {
+    const clienteNome = data?.cliente?.nome ?? "cliente";
     exportToExcel(pendencias.map((item) => ({
       Empresa: item.empresa,
       "Nº Pedido": item.numero_pedido ?? "",
@@ -84,14 +85,14 @@ function ImecClienteDetalhe() {
       "Preço Unitário": Number(item.preco_unitario),
       Quantidade: Number(item.quantidade),
       Valor: Number(item.valor),
-    })), `imec-pendencias-${data?.cliente.nome ?? "cliente"}.xlsx`, "Pendências");
+    })), `imec-pendencias-${clienteNome}.xlsx`, "Pendências");
   }
 
   return (
     <div className="p-5 sm:p-8 max-w-[1500px] mx-auto">
       <Link to="/imec/por-clientes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft className="h-4 w-4" /> Voltar</Link>
       <header className="mb-6 flex items-end justify-between gap-3 flex-wrap">
-        <div><div className="bi-stat-label">Cliente · BI IMEC</div><h1 className="font-display text-3xl font-bold mt-1">{data?.cliente.nome ?? "Cliente"}</h1></div>
+        <div><div className="bi-stat-label">Cliente · BI IMEC</div><h1 className="font-display text-3xl font-bold mt-1">{data?.cliente?.nome ?? "Cliente"}</h1></div>
         <select value={ano} onChange={(event) => setAno(Number(event.target.value))} className="h-10 px-3 bg-input border border-border rounded-md" aria-label="Ano do Sell In">{anos.map((value) => <option key={value} value={value}>{value}</option>)}</select>
       </header>
 

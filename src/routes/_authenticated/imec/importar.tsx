@@ -18,6 +18,10 @@ export const Route = createFileRoute("/_authenticated/imec/importar")({
         content:
           "Importação de faturamento e pendências IMEC e Nutivit a partir de planilhas Excel.",
       },
+      { property: "og:title", content: "Importar Excel · BI IMEC" },
+      { property: "og:description", content: "Importação administrativa de faturamento e pendências do BI IMEC." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: ImecImportarPage,
