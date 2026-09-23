@@ -50,14 +50,16 @@ function ImecDashboard() {
     queryFn: async () => {
       const start = `${ano}-${String(mes).padStart(2, "0")}-01`;
       const end = new Date(ano, mes, 0).toISOString().slice(0, 10);
-      const [clientesRes, pedidosRes, nfsRes, pendRes, metaRes] = await Promise.all([
+      const recentStart = new Date(ano, mes - 6, 1).toISOString().slice(0, 10);
+      const [clientesRes, pedidosRes, nfsRes, recentNfsRes, pendRes, metaRes] = await Promise.all([
         supabase.from("imec_clientes").select("id,nome").eq("ativo", true).order("nome"),
         supabase.from("imec_pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
         supabase.from("imec_notas_fiscais").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
+        supabase.from("imec_notas_fiscais").select("cliente_id").gte("data", recentStart).lte("data", end).limit(10000),
         supabase.from("imec_pendencias_produtos").select("cliente_id,valor").limit(10000),
         supabase.from("imec_metas_mensais").select("valor").eq("ano", ano).eq("mes", mes).maybeSingle(),
       ]);
-      const error = clientesRes.error ?? pedidosRes.error ?? nfsRes.error ?? pendRes.error ?? metaRes.error;
+      const error = clientesRes.error ?? pedidosRes.error ?? nfsRes.error ?? recentNfsRes.error ?? pendRes.error ?? metaRes.error;
       if (error) throw error;
 
       const map = new Map<string, ResumoRow>();
@@ -87,8 +89,9 @@ function ImecDashboard() {
         if (row) row.pendencia += Number(pendencia.valor);
       });
 
+      const clientesComNfRecente = new Set((recentNfsRes.data ?? []).map((nf) => nf.cliente_id));
       const rows = Array.from(map.values())
-        .filter((row) => row.enviado > 0 || row.faturado > 0 || row.pendencia > 0)
+        .filter((row) => row.enviado > 0 || row.faturado > 0 || row.pendencia > 0 || clientesComNfRecente.has(row.id))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
       const totals = rows.reduce((acc, row) => ({
         enviado: acc.enviado + row.enviado,
