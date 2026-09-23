@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { Building2, Check, FileCheck, ImageDown, Pencil, Send, Target, TrendingDown, X } from "lucide-react";
 import { toast } from "sonner";
@@ -43,6 +43,7 @@ function ImecDashboard() {
   const [ano, setAno] = useState(ANO_ATUAL);
   const [mes, setMes] = useState(MES_ATUAL);
   const dashboardRef = useRef<HTMLDivElement>(null);
+  const shareRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -128,7 +129,7 @@ function ImecDashboard() {
   }
 
   async function exportarPNG() {
-    const node = dashboardRef.current;
+    const node = shareRef.current;
     if (!node) return;
     setExporting(true);
     try {
@@ -136,14 +137,13 @@ function ImecDashboard() {
       const dataUrl = await toPng(node, {
         pixelRatio: 2,
         cacheBust: true,
-        backgroundColor: getComputedStyle(node).backgroundColor,
-        filter: (element) => !(element instanceof HTMLElement && element.dataset.pngIgnore === "true"),
+        backgroundColor: "#07122A",
       });
       const anchor = document.createElement("a");
       anchor.href = dataUrl;
       anchor.download = `imec-dashboard-${String(mes).padStart(2, "0")}-${ano}.png`;
       anchor.click();
-      toast.success("Imagem gerada com a visualização atual");
+      toast.success("Imagem pronta para compartilhar");
     } catch (error) {
       toast.error("Erro ao gerar imagem: " + (error as Error).message);
     } finally {
@@ -210,9 +210,120 @@ function ImecDashboard() {
           </table>
         </div>
       </section>
+
+      <div style={{ position: "fixed", left: "-10000px", top: 0, pointerEvents: "none" }} aria-hidden>
+        <ImecShareCard
+          ref={shareRef}
+          mes={mes}
+          ano={ano}
+          meta={meta}
+          pctMeta={pctMeta}
+          faturado={totals.faturado}
+          enviado={totals.enviado}
+          gap={gap}
+          conversao={conversao}
+          clientesAtendidos={data?.clientesAtendidos ?? 0}
+          rows={data?.rows ?? []}
+          totals={totals}
+        />
+      </div>
     </div>
   );
 }
+
+type ShareProps = {
+  mes: number; ano: number; meta: number; pctMeta: number; faturado: number; enviado: number; gap: number;
+  conversao: number; clientesAtendidos: number; rows: ResumoRow[];
+  totals: { enviado: number; faturado: number; pedidos: number; nfs: number; pendencia: number };
+};
+
+const ImecShareCard = forwardRef<HTMLDivElement, ShareProps>(function ImecShareCardImpl(p, ref) {
+  const AZUL = "#3B82F6";
+  const AZUL_CLARO = "#93C5FD";
+  const BORDA = "#1E3A66";
+  const fmtPct = (v: number) => `${v.toFixed(1).replace(".", ",")}%`;
+  const sorted = [...p.rows].sort((a, b) => b.faturado - a.faturado || a.nome.localeCompare(b.nome, "pt-BR"));
+  const barra = (pct: number) => (
+    <div style={{ marginTop: 14, height: 8, borderRadius: 99, background: "rgba(147,197,253,0.15)", overflow: "hidden" }}>
+      <div style={{ width: `${Math.max(0, Math.min(100, pct))}%`, height: "100%", borderRadius: 99, background: `linear-gradient(90deg, #2563EB, ${AZUL_CLARO})` }} />
+    </div>
+  );
+  const stat = (label: string, value: string, color = "#fff", sub?: string, pct?: number) => (
+    <div style={{ background: "rgba(15,35,70,0.75)", border: `1px solid ${BORDA}`, borderRadius: 14, padding: 20 }}>
+      <div style={{ fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#8FA6CC", textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 800, marginTop: 8, color, fontVariantNumeric: "tabular-nums", letterSpacing: -0.5 }}>{value}</div>
+      {sub && <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4, color: AZUL_CLARO }}>{sub}</div>}
+      {typeof pct === "number" && barra(pct)}
+    </div>
+  );
+  return (
+    <div ref={ref} style={{ width: 1080, background: "radial-gradient(circle at 85% 0%, #1D4ED8 0%, rgba(29,78,216,0) 45%), linear-gradient(180deg, #07122A 0%, #0B1B3A 100%)", color: "#E6EEFB", fontFamily: "'Inter', system-ui, sans-serif", padding: 48, boxSizing: "border-box" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32, paddingBottom: 22, borderBottom: `2px solid ${AZUL}` }}>
+        <div>
+          <div style={{ fontSize: 14, letterSpacing: 3, color: AZUL_CLARO, fontWeight: 700, textTransform: "uppercase" }}>BI IMEC · Dashboard Executivo</div>
+          <div style={{ fontSize: 46, fontWeight: 800, marginTop: 8, letterSpacing: -1 }}>{MESES_BR[p.mes - 1]} <span style={{ color: AZUL }}>{p.ano}</span></div>
+        </div>
+        <div style={{ textAlign: "right", fontSize: 13, color: "#8FA6CC" }}>
+          <div>Gerado em</div>
+          <div style={{ fontSize: 18, color: "#fff", fontWeight: 600 }}>{new Date().toLocaleDateString("pt-BR")}</div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={{ background: "linear-gradient(135deg, #1D4ED8 0%, #1E3A8A 100%)", borderRadius: 16, padding: 26, boxShadow: "0 20px 40px -20px rgba(59,130,246,0.6)" }}>
+          <div style={{ fontSize: 12, letterSpacing: 2, fontWeight: 700, color: "#DBEAFE" }}>META MENSAL IMEC</div>
+          <div style={{ fontSize: 40, fontWeight: 800, marginTop: 8, color: "#fff", fontVariantNumeric: "tabular-nums" }}>{p.meta > 0 ? formatBRLSmart(p.meta) : "Sem meta"}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 14, fontWeight: 700, color: "#DBEAFE" }}>
+            <span>Faturado {formatBRLSmart(p.faturado)}</span>
+            <span>{p.meta > 0 ? `${fmtPct(p.pctMeta)} atingido` : "—"}</span>
+          </div>
+          <div style={{ marginTop: 16, height: 12, borderRadius: 99, background: "rgba(255,255,255,0.18)", overflow: "hidden" }}>
+            <div style={{ width: `${Math.max(0, Math.min(100, p.pctMeta))}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #BFDBFE, #fff)" }} />
+          </div>
+        </div>
+        {stat("GAP (Meta - Faturado)", formatBRLSmart(p.gap), p.gap > 0 ? "#FBBF24" : "#34D399", p.gap > 0 ? "Falta para bater a meta" : "Meta atingida")}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 26 }}>
+        {stat("Pedidos enviados", formatBRLSmart(p.enviado), "#fff", p.meta > 0 ? `${fmtPct((p.enviado / p.meta) * 100)} da meta` : undefined, p.meta > 0 ? (p.enviado / p.meta) * 100 : undefined)}
+        {stat("Conversão", fmtPct(p.conversao), "#fff", "Faturado ÷ Enviado")}
+        {stat("Clientes atendidos", String(p.clientesAtendidos), "#fff", `${p.rows.length} clientes no resumo`)}
+      </div>
+
+      <div style={{ background: "rgba(7,18,42,0.85)", borderRadius: 14, border: `1px solid ${BORDA}`, overflow: "hidden" }}>
+        <div style={{ padding: "14px 20px", borderBottom: `1px solid ${BORDA}`, fontSize: 14, fontWeight: 700, letterSpacing: 2, color: AZUL_CLARO, textTransform: "uppercase" }}>Resumo por cliente</div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
+          <thead>
+            <tr style={{ background: "#0F2347", color: "#8FA6CC", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
+              {["Cliente", "Pedidos", "Enviado", "NFs", "Faturado", "Pendência"].map((h, i) => <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "10px 14px", fontWeight: 700 }}>{h}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={r.id} style={{ background: i % 2 ? "rgba(30,58,102,0.25)" : "transparent", borderTop: "1px solid #14294D" }}>
+                <td style={{ padding: "9px 14px", fontWeight: 600 }}>{r.nome}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right" }}>{r.pedidos}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right" }}>{formatBRL(r.enviado)}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right" }}>{r.nfs}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.faturado > 0 ? "#fff" : "#4B5E80" }}>{formatBRL(r.faturado)}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.pendencia > 0 ? "#FBBF24" : "#4B5E80" }}>{r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}</td>
+              </tr>
+            ))}
+            <tr style={{ background: "linear-gradient(90deg, #2563EB, #1D4ED8)", color: "#fff", fontWeight: 800 }}>
+              <td style={{ padding: "12px 14px" }}>TOTAL GERAL</td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>{p.totals.pedidos}</td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(p.totals.enviado)}</td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>{p.totals.nfs}</td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(p.totals.faturado)}</td>
+              <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(p.totals.pendencia)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: "#5F7499" }}>BI IMEC · Grupo Avanti</div>
+    </div>
+  );
+});
 
 function CardFill({ pct }: { pct: number }) {
   const [width, setWidth] = useState(0);
