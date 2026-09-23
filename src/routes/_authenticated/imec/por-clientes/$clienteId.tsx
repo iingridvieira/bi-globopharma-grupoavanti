@@ -70,6 +70,9 @@ function ImecClienteDetalhe() {
   const produtoOpcoes = useMemo(() => Array.from(new Set((data?.pendencias ?? []).map((item) => item.produto))).sort((a, b) => a.localeCompare(b, "pt-BR")).map((value) => ({ value, label: value })), [data?.pendencias]);
   const empresaOpcoes = useMemo(() => Array.from(new Set((data?.pendencias ?? []).map((item) => item.empresa))).sort().map((value) => ({ value, label: value })), [data?.pendencias]);
   const pendencias = useMemo(() => (data?.pendencias ?? []).filter((item) => produtoFiltro.length === 0 || produtoFiltro.includes(item.produto)).filter((item) => empresaFiltro.length === 0 || empresaFiltro.includes(item.empresa)).sort((a, b) => a.produto.localeCompare(b.produto, "pt-BR")), [data?.pendencias, produtoFiltro, empresaFiltro]);
+  const totalAno = chartData.reduce((total, item) => total + item.valor, 0);
+  const mesesAtivos = chartData.filter((item) => item.valor > 0).length;
+  const mediaAno = mesesAtivos ? totalAno / mesesAtivos : 0;
   const totalQuantidade = pendencias.reduce((total, item) => total + Number(item.quantidade), 0);
   const totalValor = pendencias.reduce((total, item) => total + Number(item.valor), 0);
 
@@ -97,10 +100,27 @@ function ImecClienteDetalhe() {
         <select value={ano} onChange={(event) => setAno(Number(event.target.value))} className="h-10 px-3 bg-input border border-border rounded-md" aria-label="Ano do Sell In">{anos.map((value) => <option key={value} value={value}>{value}</option>)}</select>
       </header>
 
-      <section className="bi-card p-5 mb-8">
-        <div className="mb-5"><h2 className="font-display text-lg font-semibold">Sell In · {ano}</h2><p className="text-xs text-muted-foreground mt-0.5">Evolução mensal consolidada de IMEC e Nutivit.</p></div>
-        <div className="h-[320px] w-full">
-          <ResponsiveContainer width="100%" height="100%"><LineChart data={chartData} margin={{ top: 10, right: 20, left: 20, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="mes" stroke="var(--color-muted-foreground)" fontSize={12} /><YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickFormatter={(value) => new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(value)} /><Tooltip formatter={(value) => formatBRL(Number(value))} contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6 }} /><Line type="monotone" dataKey="valor" name="Sell In" stroke="var(--primary)" strokeWidth={3} dot={{ fill: "var(--primary)", r: 4 }} activeDot={{ r: 6 }} /></LineChart></ResponsiveContainer>
+      <section className="bi-card overflow-hidden mb-8">
+        <header className="px-6 py-4 border-b border-border">
+          <h2 className="font-display text-lg font-semibold">Sell In · {ano}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Evolução mensal consolidada de IMEC e Nutivit.</p>
+        </header>
+        <div className="overflow-x-auto">
+          <table className="bi-table">
+            <thead>
+              <tr>{MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}<th className="text-right">Total</th><th className="text-right">Média</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                {chartData.map((item, index) => <td key={index} className="text-right tabular-nums text-xs">{item.valor ? formatBRL(item.valor) : "—"}</td>)}
+                <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(totalAno)}</td>
+                <td className="text-right tabular-nums font-semibold">{formatBRL(mediaAno)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-4 border-t border-border" style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%"><LineChart data={chartData} margin={{ top: 10, right: 20, left: 20, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="mes" stroke="var(--color-muted-foreground)" fontSize={12} /><YAxis stroke="var(--color-muted-foreground)" fontSize={12} width={60} tickFormatter={(value) => formatBRL(Number(value))} /><Tooltip formatter={(value) => formatBRL(Number(value))} contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6 }} /><Line type="monotone" dataKey="valor" name="Sell In" stroke="var(--primary)" strokeWidth={3} dot={{ fill: "var(--primary)", r: 4 }} activeDot={{ r: 6 }} /></LineChart></ResponsiveContainer>
         </div>
       </section>
 
