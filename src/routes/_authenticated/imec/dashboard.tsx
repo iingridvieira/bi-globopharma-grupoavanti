@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatBRLSmart, MESES_BR, parseBRNumber } from "@/lib/format";
+import { formatBRL, formatBRLSmart, formatDateBR, MESES_BR, parseBRNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/imec/dashboard")({
   head: () => ({
@@ -35,6 +35,8 @@ type ResumoRow = {
   pedidos: number;
   nfs: number;
   pendencia: number;
+  ultimaCompraData: string | null;
+  ultimaCompraValor: number;
 };
 
 function ImecDashboard() {
@@ -56,7 +58,7 @@ function ImecDashboard() {
         supabase.from("imec_clientes").select("id,nome").eq("ativo", true).order("nome"),
         supabase.from("imec_pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
         supabase.from("imec_notas_fiscais").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
-        supabase.from("imec_notas_fiscais").select("cliente_id").gte("data", recentStart).lte("data", end).limit(10000),
+        supabase.from("imec_notas_fiscais").select("cliente_id,data,valor").lte("data", end).limit(20000),
         supabase.from("imec_pendencias_produtos").select("cliente_id,valor").limit(10000),
         supabase.from("imec_metas_mensais").select("valor").eq("ano", ano).eq("mes", mes).maybeSingle(),
       ]);
@@ -72,6 +74,8 @@ function ImecDashboard() {
         pedidos: 0,
         nfs: 0,
         pendencia: 0,
+        ultimaCompraData: null,
+        ultimaCompraValor: 0,
       }));
       (pedidosRes.data ?? []).forEach((pedido) => {
         const row = map.get(pedido.cliente_id);
@@ -90,7 +94,15 @@ function ImecDashboard() {
         if (row) row.pendencia += Number(pendencia.valor);
       });
 
-      const clientesComNfRecente = new Set((recentNfsRes.data ?? []).map((nf) => nf.cliente_id));
+      const clientesComNfRecente = new Set((recentNfsRes.data ?? []).filter((nf) => nf.data && nf.data >= recentStart).map((nf) => nf.cliente_id));
+      (recentNfsRes.data ?? []).forEach((nf) => {
+        const row = map.get(nf.cliente_id);
+        if (!row || !nf.data) return;
+        if (!row.ultimaCompraData || nf.data > row.ultimaCompraData) {
+          row.ultimaCompraData = nf.data;
+          row.ultimaCompraValor = Number(nf.valor);
+        }
+      });
       const rows = Array.from(map.values())
         .filter((row) => row.enviado > 0 || row.faturado > 0 || row.pendencia > 0 || clientesComNfRecente.has(row.id))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -191,10 +203,10 @@ function ImecDashboard() {
         </header>
         <div className="overflow-x-auto">
           <table className="bi-table">
-            <thead><tr><th>Cliente</th><th className="text-right">Pedidos</th><th className="text-right">Enviado</th><th className="text-right">NFs</th><th className="text-right">Faturado</th><th className="text-right">Pendência</th></tr></thead>
+            <thead><tr><th>Cliente</th><th className="text-right">Pedidos</th><th className="text-right">Enviado</th><th className="text-right">NFs</th><th className="text-right">Faturado</th><th className="text-right">Pendência</th><th className="text-right">Última Compra</th><th className="text-right">Valor Últ. Compra</th></tr></thead>
             <tbody>
-              {isLoading && <tr><td colSpan={6} className="text-center text-muted-foreground py-10">Carregando…</td></tr>}
-              {!isLoading && (data?.rows.length ?? 0) === 0 && <tr><td colSpan={6} className="text-center text-muted-foreground py-10">Nenhum movimento neste mês.</td></tr>}
+              {isLoading && <tr><td colSpan={8} className="text-center text-muted-foreground py-10">Carregando…</td></tr>}
+              {!isLoading && (data?.rows.length ?? 0) === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground py-10">Nenhum movimento neste mês.</td></tr>}
               {data?.rows.map((row) => (
                 <tr key={row.id}>
                   <td className="font-medium"><Link to="/imec/por-clientes/$clienteId" params={{ clienteId: row.id }} className="hover:text-primary hover:underline">{row.nome}</Link></td>
@@ -203,10 +215,12 @@ function ImecDashboard() {
                   <td className="text-right tabular-nums">{row.nfs}</td>
                   <td className="text-right tabular-nums font-semibold">{formatBRL(row.faturado)}</td>
                   <td className={`text-right tabular-nums font-semibold ${row.pendencia > 0 ? "text-warning" : "text-muted-foreground"}`}>{row.pendencia > 0 ? formatBRL(row.pendencia) : "—"}</td>
+                  <td className="text-right tabular-nums">{row.ultimaCompraData ? formatDateBR(row.ultimaCompraData) : "—"}</td>
+                  <td className="text-right tabular-nums">{row.ultimaCompraData ? formatBRL(row.ultimaCompraValor) : "—"}</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot><tr><td>TOTAL GERAL</td><td className="text-right tabular-nums">{totals.pedidos}</td><td className="text-right tabular-nums">{formatBRL(totals.enviado)}</td><td className="text-right tabular-nums">{totals.nfs}</td><td className="text-right tabular-nums text-primary">{formatBRL(totals.faturado)}</td><td className="text-right tabular-nums text-primary">{formatBRL(totals.pendencia)}</td></tr></tfoot>
+            <tfoot><tr><td>TOTAL GERAL</td><td className="text-right tabular-nums">{totals.pedidos}</td><td className="text-right tabular-nums">{formatBRL(totals.enviado)}</td><td className="text-right tabular-nums">{totals.nfs}</td><td className="text-right tabular-nums text-primary">{formatBRL(totals.faturado)}</td><td className="text-right tabular-nums text-primary">{formatBRL(totals.pendencia)}</td><td /><td /></tr></tfoot>
           </table>
         </div>
       </section>
@@ -295,7 +309,7 @@ const ImecShareCard = forwardRef<HTMLDivElement, ShareProps>(function ImecShareC
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, fontVariantNumeric: "tabular-nums" }}>
           <thead>
             <tr style={{ background: "#0F2347", color: "#8FA6CC", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
-              {["Cliente", "Pedidos", "Enviado", "NFs", "Faturado", "Pendência"].map((h, i) => <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "10px 14px", fontWeight: 700 }}>{h}</th>)}
+              {["Cliente", "Pedidos", "Enviado", "NFs", "Faturado", "Pendência", "Últ. Compra", "Valor Últ. Compra"].map((h, i) => <th key={h} style={{ textAlign: i === 0 ? "left" : "right", padding: "10px 14px", fontWeight: 700 }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -307,6 +321,8 @@ const ImecShareCard = forwardRef<HTMLDivElement, ShareProps>(function ImecShareC
                 <td style={{ padding: "9px 14px", textAlign: "right" }}>{r.nfs}</td>
                 <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.faturado > 0 ? "#fff" : "#4B5E80" }}>{formatBRL(r.faturado)}</td>
                 <td style={{ padding: "9px 14px", textAlign: "right", fontWeight: 700, color: r.pendencia > 0 ? "#FBBF24" : "#4B5E80" }}>{r.pendencia > 0 ? formatBRL(r.pendencia) : "—"}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right", color: "#C7D7F2" }}>{r.ultimaCompraData ? formatDateBR(r.ultimaCompraData) : "—"}</td>
+                <td style={{ padding: "9px 14px", textAlign: "right", color: "#C7D7F2" }}>{r.ultimaCompraData ? formatBRL(r.ultimaCompraValor) : "—"}</td>
               </tr>
             ))}
             <tr style={{ background: "linear-gradient(90deg, #2563EB, #1D4ED8)", color: "#fff", fontWeight: 800 }}>
@@ -316,6 +332,7 @@ const ImecShareCard = forwardRef<HTMLDivElement, ShareProps>(function ImecShareC
               <td style={{ padding: "12px 14px", textAlign: "right" }}>{p.totals.nfs}</td>
               <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(p.totals.faturado)}</td>
               <td style={{ padding: "12px 14px", textAlign: "right" }}>{formatBRL(p.totals.pendencia)}</td>
+              <td style={{ padding: "12px 14px" }} colSpan={2} />
             </tr>
           </tbody>
         </table>
