@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatBRLSmart, MESES_BR, parseBRNumber } from "@/lib/format";
+import { formatBRL, formatBRLSmart, formatDateBR, MESES_BR, parseBRNumber } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/imec/dashboard")({
   head: () => ({
@@ -35,6 +35,8 @@ type ResumoRow = {
   pedidos: number;
   nfs: number;
   pendencia: number;
+  ultimaCompraData: string | null;
+  ultimaCompraValor: number;
 };
 
 function ImecDashboard() {
@@ -56,7 +58,7 @@ function ImecDashboard() {
         supabase.from("imec_clientes").select("id,nome").eq("ativo", true).order("nome"),
         supabase.from("imec_pedidos_enviados").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
         supabase.from("imec_notas_fiscais").select("cliente_id,valor").gte("data", start).lte("data", end).limit(10000),
-        supabase.from("imec_notas_fiscais").select("cliente_id").gte("data", recentStart).lte("data", end).limit(10000),
+        supabase.from("imec_notas_fiscais").select("cliente_id,data,valor").gte("data", recentStart).lte("data", end).limit(10000),
         supabase.from("imec_pendencias_produtos").select("cliente_id,valor").limit(10000),
         supabase.from("imec_metas_mensais").select("valor").eq("ano", ano).eq("mes", mes).maybeSingle(),
       ]);
@@ -72,6 +74,8 @@ function ImecDashboard() {
         pedidos: 0,
         nfs: 0,
         pendencia: 0,
+        ultimaCompraData: null,
+        ultimaCompraValor: 0,
       }));
       (pedidosRes.data ?? []).forEach((pedido) => {
         const row = map.get(pedido.cliente_id);
@@ -91,6 +95,14 @@ function ImecDashboard() {
       });
 
       const clientesComNfRecente = new Set((recentNfsRes.data ?? []).map((nf) => nf.cliente_id));
+      (recentNfsRes.data ?? []).forEach((nf) => {
+        const row = map.get(nf.cliente_id);
+        if (!row || !nf.data) return;
+        if (!row.ultimaCompraData || nf.data > row.ultimaCompraData) {
+          row.ultimaCompraData = nf.data;
+          row.ultimaCompraValor = Number(nf.valor);
+        }
+      });
       const rows = Array.from(map.values())
         .filter((row) => row.enviado > 0 || row.faturado > 0 || row.pendencia > 0 || clientesComNfRecente.has(row.id))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
