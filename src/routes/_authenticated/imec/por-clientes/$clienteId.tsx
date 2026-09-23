@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Download } from "lucide-react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { MultiSelect } from "@/components/MultiSelect";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,7 +38,7 @@ type Pendencia = {
 
 function ImecClienteDetalhe() {
   const { clienteId } = Route.useParams();
-  const [ano, setAno] = useState(new Date().getFullYear());
+  const [ano, setAno] = useState<number | "ALL">(new Date().getFullYear());
   const [produtoFiltro, setProdutoFiltro] = useState<string[]>([]);
   const [empresaFiltro, setEmpresaFiltro] = useState<string[]>([]);
 
@@ -63,25 +63,9 @@ function ImecClienteDetalhe() {
     return Array.from(values).sort((a, b) => b - a);
   }, [data?.sellIn]);
 
-  const chartData = useMemo(() => MESES_BR_SHORT.map((mesNome, index) => ({
-    mes: mesNome,
-    valor: (data?.sellIn ?? []).filter((row) => Number(row.ano) === ano && Number(row.mes) === index + 1).reduce((total, row) => total + Number(row.valor), 0),
-  })), [data?.sellIn, ano]);
-
-  const sellOutData = useMemo(() => MESES_BR_SHORT.map((mesNome, index) => ({
-    mes: mesNome,
-    valor: (data?.sellOut ?? []).filter((row) => Number(row.ano) === ano && Number(row.mes) === index + 1).reduce((total, row) => total + Number(row.valor), 0),
-  })), [data?.sellOut, ano]);
-  const totalSO = sellOutData.reduce((t, i) => t + i.valor, 0);
-  const mesesSO = sellOutData.filter((i) => i.valor > 0).length;
-  const mediaSO = mesesSO ? totalSO / mesesSO : 0;
-
   const produtoOpcoes = useMemo(() => Array.from(new Set((data?.pendencias ?? []).map((item) => item.produto))).sort((a, b) => a.localeCompare(b, "pt-BR")).map((value) => ({ value, label: value })), [data?.pendencias]);
   const empresaOpcoes = useMemo(() => Array.from(new Set((data?.pendencias ?? []).map((item) => item.empresa))).sort().map((value) => ({ value, label: value })), [data?.pendencias]);
   const pendencias = useMemo(() => (data?.pendencias ?? []).filter((item) => produtoFiltro.length === 0 || produtoFiltro.includes(item.produto)).filter((item) => empresaFiltro.length === 0 || empresaFiltro.includes(item.empresa)).sort((a, b) => a.produto.localeCompare(b.produto, "pt-BR")), [data?.pendencias, produtoFiltro, empresaFiltro]);
-  const totalAno = chartData.reduce((total, item) => total + item.valor, 0);
-  const mesesAtivos = chartData.filter((item) => item.valor > 0).length;
-  const mediaAno = mesesAtivos ? totalAno / mesesAtivos : 0;
   const totalQuantidade = pendencias.reduce((total, item) => total + Number(item.quantidade), 0);
   const totalValor = pendencias.reduce((total, item) => total + Number(item.valor), 0);
 
@@ -106,52 +90,11 @@ function ImecClienteDetalhe() {
       <Link to="/imec/por-clientes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4"><ArrowLeft className="h-4 w-4" /> Voltar</Link>
       <header className="mb-6 flex items-end justify-between gap-3 flex-wrap">
         <div><div className="bi-stat-label">Cliente · BI IMEC</div><h1 className="font-display text-3xl font-bold mt-1">{data?.cliente?.nome ?? "Cliente"}</h1></div>
-        <select value={ano} onChange={(event) => setAno(Number(event.target.value))} className="h-10 px-3 bg-input border border-border rounded-md" aria-label="Ano do Sell In">{anos.map((value) => <option key={value} value={value}>{value}</option>)}</select>
+        <select value={ano} onChange={(event) => setAno(event.target.value === "ALL" ? "ALL" : Number(event.target.value))} className="h-10 px-3 bg-input border border-border rounded-md" aria-label="Ano"><option value="ALL">Todos os anos</option>{anos.map((value) => <option key={value} value={value}>{value}</option>)}</select>
       </header>
 
-      <section className="bi-card overflow-hidden mb-8">
-        <header className="px-6 py-4 border-b border-border">
-          <h2 className="font-display text-lg font-semibold">Sell In · {ano}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Evolução mensal consolidada de IMEC e Nutivit.</p>
-        </header>
-        <div className="overflow-x-auto">
-          <table className="bi-table">
-            <thead>
-              <tr>{MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}<th className="text-right">Total</th><th className="text-right">Média</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                {chartData.map((item, index) => <td key={index} className="text-right tabular-nums text-xs">{item.valor ? formatBRL(item.valor) : "—"}</td>)}
-                <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(totalAno)}</td>
-                <td className="text-right tabular-nums font-semibold">{formatBRL(mediaAno)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div className="px-6 py-4 border-t border-border" style={{ height: 280 }}>
-          <ResponsiveContainer width="100%" height="100%"><LineChart data={chartData} margin={{ top: 10, right: 20, left: 20, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="mes" stroke="var(--color-muted-foreground)" fontSize={12} /><YAxis stroke="var(--color-muted-foreground)" fontSize={12} width={60} tickFormatter={(value) => formatBRL(Number(value))} /><Tooltip formatter={(value) => formatBRL(Number(value))} contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6 }} /><Line type="monotone" dataKey="valor" name="Sell In" stroke="var(--primary)" strokeWidth={3} dot={{ fill: "var(--primary)", r: 4 }} activeDot={{ r: 6 }} /></LineChart></ResponsiveContainer>
-        </div>
-      </section>
-
-      <section className="bi-card overflow-hidden mb-8">
-        <header className="px-6 py-4 border-b border-border">
-          <h2 className="font-display text-lg font-semibold">Sell Out · {ano}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Vendas do cliente para o mercado, conforme planilha importada.</p>
-        </header>
-        <div className="overflow-x-auto">
-          <table className="bi-table">
-            <thead><tr>{MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}<th className="text-right">Total</th><th className="text-right">Média</th></tr></thead>
-            <tbody><tr>
-              {sellOutData.map((item, index) => <td key={index} className="text-right tabular-nums text-xs">{item.valor ? formatBRL(item.valor) : "—"}</td>)}
-              <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(totalSO)}</td>
-              <td className="text-right tabular-nums font-semibold">{formatBRL(mediaSO)}</td>
-            </tr></tbody>
-          </table>
-        </div>
-        <div className="px-6 py-4 border-t border-border" style={{ height: 280 }}>
-          <ResponsiveContainer width="100%" height="100%"><LineChart data={sellOutData} margin={{ top: 10, right: 20, left: 20, bottom: 8 }}><CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" /><XAxis dataKey="mes" stroke="var(--color-muted-foreground)" fontSize={12} /><YAxis stroke="var(--color-muted-foreground)" fontSize={12} width={60} tickFormatter={(value) => formatBRL(Number(value))} /><Tooltip formatter={(value) => formatBRL(Number(value))} contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6 }} /><Line type="monotone" dataKey="valor" name="Sell Out" stroke="var(--primary)" strokeWidth={3} dot={{ fill: "var(--primary)", r: 4 }} activeDot={{ r: 6 }} /></LineChart></ResponsiveContainer>
-        </div>
-      </section>
+      <SerieSection title="Sell In" desc="Evolução mensal consolidada de IMEC e Nutivit." rows={data?.sellIn ?? []} ano={ano} anos={anos} />
+      <SerieSection title="Sell Out" desc="Vendas do cliente para o mercado, conforme planilha importada." rows={data?.sellOut ?? []} ano={ano} anos={anos} />
 
       <section className="bi-card overflow-hidden">
         <header className="px-6 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
@@ -171,5 +114,60 @@ function ImecClienteDetalhe() {
         </tbody><tfoot><tr><td colSpan={7}>TOTAL</td><td className="text-right tabular-nums">{totalQuantidade.toLocaleString("pt-BR")}</td><td className="text-right tabular-nums text-primary">{formatBRL(totalValor)}</td></tr></tfoot></table></div>
       </section>
     </div>
+  );
+}
+
+const CORES_ANOS = ["var(--primary)", "var(--chart-2, #0ea5e9)", "var(--chart-3, #64748b)", "var(--chart-4, #22c55e)", "var(--chart-5, #f59e0b)"];
+
+function SerieSection({ title, desc, rows, ano, anos }: { title: string; desc: string; rows: { ano: number; mes: number; valor: number }[]; ano: number | "ALL"; anos: number[] }) {
+  const listaAnos = ano === "ALL" ? [...anos].sort((a, b) => a - b) : [ano];
+  const porAno = listaAnos.map((y) => {
+    const meses = MESES_BR_SHORT.map((_, i) => rows.filter((r) => Number(r.ano) === y && Number(r.mes) === i + 1).reduce((t, r) => t + Number(r.valor), 0));
+    const total = meses.reduce((a, b) => a + b, 0);
+    const ativos = meses.filter((v) => v > 0).length;
+    return { ano: y, meses, total, media: ativos ? total / ativos : 0 };
+  });
+  const chart = MESES_BR_SHORT.map((mes, i) => {
+    const o: Record<string, string | number> = { mes };
+    porAno.forEach((p) => (o[String(p.ano)] = p.meses[i]));
+    return o;
+  });
+  const todos = ano === "ALL";
+  return (
+    <section className="bi-card overflow-hidden mb-8">
+      <header className="px-6 py-4 border-b border-border">
+        <h2 className="font-display text-lg font-semibold">{title} · {todos ? "Todos os anos" : ano}</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+      </header>
+      <div className="overflow-x-auto">
+        <table className="bi-table">
+          <thead><tr>{todos && <th>Ano</th>}{MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}<th className="text-right">Total</th><th className="text-right">Média</th></tr></thead>
+          <tbody>
+            {porAno.map((p) => (
+              <tr key={p.ano}>
+                {todos && <td className="font-semibold">{p.ano}</td>}
+                {p.meses.map((v, i) => <td key={i} className="text-right tabular-nums text-xs">{v ? formatBRL(v) : "—"}</td>)}
+                <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(p.total)}</td>
+                <td className="text-right tabular-nums font-semibold">{formatBRL(p.media)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="px-6 py-4 border-t border-border" style={{ height: 280 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chart} margin={{ top: 10, right: 20, left: 20, bottom: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+            <XAxis dataKey="mes" stroke="var(--color-muted-foreground)" fontSize={12} />
+            <YAxis stroke="var(--color-muted-foreground)" fontSize={12} width={60} tickFormatter={(value) => formatBRL(Number(value))} />
+            <Tooltip formatter={(value) => formatBRL(Number(value))} contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 6 }} />
+            {todos && <Legend />}
+            {porAno.map((p, i) => (
+              <Line key={p.ano} type="monotone" dataKey={String(p.ano)} name={todos ? String(p.ano) : title} stroke={CORES_ANOS[(porAno.length - 1 - i) % CORES_ANOS.length]} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
   );
 }
