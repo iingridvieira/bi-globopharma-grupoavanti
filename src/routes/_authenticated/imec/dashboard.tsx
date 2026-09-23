@@ -298,7 +298,8 @@ const ImecShareCard = forwardRef<HTMLDivElement, ShareProps>(function ImecShareC
         {stat("GAP (Meta - Faturado)", formatBRLSmart(p.gap), p.gap > 0 ? "#FBBF24" : "#34D399", p.gap > 0 ? "Falta para bater a meta" : "Meta atingida")}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 26 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginBottom: 26 }}>
+        {stat("Faturado no mês", formatBRLSmart(p.faturado), "#fff", p.meta > 0 ? `${fmtPct(p.pctMeta)} da meta` : undefined, p.meta > 0 ? p.pctMeta : undefined)}
         {stat("Pedidos enviados", formatBRLSmart(p.enviado), "#fff", p.meta > 0 ? `${fmtPct((p.enviado / p.meta) * 100)} da meta` : undefined, p.meta > 0 ? (p.enviado / p.meta) * 100 : undefined)}
         {stat("Conversão", fmtPct(p.conversao), "#fff", "Faturado ÷ Enviado")}
         {stat("Clientes atendidos", String(p.clientesAtendidos), "#fff", `${p.rows.length} clientes no resumo`)}
