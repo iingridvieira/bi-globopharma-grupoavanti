@@ -592,6 +592,59 @@ export type Database = {
           },
         ]
       }
+      imec_pendencias_produtos: {
+        Row: {
+          cliente_id: string
+          codigo_produto: string | null
+          created_at: string
+          data_emissao: string | null
+          data_entrega: string | null
+          empresa: string
+          id: string
+          numero_pedido: string | null
+          preco_unitario: number
+          produto: string
+          quantidade: number
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          codigo_produto?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_entrega?: string | null
+          empresa?: string
+          id?: string
+          numero_pedido?: string | null
+          preco_unitario?: number
+          produto: string
+          quantidade?: number
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          codigo_produto?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_entrega?: string | null
+          empresa?: string
+          id?: string
+          numero_pedido?: string | null
+          preco_unitario?: number
+          produto?: string
+          quantidade?: number
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imec_pendencias_produtos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "imec_clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       imec_produtos: {
         Row: {
           ativo: boolean
