@@ -447,12 +447,26 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   function invalidateItens() {
     void qc.invalidateQueries({ queryKey: ["pedido-itens", pedidoId] });
     void qc.invalidateQueries({ queryKey: ["pedido-itens-count"] });
+    void qc.invalidateQueries({ queryKey: ["pedidos"] });
+  }
+
+  /** Recalcula o valor total do pedido a partir dos itens e grava em pedidos_enviados.valor. */
+  async function syncPedidoValor() {
+    const { data, error } = await supabase
+      .from("pedido_itens")
+      .select("quantidade,preco_passado")
+      .eq("pedido_id", pedidoId);
+    if (error) throw error;
+    const total = (data ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
+    const { error: upErr } = await supabase.from("pedidos_enviados").update({ valor: total }).eq("id", pedidoId);
+    if (upErr) throw upErr;
   }
 
   const updateItem = useMutation({
     mutationFn: async ({ id, quantidade, preco }: { id: string; quantidade: number; preco: number }) => {
       const { error } = await supabase.from("pedido_itens").update({ quantidade, preco_passado: preco }).eq("id", id);
       if (error) throw error;
+      await syncPedidoValor();
     },
     onSuccess: () => { toast.success("Item atualizado"); setEditItemId(null); invalidateItens(); },
     onError: (e: Error) => toast.error(e.message),
@@ -462,6 +476,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("pedido_itens").delete().eq("id", id);
       if (error) throw error;
+      await syncPedidoValor();
     },
     onSuccess: () => { toast.success("Item removido"); invalidateItens(); },
     onError: (e: Error) => toast.error(e.message),
