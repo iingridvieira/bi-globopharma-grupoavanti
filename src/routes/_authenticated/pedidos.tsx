@@ -425,6 +425,12 @@ function PedidosPage() {
 }
 
 function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
+  const { canEdit } = useAuth();
+  const qc = useQueryClient();
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [editQtd, setEditQtd] = useState("");
+  const [editPreco, setEditPreco] = useState("");
+
   const { data: itens, isLoading } = useQuery({
     queryKey: ["pedido-itens", pedidoId],
     queryFn: async () => {
@@ -438,8 +444,46 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     },
   });
 
+  function invalidateItens() {
+    void qc.invalidateQueries({ queryKey: ["pedido-itens", pedidoId] });
+    void qc.invalidateQueries({ queryKey: ["pedido-itens-count"] });
+  }
+
+  const updateItem = useMutation({
+    mutationFn: async ({ id, quantidade, preco }: { id: string; quantidade: number; preco: number }) => {
+      const { error } = await supabase.from("pedido_itens").update({ quantidade, preco_passado: preco }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Item atualizado"); setEditItemId(null); invalidateItens(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeItem = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("pedido_itens").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Item removido"); invalidateItens(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function startEditItem(it: PedidoItem) {
+    setEditItemId(it.id);
+    setEditQtd(String(it.quantidade));
+    setEditPreco(String(it.preco_passado).replace(".", ","));
+  }
+
+  function salvarItem(id: string) {
+    const quantidade = parseBRNumber(editQtd);
+    const preco = parseBRNumber(editPreco);
+    if (!(quantidade > 0)) { toast.error("Quantidade inválida"); return; }
+    if (preco < 0) { toast.error("Preço inválido"); return; }
+    updateItem.mutate({ id, quantidade, preco });
+  }
+
   const totalItens = (itens ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
   const totalQtd = (itens ?? []).reduce((a, it) => a + Number(it.quantidade), 0);
+  const nCols = canEdit ? 6 : 5;
 
   return (
     <div className="p-4 space-y-3">
@@ -455,20 +499,67 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
               <th className="py-2 pr-3 text-right">Preço passado</th>
               <th className="py-2 pr-3 text-right">Quantidade</th>
               <th className="py-2 pr-3 text-right">Subtotal</th>
+              {canEdit && <th className="py-2 text-center">Ações</th>}
             </tr>
           </thead>
           <tbody>
-            {(itens ?? []).map((it) => (
-              <tr key={it.id} className="border-b border-border/60">
-                <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
-                <td className="py-2 pr-3">{it.descricao}</td>
-                <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
-                <td className="py-2 pr-3 text-right tabular-nums">{Number(it.quantidade).toLocaleString("pt-BR")}</td>
-                <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
-              </tr>
-            ))}
+            {(itens ?? []).map((it) => {
+              const editing = editItemId === it.id;
+              if (editing) {
+                return (
+                  <tr key={it.id} className="border-b border-border/60 bg-accent/30">
+                    <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
+                    <td className="py-2 pr-3">{it.descricao}</td>
+                    <td className="py-2 pr-3 text-right">
+                      <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />
+                    </td>
+                    <td className="py-2 pr-3 text-right">
+                      <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />
+                    </td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
+                    <td className="py-2 text-center">
+                      <div className="inline-flex gap-1">
+                        <button type="button" title="Salvar" disabled={updateItem.isPending} onClick={() => salvarItem(it.id)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button type="button" title="Cancelar" onClick={() => setEditItemId(null)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+              return (
+                <tr key={it.id} className="border-b border-border/60">
+                  <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
+                  <td className="py-2 pr-3">{it.descricao}</td>
+                  <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
+                  <td className="py-2 pr-3 text-right tabular-nums">{Number(it.quantidade).toLocaleString("pt-BR")}</td>
+                  <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
+                  {canEdit && (
+                    <td className="py-2 text-center">
+                      <div className="inline-flex gap-1">
+                        <button type="button" title="Editar item" onClick={() => startEditItem(it)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-accent">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Remover item"
+                          disabled={removeItem.isPending}
+                          onClick={() => { if (confirm(`Remover o item "${it.descricao}" deste pedido?`)) removeItem.mutate(it.id); }}
+                          className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
             {(itens ?? []).length === 0 && (
-              <tr><td colSpan={5} className="py-3 text-center text-muted-foreground text-xs">Nenhum item cadastrado neste pedido.</td></tr>
+              <tr><td colSpan={nCols} className="py-3 text-center text-muted-foreground text-xs">Nenhum item cadastrado neste pedido.</td></tr>
             )}
           </tbody>
           {(itens ?? []).length > 0 && (
@@ -477,6 +568,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
                 <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total dos itens</td>
                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtd.toLocaleString("pt-BR")} un</td>
                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{formatBRL(totalItens)}</td>
+                {canEdit && <td />}
               </tr>
             </tfoot>
           )}
