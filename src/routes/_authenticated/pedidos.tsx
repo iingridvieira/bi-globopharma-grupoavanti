@@ -466,6 +466,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     mutationFn: async ({ id, quantidade, preco }: { id: string; quantidade: number; preco: number }) => {
       const { error } = await supabase.from("pedido_itens").update({ quantidade, preco_passado: preco }).eq("id", id);
       if (error) throw error;
+      await syncPedidoValor();
     },
     onSuccess: () => { toast.success("Item atualizado"); setEditItemId(null); invalidateItens(); },
     onError: (e: Error) => toast.error(e.message),
@@ -475,6 +476,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("pedido_itens").delete().eq("id", id);
       if (error) throw error;
+      await syncPedidoValor();
     },
     onSuccess: () => { toast.success("Item removido"); invalidateItens(); },
     onError: (e: Error) => toast.error(e.message),
