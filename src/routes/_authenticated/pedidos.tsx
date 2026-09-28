@@ -369,18 +369,19 @@ function PedidosPage() {
                     <tr key={p.id}>
                       <td />
                       <td><input type="date" value={editData} onChange={(e) => setEditData(e.target.value)} className="bi-input-sm" /></td>
-                      <td>
-                        <select value={editClienteId} onChange={(e) => setEditClienteId(e.target.value)} className="bi-input-sm">
-                          {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
-                      </td>
+                       <td>
+                         <select value={editClienteId} onChange={(e) => setEditClienteId(e.target.value)} className="bi-input-sm">
+                           {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                         </select>
+                         <label className="flex items-center gap-1 text-xs mt-1"><input type="checkbox" checked={editNitro} onChange={(e) => setEditNitro(e.target.checked)} /> Nitro</label>
+                       </td>
                       <td className="text-right tabular-nums text-muted-foreground">{formatBRL(p.valor)}</td>
                       <td><input value={editOrdemCompra} onChange={(e) => setEditOrdemCompra(e.target.value)} className="bi-input-sm" placeholder="Nº OC" /></td>
                       <td><input value={editPrazo} onChange={(e) => setEditPrazo(e.target.value)} className="bi-input-sm" placeholder="Ex.: 7 dias" /></td>
                       <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
                       <td className="text-center">
                         <div className="inline-flex gap-1">
-                          <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo.trim() || null })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                           <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo.trim() || null, nitro: editNitro })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                             <Check className="h-4 w-4" />
                           </button>
                           <button type="button" title="Cancelar" onClick={() => setEditId(null)} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
@@ -719,6 +720,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
   const [clienteId, setClienteId] = useState("");
   const [ordemCompra, setOrdemCompra] = useState("");
   const [prazo, setPrazo] = useState("");
+  const [nitro, setNitro] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [itens, setItens] = useState<ParsedItem[]>([]);
@@ -726,6 +728,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
   const [saving, setSaving] = useState(false);
 
   const totalPedido = itens.reduce((a, it) => a + it.preco * it.quantidade, 0);
+  const totalQtdPedido = itens.reduce((a, it) => a + it.quantidade, 0);
 
   async function importarItens() {
     setBusy(true);
@@ -766,11 +769,12 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
         data,
         cliente_id: clienteId,
         valor: totalPedido,
+         nitro,
         ordem_compra: ordemCompra.trim() || null,
         prazo: prazo.trim() || null,
       }).select("id").single();
       if (error) throw error;
-      const pedidoId = inserted!.id as string;
+      const pedidoId = inserted.id;
       const rows = itens.map((it) => ({
         pedido_id: pedidoId,
         ean: it.ean,
@@ -818,6 +822,14 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
             <Field label="Prazo">
               <input value={prazo} onChange={(e) => setPrazo(e.target.value)} placeholder="Ex.: 7 dias, imediato" className="bi-input-sm" />
             </Field>
+          </div>
+
+          <div className="border border-border rounded-md bg-card p-4">
+            <div className="flex items-center gap-2 font-semibold text-sm mb-3"><Zap className="h-4 w-4 text-primary" /> Pedido Nitro?</div>
+            <div className="flex gap-2" role="group" aria-label="Pedido Nitro">
+              <Button type="button" variant={nitro ? "default" : "outline"} size="sm" aria-pressed={nitro} onClick={() => setNitro(true)}>Sim</Button>
+              <Button type="button" variant={!nitro ? "default" : "outline"} size="sm" aria-pressed={!nitro} onClick={() => setNitro(false)}>Não</Button>
+            </div>
           </div>
 
           <div>
@@ -883,8 +895,9 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
                 </tbody>
                 {itens.length > 0 && (
                   <tfoot>
-                    <tr className="font-semibold bg-muted/30 border-t border-border">
-                      <td colSpan={4} className="py-2 px-3 text-right text-xs uppercase text-muted-foreground">Total do pedido</td>
+                     <tr className="font-semibold bg-muted/30 border-t border-border">
+                       <td colSpan={3} className="py-2 px-3 text-right text-xs uppercase text-muted-foreground">Total do pedido</td>
+                       <td className="py-2 px-3 text-right tabular-nums">{totalQtdPedido.toLocaleString("pt-BR")} un</td>
                       <td className="py-2 px-3 text-right tabular-nums text-primary text-base">{formatBRL(totalPedido)}</td>
                       <td />
                     </tr>
