@@ -141,22 +141,39 @@ function PedidosPage() {
   });
 
   const pedidoIds = useMemo(() => (pedidos ?? []).map((p) => p.id), [pedidos]);
-  const { data: itensCount } = useQuery({
+  const { data: itensInfo } = useQuery({
     queryKey: ["pedido-itens-count", pedidoIds.slice().sort().join("|")],
     enabled: pedidoIds.length > 0,
     queryFn: async () => {
-      const map: Record<string, number> = {};
-      const BATCH = 200;
+      const count: Record<string, number> = {};
+      const prods: Record<string, Set<string>> = {};
+      const BATCH = 100;
       for (let i = 0; i < pedidoIds.length; i += BATCH) {
-        const { data } = await supabase
-          .from("pedido_itens")
-          .select("pedido_id")
-          .in("pedido_id", pedidoIds.slice(i, i + BATCH));
-        (data ?? []).forEach((r) => { map[r.pedido_id] = (map[r.pedido_id] ?? 0) + 1; });
+        let from = 0;
+        for (;;) {
+          const { data } = await supabase
+            .from("pedido_itens")
+            .select("pedido_id,descricao")
+            .in("pedido_id", pedidoIds.slice(i, i + BATCH))
+            .range(from, from + 999);
+          (data ?? []).forEach((r) => {
+            count[r.pedido_id] = (count[r.pedido_id] ?? 0) + 1;
+            (prods[r.pedido_id] ??= new Set()).add(r.descricao);
+          });
+          if (!data || data.length < 1000) break;
+          from += 1000;
+        }
       }
-      return map;
+      return { count, prods };
     },
   });
+  const itensCount = itensInfo?.count;
+  const [produtosSel, setProdutosSel] = useState<string[]>([]);
+  const produtosOpcoes = useMemo(() => {
+    const s = new Set<string>();
+    Object.values(itensInfo?.prods ?? {}).forEach((set) => set.forEach((d) => s.add(d)));
+    return Array.from(s).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [itensInfo]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -208,7 +225,9 @@ function PedidosPage() {
   const porResponsavel = responsavel
     ? baseFiltrados.filter((p) => clientesPorResponsavel[responsavel]?.has(p.cliente_id))
     : baseFiltrados;
-  const filtrados = porResponsavel;
+  const filtrados = produtosSel.length > 0
+    ? porResponsavel.filter((p) => produtosSel.some((d) => itensInfo?.prods[p.id]?.has(d)))
+    : porResponsavel;
 
   type PedRow = typeof filtrados[number];
   const pedGetters = useMemo(() => ({
@@ -276,6 +295,7 @@ function PedidosPage() {
         <MultiSelect width={220} placeholder="Meses" options={MESES_BR.map((m, i) => ({ value: String(i + 1), label: m }))} selected={meses} onChange={setMeses} />
         <MultiSelect width={160} placeholder="Anos" options={[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((a) => ({ value: String(a), label: String(a) }))} selected={anos} onChange={setAnos} />
         <MultiSelect width={260} placeholder="Todos os clientes" options={clientesVisiveis.map((c) => ({ value: c.id, label: c.nome }))} selected={clientesSel} onChange={setClientesSel} />
+        <MultiSelect width={280} placeholder="Produtos" searchPlaceholder="Buscar produto..." resizable options={produtosOpcoes.map((p) => ({ value: p, label: p }))} selected={produtosSel} onChange={setProdutosSel} />
         <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)} className="bi-input-sm w-44">
           <option value="">Representantes</option>
           <option value="Alexandre">Alexandre</option>
