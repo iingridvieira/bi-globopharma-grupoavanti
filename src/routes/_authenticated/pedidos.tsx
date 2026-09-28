@@ -46,8 +46,6 @@ type PedidoItem = {
 
 /** Linha da tabela de itens: mesmo produto (por EAN, ou descrição quando sem EAN) agrupado com qtd faturada + bonificada. */
 type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem };
-type _keep = {
-};
 
 type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number };
 
@@ -690,8 +688,8 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
         <table className="w-full text-sm">
           {head}
           <tbody>
-             {(itens ?? []).map(renderRow)}
-             {(itens ?? []).length === 0 && (
+             {grupos.map(renderRow)}
+             {grupos.length === 0 && (
               <tr><td colSpan={nCols} className="py-3 text-center text-muted-foreground text-xs">Nenhum item cadastrado neste pedido.</td></tr>
             )}
           </tbody>
