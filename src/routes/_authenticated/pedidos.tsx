@@ -6,12 +6,23 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
-import { Download, Send, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, Package, Plus } from "lucide-react";
+import { Download, Send, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, Package, Plus, Zap } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { Button } from "@/components/ui/button";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
 
-export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
+export const Route = createFileRoute("/_authenticated/pedidos")({
+  head: () => ({ meta: [
+    { title: "Pedidos Enviados | BI Avanti" },
+    { name: "description", content: "Consulta de pedidos enviados, itens, quantidades e valores por produto no BI Avanti." },
+    { property: "og:title", content: "Pedidos Enviados | BI Avanti" },
+    { property: "og:description", content: "Consulta de pedidos enviados, itens, quantidades e valores por produto no BI Avanti." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: PedidosPage,
+});
 
 const normNome = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 
@@ -116,7 +127,7 @@ function PedidosPage() {
     queryKey: ["pedidos", anos, meses, clientesSel],
     queryFn: async () => {
       let q = supabase.from("pedidos_enviados")
-        .select("id,data,valor,status,cliente_id,ordem_compra,prazo,clientes(nome)")
+        .select("id,data,valor,status,cliente_id,ordem_compra,prazo,nitro,clientes(nome)")
         .order("data", { ascending: false });
 
       const anosNum = anos.map(Number);
@@ -147,24 +158,26 @@ function PedidosPage() {
     queryFn: async () => {
       const count: Record<string, number> = {};
       const prods: Record<string, Set<string>> = {};
+      const itemRows: { pedido_id: string; descricao: string; quantidade: number; preco_passado: number; bonificado: boolean }[] = [];
       const BATCH = 100;
       for (let i = 0; i < pedidoIds.length; i += BATCH) {
         let from = 0;
         for (;;) {
           const { data } = await supabase
             .from("pedido_itens")
-            .select("pedido_id,descricao")
+            .select("pedido_id,descricao,quantidade,preco_passado,bonificado")
             .in("pedido_id", pedidoIds.slice(i, i + BATCH))
             .range(from, from + 999);
           (data ?? []).forEach((r) => {
             count[r.pedido_id] = (count[r.pedido_id] ?? 0) + 1;
             (prods[r.pedido_id] ??= new Set()).add(r.descricao);
+            itemRows.push(r);
           });
           if (!data || data.length < 1000) break;
           from += 1000;
         }
       }
-      return { count, prods };
+      return { count, prods, itemRows };
     },
   });
   const itensCount = itensInfo?.count;
@@ -174,6 +187,16 @@ function PedidosPage() {
     Object.values(itensInfo?.prods ?? {}).forEach((set) => set.forEach((d) => s.add(d)));
     return Array.from(s).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [itensInfo]);
+  const resumoProduto = useMemo(() => {
+    const visiveis = new Set(pedidos?.map((p) => p.id) ?? []);
+    return (itensInfo?.itemRows ?? []).filter((it) => visiveis.has(it.pedido_id) && produtosSel.includes(it.descricao)).reduce(
+      (acc, it) => {
+        if (it.bonificado) acc.bonificada += Number(it.quantidade);
+        else { acc.faturada += Number(it.quantidade); acc.valor += Number(it.quantidade) * Number(it.preco_passado); }
+        return acc;
+      }, { faturada: 0, bonificada: 0, valor: 0 },
+    );
+  }, [itensInfo, pedidos, produtosSel]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
