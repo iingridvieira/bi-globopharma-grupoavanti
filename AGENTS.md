@@ -1,0 +1,1 @@
+Pedidos Enviados guarda a identificação Nitro no pedido e os itens bonificados em pedido_itens.bonificado; isso permite destacar o pedido sem incluir bonificações no valor faturado.

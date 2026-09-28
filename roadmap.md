@@ -1,0 +1,3 @@
+- [x] Exibir quantidades faturada e bonificada lado a lado nos itens do pedido.
+- [x] Permitir marcar Nitro no cadastro e na edição, indicando pedidos Nitro na lista.
+- [x] Mostrar quantidade e valor dos produtos escolhidos no filtro de pedidos.
