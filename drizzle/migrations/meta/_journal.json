@@ -36,6 +36,13 @@
       "when": 1790626494116,
       "tag": "0004_pedido_itens_bonificado",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790636533978,
+      "tag": "0005_pedidos_enviados_nitro",
+      "breakpoints": true
     }
   ]
 }

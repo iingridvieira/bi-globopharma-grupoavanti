@@ -1140,6 +1140,7 @@ export type Database = {
           created_by: string | null
           data: string
           id: string
+          nitro: boolean
           ordem_compra: string | null
           prazo: string | null
           status: string
@@ -1151,6 +1152,7 @@ export type Database = {
           created_by?: string | null
           data: string
           id?: string
+          nitro?: boolean
           ordem_compra?: string | null
           prazo?: string | null
           status?: string
@@ -1162,6 +1164,7 @@ export type Database = {
           created_by?: string | null
           data?: string
           id?: string
+          nitro?: boolean
           ordem_compra?: string | null
           prazo?: string | null
           status?: string
