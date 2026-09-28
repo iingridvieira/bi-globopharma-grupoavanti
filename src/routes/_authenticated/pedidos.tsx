@@ -187,16 +187,6 @@ function PedidosPage() {
     Object.values(itensInfo?.prods ?? {}).forEach((set) => set.forEach((d) => s.add(d)));
     return Array.from(s).sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [itensInfo]);
-  const resumoProduto = useMemo(() => {
-    const visiveis = new Set(pedidos?.map((p) => p.id) ?? []);
-    return (itensInfo?.itemRows ?? []).filter((it) => visiveis.has(it.pedido_id) && produtosSel.includes(it.descricao)).reduce(
-      (acc, it) => {
-        if (it.bonificado) acc.bonificada += Number(it.quantidade);
-        else { acc.faturada += Number(it.quantidade); acc.valor += Number(it.quantidade) * Number(it.preco_passado); }
-        return acc;
-      }, { faturada: 0, bonificada: 0, valor: 0 },
-    );
-  }, [itensInfo, pedidos, produtosSel]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -250,6 +240,13 @@ function PedidosPage() {
   const porResponsavel = responsavel
     ? baseFiltrados.filter((p) => clientesPorResponsavel[responsavel]?.has(p.cliente_id))
     : baseFiltrados;
+  const resumoProduto = (itensInfo?.itemRows ?? []).filter((it) => porResponsavel.some((p) => p.id === it.pedido_id) && produtosSel.includes(it.descricao)).reduce(
+    (acc, it) => {
+      if (it.bonificado) acc.bonificada += Number(it.quantidade);
+      else { acc.faturada += Number(it.quantidade); acc.valor += Number(it.quantidade) * Number(it.preco_passado); }
+      return acc;
+    }, { faturada: 0, bonificada: 0, valor: 0 },
+  );
   const filtrados = produtosSel.length > 0
     ? porResponsavel.filter((p) => produtosSel.some((d) => itensInfo?.prods[p.id]?.has(d)))
     : porResponsavel;
@@ -580,7 +577,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   const totalItens = itensVenda.reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
   const totalQtd = itensVenda.reduce((a, it) => a + Number(it.quantidade), 0);
   const totalQtdBonif = itensBonif.reduce((a, it) => a + Number(it.quantidade), 0);
-  const nCols = canEdit ? 6 : 5;
+  const nCols = canEdit ? 7 : 6;
 
   function renderRow(it: PedidoItem) {
     const editing = editItemId === it.id;
@@ -592,9 +589,10 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
           <td className="py-2 pr-3 text-right">
             <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />
           </td>
-          <td className="py-2 pr-3 text-right">
+           <td className="py-2 pr-3 text-right">
             <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />
           </td>
+           <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? parseBRNumber(editQtd).toLocaleString("pt-BR") : "—"}</td>
            <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? "—" : formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
           <td className="py-2 text-center">
             <div className="inline-flex gap-1">
@@ -614,7 +612,8 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
         <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
         <td className="py-2 pr-3">{it.descricao}</td>
         <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
-        <td className="py-2 pr-3 text-right tabular-nums">{Number(it.quantidade).toLocaleString("pt-BR")}</td>
+         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? "—" : Number(it.quantidade).toLocaleString("pt-BR")}</td>
+         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? Number(it.quantidade).toLocaleString("pt-BR") : "—"}</td>
          <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? "—" : formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
         {canEdit && (
           <td className="py-2 text-center">
