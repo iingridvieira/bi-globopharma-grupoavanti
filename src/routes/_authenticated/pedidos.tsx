@@ -590,9 +590,9 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
             <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />
           </td>
            <td className="py-2 pr-3 text-right">
-            <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />
-          </td>
-           <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? parseBRNumber(editQtd).toLocaleString("pt-BR") : "—"}</td>
+             {!it.bonificado && <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}
+           </td>
+           <td className="py-2 pr-3 text-right">{it.bonificado && <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}</td>
            <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? "—" : formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
           <td className="py-2 text-center">
             <div className="inline-flex gap-1">
@@ -643,7 +643,8 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
         <th className="py-2 pr-3">EAN</th>
         <th className="py-2 pr-3">Descrição</th>
         <th className="py-2 pr-3 text-right">Preço passado</th>
-        <th className="py-2 pr-3 text-right">Quantidade</th>
+         <th className="py-2 pr-3 text-right">Qtd faturada</th>
+         <th className="py-2 pr-3 text-right">Qtd bonificada</th>
         <th className="py-2 pr-3 text-right">Subtotal</th>
         {canEdit && <th className="py-2 text-center">Ações</th>}
       </tr>
@@ -669,7 +670,8 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
             <tfoot>
               <tr className="font-semibold">
                 <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total dos itens</td>
-                <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtd.toLocaleString("pt-BR")} un</td>
+                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtd.toLocaleString("pt-BR")} un</td>
+                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtdBonif.toLocaleString("pt-BR")} un</td>
                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{formatBRL(totalItens)}</td>
                 {canEdit && <td />}
               </tr>
