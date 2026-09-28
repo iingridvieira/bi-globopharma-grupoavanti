@@ -482,6 +482,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   const qc = useQueryClient();
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [editQtd, setEditQtd] = useState("");
+  const [editQtdBonif, setEditQtdBonif] = useState("");
   const [editPreco, setEditPreco] = useState("");
   const [bonifOpen, setBonifOpen] = useState(false);
   const [bonifText, setBonifText] = useState("");
