@@ -6,12 +6,23 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { exportToExcel } from "@/lib/excel";
-import { Download, Send, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, Package, Plus } from "lucide-react";
+import { Download, Send, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, Package, Plus, Zap } from "lucide-react";
 import { MultiSelect } from "@/components/MultiSelect";
+import { Button } from "@/components/ui/button";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
 
-export const Route = createFileRoute("/_authenticated/pedidos")({ component: PedidosPage });
+export const Route = createFileRoute("/_authenticated/pedidos")({
+  head: () => ({ meta: [
+    { title: "Pedidos Enviados | BI Avanti" },
+    { name: "description", content: "Consulta de pedidos enviados, itens, quantidades e valores por produto no BI Avanti." },
+    { property: "og:title", content: "Pedidos Enviados | BI Avanti" },
+    { property: "og:description", content: "Consulta de pedidos enviados, itens, quantidades e valores por produto no BI Avanti." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: PedidosPage,
+});
 
 const normNome = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 
@@ -116,7 +127,7 @@ function PedidosPage() {
     queryKey: ["pedidos", anos, meses, clientesSel],
     queryFn: async () => {
       let q = supabase.from("pedidos_enviados")
-        .select("id,data,valor,status,cliente_id,ordem_compra,prazo,clientes(nome)")
+        .select("id,data,valor,status,cliente_id,ordem_compra,prazo,nitro,clientes(nome)")
         .order("data", { ascending: false });
 
       const anosNum = anos.map(Number);
@@ -147,24 +158,26 @@ function PedidosPage() {
     queryFn: async () => {
       const count: Record<string, number> = {};
       const prods: Record<string, Set<string>> = {};
+      const itemRows: { pedido_id: string; descricao: string; quantidade: number; preco_passado: number; bonificado: boolean }[] = [];
       const BATCH = 100;
       for (let i = 0; i < pedidoIds.length; i += BATCH) {
         let from = 0;
         for (;;) {
           const { data } = await supabase
             .from("pedido_itens")
-            .select("pedido_id,descricao")
+            .select("pedido_id,descricao,quantidade,preco_passado,bonificado")
             .in("pedido_id", pedidoIds.slice(i, i + BATCH))
             .range(from, from + 999);
           (data ?? []).forEach((r) => {
             count[r.pedido_id] = (count[r.pedido_id] ?? 0) + 1;
             (prods[r.pedido_id] ??= new Set()).add(r.descricao);
+            itemRows.push(r);
           });
           if (!data || data.length < 1000) break;
           from += 1000;
         }
       }
-      return { count, prods };
+      return { count, prods, itemRows };
     },
   });
   const itensCount = itensInfo?.count;
@@ -185,8 +198,8 @@ function PedidosPage() {
   });
 
   const updatePedido = useMutation({
-    mutationFn: async ({ id, data, cliente_id, ordem_compra, prazo }: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null }) => {
-      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, ordem_compra, prazo }).eq("id", id);
+    mutationFn: async ({ id, data, cliente_id, ordem_compra, prazo, nitro }: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null; nitro: boolean }) => {
+      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, ordem_compra, prazo, nitro }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pedido atualizado"); setEditId(null); void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
@@ -207,13 +220,15 @@ function PedidosPage() {
   const [editClienteId, setEditClienteId] = useState("");
   const [editOrdemCompra, setEditOrdemCompra] = useState("");
   const [editPrazo, setEditPrazo] = useState("");
+  const [editNitro, setEditNitro] = useState(false);
 
-  function startEdit(p: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null }) {
+  function startEdit(p: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null; nitro: boolean }) {
     setEditId(p.id);
     setEditData(p.data);
     setEditClienteId(p.cliente_id);
     setEditOrdemCompra(p.ordem_compra ?? "");
     setEditPrazo(p.prazo ?? "");
+    setEditNitro(p.nitro);
   }
 
   const clientesVisiveis = allowedNameSet
@@ -225,6 +240,13 @@ function PedidosPage() {
   const porResponsavel = responsavel
     ? baseFiltrados.filter((p) => clientesPorResponsavel[responsavel]?.has(p.cliente_id))
     : baseFiltrados;
+  const resumoProduto = (itensInfo?.itemRows ?? []).filter((it) => porResponsavel.some((p) => p.id === it.pedido_id) && produtosSel.includes(it.descricao)).reduce(
+    (acc, it) => {
+      if (it.bonificado) acc.bonificada += Number(it.quantidade);
+      else { acc.faturada += Number(it.quantidade); acc.valor += Number(it.quantidade) * Number(it.preco_passado); }
+      return acc;
+    }, { faturada: 0, bonificada: 0, valor: 0 },
+  );
   const filtrados = produtosSel.length > 0
     ? porResponsavel.filter((p) => produtosSel.some((d) => itensInfo?.prods[p.id]?.has(d)))
     : porResponsavel;
@@ -307,6 +329,14 @@ function PedidosPage() {
         </button>
       </div>
 
+      {produtosSel.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3" aria-live="polite">
+          <div className="border border-border bg-card rounded-md p-3"><div className="bi-stat-label">Qtd faturada · produto selecionado</div><div className="font-semibold tabular-nums mt-1">{resumoProduto.faturada.toLocaleString("pt-BR")}</div></div>
+          <div className="border border-border bg-card rounded-md p-3"><div className="bi-stat-label">Qtd bonificada · produto selecionado</div><div className="font-semibold tabular-nums mt-1">{resumoProduto.bonificada.toLocaleString("pt-BR")}</div></div>
+          <div className="border border-border bg-card rounded-md p-3"><div className="bi-stat-label">Valor · produto selecionado</div><div className="font-semibold tabular-nums mt-1">{formatBRL(resumoProduto.valor)}</div></div>
+        </div>
+      )}
+
       <div className="bi-card mt-6 overflow-hidden">
         <div className="flex justify-end px-3 py-1.5">
           <ClearFiltersButton filters={pedFilters} sorts={pedSorts} onReset={resetPed} />
@@ -336,18 +366,19 @@ function PedidosPage() {
                     <tr key={p.id}>
                       <td />
                       <td><input type="date" value={editData} onChange={(e) => setEditData(e.target.value)} className="bi-input-sm" /></td>
-                      <td>
-                        <select value={editClienteId} onChange={(e) => setEditClienteId(e.target.value)} className="bi-input-sm">
-                          {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
-                      </td>
+                       <td>
+                         <select value={editClienteId} onChange={(e) => setEditClienteId(e.target.value)} className="bi-input-sm">
+                           {clientesVisiveis.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                         </select>
+                         <label className="flex items-center gap-1 text-xs mt-1"><input type="checkbox" checked={editNitro} onChange={(e) => setEditNitro(e.target.checked)} /> Nitro</label>
+                       </td>
                       <td className="text-right tabular-nums text-muted-foreground">{formatBRL(p.valor)}</td>
                       <td><input value={editOrdemCompra} onChange={(e) => setEditOrdemCompra(e.target.value)} className="bi-input-sm" placeholder="Nº OC" /></td>
                       <td><input value={editPrazo} onChange={(e) => setEditPrazo(e.target.value)} className="bi-input-sm" placeholder="Ex.: 7 dias" /></td>
                       <td className="text-center text-xs text-muted-foreground">{aprovado ? "APROVADO" : "AGUARDANDO"}</td>
                       <td className="text-center">
                         <div className="inline-flex gap-1">
-                          <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo.trim() || null })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                           <button type="button" title="Salvar" disabled={updatePedido.isPending} onClick={() => updatePedido.mutate({ id: p.id, data: editData, cliente_id: editClienteId, ordem_compra: editOrdemCompra.trim() || null, prazo: editPrazo.trim() || null, nitro: editNitro })} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                             <Check className="h-4 w-4" />
                           </button>
                           <button type="button" title="Cancelar" onClick={() => setEditId(null)} className="h-8 w-8 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
@@ -374,6 +405,7 @@ function PedidosPage() {
                             <Package className="h-2.5 w-2.5" />{count}
                           </span>
                         )}
+                        {p.nitro && <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold text-primary" title="Pedido Nitro"><Zap className="h-3.5 w-3.5" /> Nitro</span>}
                       </td>
                       <td className="text-right tabular-nums">{formatBRL(p.valor)}</td>
                       <td>{p.ordem_compra ?? "—"}</td>
@@ -545,7 +577,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   const totalItens = itensVenda.reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
   const totalQtd = itensVenda.reduce((a, it) => a + Number(it.quantidade), 0);
   const totalQtdBonif = itensBonif.reduce((a, it) => a + Number(it.quantidade), 0);
-  const nCols = canEdit ? 6 : 5;
+  const nCols = canEdit ? 7 : 6;
 
   function renderRow(it: PedidoItem) {
     const editing = editItemId === it.id;
@@ -557,10 +589,11 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
           <td className="py-2 pr-3 text-right">
             <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />
           </td>
-          <td className="py-2 pr-3 text-right">
-            <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />
-          </td>
-          <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? "Bonificado" : formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
+           <td className="py-2 pr-3 text-right">
+             {!it.bonificado && <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}
+           </td>
+           <td className="py-2 pr-3 text-right">{it.bonificado && <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}</td>
+           <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? "—" : formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
           <td className="py-2 text-center">
             <div className="inline-flex gap-1">
               <button type="button" title="Salvar" disabled={updateItem.isPending} onClick={() => salvarItem(it.id)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
@@ -579,8 +612,9 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
         <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
         <td className="py-2 pr-3">{it.descricao}</td>
         <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
-        <td className="py-2 pr-3 text-right tabular-nums">{Number(it.quantidade).toLocaleString("pt-BR")}</td>
-        <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? <span className="text-xs text-muted-foreground">Bonificado</span> : formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
+         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? "—" : Number(it.quantidade).toLocaleString("pt-BR")}</td>
+         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? Number(it.quantidade).toLocaleString("pt-BR") : "—"}</td>
+         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? "—" : formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
         {canEdit && (
           <td className="py-2 text-center">
             <div className="inline-flex gap-1">
@@ -609,7 +643,8 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
         <th className="py-2 pr-3">EAN</th>
         <th className="py-2 pr-3">Descrição</th>
         <th className="py-2 pr-3 text-right">Preço passado</th>
-        <th className="py-2 pr-3 text-right">Quantidade</th>
+         <th className="py-2 pr-3 text-right">Qtd faturada</th>
+         <th className="py-2 pr-3 text-right">Qtd bonificada</th>
         <th className="py-2 pr-3 text-right">Subtotal</th>
         {canEdit && <th className="py-2 text-center">Ações</th>}
       </tr>
@@ -626,16 +661,17 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
         <table className="w-full text-sm">
           {head}
           <tbody>
-            {itensVenda.map(renderRow)}
-            {itensVenda.length === 0 && (
+             {(itens ?? []).map(renderRow)}
+             {(itens ?? []).length === 0 && (
               <tr><td colSpan={nCols} className="py-3 text-center text-muted-foreground text-xs">Nenhum item cadastrado neste pedido.</td></tr>
             )}
           </tbody>
-          {itensVenda.length > 0 && (
+           {(itens ?? []).length > 0 && (
             <tfoot>
               <tr className="font-semibold">
                 <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total dos itens</td>
-                <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtd.toLocaleString("pt-BR")} un</td>
+                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtd.toLocaleString("pt-BR")} un</td>
+                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtdBonif.toLocaleString("pt-BR")} un</td>
                 <td className="py-2 pr-3 text-right tabular-nums text-primary">{formatBRL(totalItens)}</td>
                 {canEdit && <td />}
               </tr>
@@ -643,12 +679,12 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
           )}
         </table>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-border bg-card px-4 py-2.5 flex items-center justify-between gap-2">
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+           <div className="rounded-md border border-border bg-card px-4 py-2.5 flex items-center justify-between gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Qtd faturada</span>
             <span className="text-sm font-semibold tabular-nums text-primary">{totalQtd.toLocaleString("pt-BR")} un</span>
           </div>
-          <div className="rounded-lg border border-border bg-card px-4 py-2.5 flex items-center justify-between gap-2">
+           <div className="rounded-md border border-border bg-card px-4 py-2.5 flex items-center justify-between gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Qtd bonificada</span>
             <span className="text-sm font-semibold tabular-nums text-primary">{totalQtdBonif.toLocaleString("pt-BR")} un</span>
           </div>
@@ -674,22 +710,6 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
             </div>
           </div>
         )}
-        {itensBonif.length > 0 ? (
-          <table className="w-full text-sm">
-            {head}
-            <tbody>{itensBonif.map(renderRow)}</tbody>
-            <tfoot>
-              <tr className="font-semibold">
-                <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total bonificado</td>
-                <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtdBonif.toLocaleString("pt-BR")} un</td>
-                <td />
-                {canEdit && <td />}
-              </tr>
-            </tfoot>
-          </table>
-        ) : (
-          <div className="text-xs text-muted-foreground">Nenhum item bonificado.</div>
-        )}
         </>
       )}
     </div>
@@ -701,6 +721,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
   const [clienteId, setClienteId] = useState("");
   const [ordemCompra, setOrdemCompra] = useState("");
   const [prazo, setPrazo] = useState("");
+  const [nitro, setNitro] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [itens, setItens] = useState<ParsedItem[]>([]);
@@ -708,6 +729,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
   const [saving, setSaving] = useState(false);
 
   const totalPedido = itens.reduce((a, it) => a + it.preco * it.quantidade, 0);
+  const totalQtdPedido = itens.reduce((a, it) => a + it.quantidade, 0);
 
   async function importarItens() {
     setBusy(true);
@@ -748,11 +770,12 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
         data,
         cliente_id: clienteId,
         valor: totalPedido,
+         nitro,
         ordem_compra: ordemCompra.trim() || null,
         prazo: prazo.trim() || null,
       }).select("id").single();
       if (error) throw error;
-      const pedidoId = inserted!.id as string;
+      const pedidoId = inserted.id;
       const rows = itens.map((it) => ({
         pedido_id: pedidoId,
         ean: it.ean,
@@ -800,6 +823,14 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
             <Field label="Prazo">
               <input value={prazo} onChange={(e) => setPrazo(e.target.value)} placeholder="Ex.: 7 dias, imediato" className="bi-input-sm" />
             </Field>
+          </div>
+
+          <div className="border border-border rounded-md bg-card p-4">
+            <div className="flex items-center gap-2 font-semibold text-sm mb-3"><Zap className="h-4 w-4 text-primary" /> Pedido Nitro?</div>
+            <div className="flex gap-2" role="group" aria-label="Pedido Nitro">
+              <Button type="button" variant={nitro ? "default" : "outline"} size="sm" aria-pressed={nitro} onClick={() => setNitro(true)}>Sim</Button>
+              <Button type="button" variant={!nitro ? "default" : "outline"} size="sm" aria-pressed={!nitro} onClick={() => setNitro(false)}>Não</Button>
+            </div>
           </div>
 
           <div>
@@ -865,8 +896,9 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
                 </tbody>
                 {itens.length > 0 && (
                   <tfoot>
-                    <tr className="font-semibold bg-muted/30 border-t border-border">
-                      <td colSpan={4} className="py-2 px-3 text-right text-xs uppercase text-muted-foreground">Total do pedido</td>
+                     <tr className="font-semibold bg-muted/30 border-t border-border">
+                       <td colSpan={3} className="py-2 px-3 text-right text-xs uppercase text-muted-foreground">Total do pedido</td>
+                       <td className="py-2 px-3 text-right tabular-nums">{totalQtdPedido.toLocaleString("pt-BR")} un</td>
                       <td className="py-2 px-3 text-right tabular-nums text-primary text-base">{formatBRL(totalPedido)}</td>
                       <td />
                     </tr>
