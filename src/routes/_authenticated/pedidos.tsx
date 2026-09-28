@@ -559,45 +559,63 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  function startEditItem(it: PedidoItem) {
-    setEditItemId(it.id);
-    setEditQtd(String(it.quantidade));
-    setEditPreco(String(it.preco_passado).replace(".", ","));
+  /** Agrupa itens do mesmo produto (por EAN, ou descrição quando sem EAN) em uma única linha. */
+  type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem };
+  const grupos: GrupoItem[] = [];
+  const grupoIdx = new Map<string, number>();
+  for (const it of itens ?? []) {
+    const key = (it.ean?.trim() || it.descricao.trim().toLowerCase()) as string;
+    let idx = grupoIdx.get(key);
+    if (idx == null) {
+      idx = grupos.length;
+      grupoIdx.set(key, idx);
+      grupos.push({ key, ean: it.ean ?? null, descricao: it.descricao });
+    }
+    const g = grupos[idx];
+    if (it.bonificado) g.bonif = g.bonif ? { ...g.bonif, quantidade: Number(g.bonif.quantidade) + Number(it.quantidade) } : it;
+    else g.venda = g.venda ? { ...g.venda, quantidade: Number(g.venda.quantidade) + Number(it.quantidade) } : it;
   }
 
-  function salvarItem(id: string) {
+  function startEditItem(g: GrupoItem) {
+    setEditItemId(g.key);
+    setEditQtd(g.venda ? String(g.venda.quantidade) : "");
+    setEditQtdBonif(g.bonif ? String(g.bonif.quantidade) : "");
+    setEditPreco(g.venda ? String(g.venda.preco_passado).replace(".", ",") : "");
+  }
+
+  function salvarItem(g: GrupoItem) {
     const quantidade = parseBRNumber(editQtd);
     const preco = parseBRNumber(editPreco);
-    if (!(quantidade > 0)) { toast.error("Quantidade inválida"); return; }
-    if (preco < 0) { toast.error("Preço inválido"); return; }
-    updateItem.mutate({ id, quantidade, preco });
+    if (g.venda && !(quantidade > 0)) { toast.error("Quantidade faturada inválida"); return; }
+    if (g.venda && preco < 0) { toast.error("Preço inválido"); return; }
+    updateItem.mutate({ grupo: g, quantidade, preco, qtdBonif: parseBRNumber(editQtdBonif) });
   }
 
-  const itensVenda = (itens ?? []).filter((it) => !it.bonificado);
-  const itensBonif = (itens ?? []).filter((it) => it.bonificado);
-  const totalItens = itensVenda.reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
-  const totalQtd = itensVenda.reduce((a, it) => a + Number(it.quantidade), 0);
-  const totalQtdBonif = itensBonif.reduce((a, it) => a + Number(it.quantidade), 0);
+  const totalItens = grupos.reduce((a, g) => a + (g.venda ? Number(g.venda.preco_passado) * Number(g.venda.quantidade) : 0), 0);
+  const totalQtd = grupos.reduce((a, g) => a + (g.venda ? Number(g.venda.quantidade) : 0), 0);
+  const totalQtdBonif = grupos.reduce((a, g) => a + (g.bonif ? Number(g.bonif.quantidade) : 0), 0);
   const nCols = canEdit ? 7 : 6;
 
-  function renderRow(it: PedidoItem) {
-    const editing = editItemId === it.id;
+  function renderRow(g: GrupoItem) {
+    const editing = editItemId === g.key;
     if (editing) {
       return (
-        <tr key={it.id} className="border-b border-border/60 bg-accent/30">
-          <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
-          <td className="py-2 pr-3">{it.descricao}</td>
+        <tr key={g.key} className="border-b border-border/60 bg-accent/30">
+          <td className="py-2 pr-3 font-mono text-xs">{g.ean ?? "—"}</td>
+          <td className="py-2 pr-3">{g.descricao}</td>
           <td className="py-2 pr-3 text-right">
-            <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />
+            {g.venda && <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />}
           </td>
-           <td className="py-2 pr-3 text-right">
-             {!it.bonificado && <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}
-           </td>
-           <td className="py-2 pr-3 text-right">{it.bonificado && <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}</td>
-           <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? "—" : formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
+          <td className="py-2 pr-3 text-right">
+            {g.venda && <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}
+          </td>
+          <td className="py-2 pr-3 text-right">
+            {g.bonif && <input value={editQtdBonif} onChange={(e) => setEditQtdBonif(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />}
+          </td>
+          <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{g.venda ? formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd)) : "—"}</td>
           <td className="py-2 text-center">
             <div className="inline-flex gap-1">
-              <button type="button" title="Salvar" disabled={updateItem.isPending} onClick={() => salvarItem(it.id)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              <button type="button" title="Salvar" disabled={updateItem.isPending} onClick={() => salvarItem(g)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
                 <Check className="h-3.5 w-3.5" />
               </button>
               <button type="button" title="Cancelar" onClick={() => setEditItemId(null)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
@@ -609,24 +627,24 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
       );
     }
     return (
-      <tr key={it.id} className="border-b border-border/60">
-        <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
-        <td className="py-2 pr-3">{it.descricao}</td>
-        <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
-         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? "—" : Number(it.quantidade).toLocaleString("pt-BR")}</td>
-         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? Number(it.quantidade).toLocaleString("pt-BR") : "—"}</td>
-         <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? "—" : formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
+      <tr key={g.key} className="border-b border-border/60">
+        <td className="py-2 pr-3 font-mono text-xs">{g.ean ?? "—"}</td>
+        <td className="py-2 pr-3">{g.descricao}</td>
+        <td className="py-2 pr-3 text-right tabular-nums">{g.venda ? formatBRL(g.venda.preco_passado) : "—"}</td>
+        <td className="py-2 pr-3 text-right tabular-nums">{g.venda ? Number(g.venda.quantidade).toLocaleString("pt-BR") : "—"}</td>
+        <td className="py-2 pr-3 text-right tabular-nums">{g.bonif ? Number(g.bonif.quantidade).toLocaleString("pt-BR") : "—"}</td>
+        <td className="py-2 pr-3 text-right tabular-nums">{g.venda ? formatBRL(Number(g.venda.preco_passado) * Number(g.venda.quantidade)) : "—"}</td>
         {canEdit && (
           <td className="py-2 text-center">
             <div className="inline-flex gap-1">
-              <button type="button" title="Editar item" onClick={() => startEditItem(it)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-accent">
+              <button type="button" title="Editar item" onClick={() => startEditItem(g)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-accent">
                 <Pencil className="h-3.5 w-3.5" />
               </button>
               <button
                 type="button"
                 title="Remover item"
                 disabled={removeItem.isPending}
-                onClick={() => { if (confirm(`Remover o item "${it.descricao}" deste pedido?`)) removeItem.mutate(it.id); }}
+                onClick={() => { if (confirm(`Remover o item "${g.descricao}" deste pedido (faturado e bonificado)?`)) removeItem.mutate(g); }}
                 className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50"
               >
                 <Trash2 className="h-3.5 w-3.5" />
