@@ -30,6 +30,7 @@ type PedidoItem = {
   descricao: string;
   preco_passado: number | string;
   quantidade: number | string;
+  bonificado?: boolean;
 };
 
 type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number };
@@ -430,13 +431,15 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [editQtd, setEditQtd] = useState("");
   const [editPreco, setEditPreco] = useState("");
+  const [bonifOpen, setBonifOpen] = useState(false);
+  const [bonifText, setBonifText] = useState("");
 
   const { data: itens, isLoading } = useQuery({
     queryKey: ["pedido-itens", pedidoId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedido_itens")
-        .select("id,pedido_id,ean,descricao,preco_passado,quantidade")
+        .select("id,pedido_id,ean,descricao,preco_passado,quantidade,bonificado")
         .eq("pedido_id", pedidoId)
         .order("created_at", { ascending: true });
       if (error) throw error;
@@ -450,17 +453,38 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     void qc.invalidateQueries({ queryKey: ["pedidos"] });
   }
 
-  /** Recalcula o valor total do pedido a partir dos itens e grava em pedidos_enviados.valor. */
+  /** Recalcula o valor total do pedido a partir dos itens (exceto bonificados) e grava em pedidos_enviados.valor. */
   async function syncPedidoValor() {
     const { data, error } = await supabase
       .from("pedido_itens")
-      .select("quantidade,preco_passado")
+      .select("quantidade,preco_passado,bonificado")
       .eq("pedido_id", pedidoId);
     if (error) throw error;
-    const total = (data ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
+    const total = (data ?? []).filter((it) => !it.bonificado).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
     const { error: upErr } = await supabase.from("pedidos_enviados").update({ valor: total }).eq("id", pedidoId);
     if (upErr) throw upErr;
   }
+
+  const addBonif = useMutation({
+    mutationFn: async () => {
+      const parsed = parseBulkText(bonifText);
+      if (parsed.length === 0) throw new Error("Nenhum item válido. Cole EAN e Quantidade.");
+      const desc = await lookupDescricoes(parsed.map((p) => p.ean));
+      const rows = parsed.map((p) => ({
+        pedido_id: pedidoId,
+        ean: p.ean,
+        descricao: desc.get(p.ean) ?? "Produto não encontrado",
+        quantidade: p.quantidade,
+        preco_passado: p.preco,
+        bonificado: true,
+      }));
+      const { error } = await supabase.from("pedido_itens").insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (n) => { toast.success(`${n} item(ns) bonificado(s) adicionado(s)`); setBonifText(""); setBonifOpen(false); invalidateItens(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const updateItem = useMutation({
     mutationFn: async ({ id, quantidade, preco }: { id: string; quantidade: number; preco: number }) => {
@@ -496,9 +520,81 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     updateItem.mutate({ id, quantidade, preco });
   }
 
-  const totalItens = (itens ?? []).reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
-  const totalQtd = (itens ?? []).reduce((a, it) => a + Number(it.quantidade), 0);
+  const itensVenda = (itens ?? []).filter((it) => !it.bonificado);
+  const itensBonif = (itens ?? []).filter((it) => it.bonificado);
+  const totalItens = itensVenda.reduce((a, it) => a + Number(it.preco_passado) * Number(it.quantidade), 0);
+  const totalQtd = itensVenda.reduce((a, it) => a + Number(it.quantidade), 0);
+  const totalQtdBonif = itensBonif.reduce((a, it) => a + Number(it.quantidade), 0);
   const nCols = canEdit ? 6 : 5;
+
+  function renderRow(it: PedidoItem) {
+    const editing = editItemId === it.id;
+    if (editing) {
+      return (
+        <tr key={it.id} className="border-b border-border/60 bg-accent/30">
+          <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
+          <td className="py-2 pr-3">{it.descricao}</td>
+          <td className="py-2 pr-3 text-right">
+            <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />
+          </td>
+          <td className="py-2 pr-3 text-right">
+            <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />
+          </td>
+          <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{it.bonificado ? "Bonificado" : formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
+          <td className="py-2 text-center">
+            <div className="inline-flex gap-1">
+              <button type="button" title="Salvar" disabled={updateItem.isPending} onClick={() => salvarItem(it.id)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                <Check className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" title="Cancelar" onClick={() => setEditItemId(null)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </td>
+        </tr>
+      );
+    }
+    return (
+      <tr key={it.id} className="border-b border-border/60">
+        <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
+        <td className="py-2 pr-3">{it.descricao}</td>
+        <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
+        <td className="py-2 pr-3 text-right tabular-nums">{Number(it.quantidade).toLocaleString("pt-BR")}</td>
+        <td className="py-2 pr-3 text-right tabular-nums">{it.bonificado ? <span className="text-xs text-muted-foreground">Bonificado</span> : formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
+        {canEdit && (
+          <td className="py-2 text-center">
+            <div className="inline-flex gap-1">
+              <button type="button" title="Editar item" onClick={() => startEditItem(it)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-accent">
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                title="Remover item"
+                disabled={removeItem.isPending}
+                onClick={() => { if (confirm(`Remover o item "${it.descricao}" deste pedido?`)) removeItem.mutate(it.id); }}
+                className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  }
+
+  const head = (
+    <thead>
+      <tr className="text-left text-xs uppercase text-muted-foreground border-b border-border">
+        <th className="py-2 pr-3">EAN</th>
+        <th className="py-2 pr-3">Descrição</th>
+        <th className="py-2 pr-3 text-right">Preço passado</th>
+        <th className="py-2 pr-3 text-right">Quantidade</th>
+        <th className="py-2 pr-3 text-right">Subtotal</th>
+        {canEdit && <th className="py-2 text-center">Ações</th>}
+      </tr>
+    </thead>
+  );
 
   return (
     <div className="p-4 space-y-3">
@@ -506,78 +602,16 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando itens...</div>
       ) : (
+        <>
         <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase text-muted-foreground border-b border-border">
-              <th className="py-2 pr-3">EAN</th>
-              <th className="py-2 pr-3">Descrição</th>
-              <th className="py-2 pr-3 text-right">Preço passado</th>
-              <th className="py-2 pr-3 text-right">Quantidade</th>
-              <th className="py-2 pr-3 text-right">Subtotal</th>
-              {canEdit && <th className="py-2 text-center">Ações</th>}
-            </tr>
-          </thead>
+          {head}
           <tbody>
-            {(itens ?? []).map((it) => {
-              const editing = editItemId === it.id;
-              if (editing) {
-                return (
-                  <tr key={it.id} className="border-b border-border/60 bg-accent/30">
-                    <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
-                    <td className="py-2 pr-3">{it.descricao}</td>
-                    <td className="py-2 pr-3 text-right">
-                      <input value={editPreco} onChange={(e) => setEditPreco(e.target.value)} className="bi-input-sm w-28 text-right" placeholder="0,00" inputMode="decimal" />
-                    </td>
-                    <td className="py-2 pr-3 text-right">
-                      <input value={editQtd} onChange={(e) => setEditQtd(e.target.value)} className="bi-input-sm w-24 text-right" placeholder="0" inputMode="numeric" />
-                    </td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-muted-foreground">{formatBRL(parseBRNumber(editPreco) * parseBRNumber(editQtd))}</td>
-                    <td className="py-2 text-center">
-                      <div className="inline-flex gap-1">
-                        <button type="button" title="Salvar" disabled={updateItem.isPending} onClick={() => salvarItem(it.id)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50">
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button type="button" title="Cancelar" onClick={() => setEditItemId(null)} className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:opacity-90">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }
-              return (
-                <tr key={it.id} className="border-b border-border/60">
-                  <td className="py-2 pr-3 font-mono text-xs">{it.ean ?? "—"}</td>
-                  <td className="py-2 pr-3">{it.descricao}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(it.preco_passado)}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{Number(it.quantidade).toLocaleString("pt-BR")}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{formatBRL(Number(it.preco_passado) * Number(it.quantidade))}</td>
-                  {canEdit && (
-                    <td className="py-2 text-center">
-                      <div className="inline-flex gap-1">
-                        <button type="button" title="Editar item" onClick={() => startEditItem(it)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-border hover:bg-accent">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Remover item"
-                          disabled={removeItem.isPending}
-                          onClick={() => { if (confirm(`Remover o item "${it.descricao}" deste pedido?`)) removeItem.mutate(it.id); }}
-                          className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10 disabled:opacity-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-            {(itens ?? []).length === 0 && (
+            {itensVenda.map(renderRow)}
+            {itensVenda.length === 0 && (
               <tr><td colSpan={nCols} className="py-3 text-center text-muted-foreground text-xs">Nenhum item cadastrado neste pedido.</td></tr>
             )}
           </tbody>
-          {(itens ?? []).length > 0 && (
+          {itensVenda.length > 0 && (
             <tfoot>
               <tr className="font-semibold">
                 <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total dos itens</td>
@@ -588,6 +622,44 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
             </tfoot>
           )}
         </table>
+
+        <div className="pt-3 flex items-center justify-between gap-3">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nitro bonificado <span className="normal-case font-normal">(não soma no valor do pedido)</span></div>
+          {canEdit && (
+            <button type="button" onClick={() => setBonifOpen((v) => !v)} className="h-8 px-3 rounded-md border border-border text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-accent">
+              <Plus className="h-3.5 w-3.5" /> Adicionar bonificados
+            </button>
+          )}
+        </div>
+        {bonifOpen && canEdit && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">Cole do Excel: EAN, Quantidade e (opcional) Preço — uma linha por item.</p>
+            <textarea value={bonifText} onChange={(e) => setBonifText(e.target.value)} rows={5} className="w-full bi-input-sm font-mono text-xs p-2" style={{ height: "auto" }} placeholder={"7891234567890\t10\n7899876543210\t5"} />
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={() => { setBonifOpen(false); setBonifText(""); }} className="h-8 px-3 rounded-md bg-secondary text-secondary-foreground text-xs">Cancelar</button>
+              <button type="button" disabled={addBonif.isPending} onClick={() => addBonif.mutate()} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
+                {addBonif.isPending ? "Adicionando..." : "Adicionar ao pedido"}
+              </button>
+            </div>
+          </div>
+        )}
+        {itensBonif.length > 0 ? (
+          <table className="w-full text-sm">
+            {head}
+            <tbody>{itensBonif.map(renderRow)}</tbody>
+            <tfoot>
+              <tr className="font-semibold">
+                <td colSpan={3} className="py-2 pr-3 text-right text-xs uppercase text-muted-foreground">Total bonificado</td>
+                <td className="py-2 pr-3 text-right tabular-nums text-primary">{totalQtdBonif.toLocaleString("pt-BR")} un</td>
+                <td />
+                {canEdit && <td />}
+              </tr>
+            </tfoot>
+          </table>
+        ) : (
+          <div className="text-xs text-muted-foreground">Nenhum item bonificado.</div>
+        )}
+        </>
       )}
     </div>
   );
