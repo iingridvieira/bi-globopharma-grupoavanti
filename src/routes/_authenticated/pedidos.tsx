@@ -42,6 +42,11 @@ type PedidoItem = {
   preco_passado: number | string;
   quantidade: number | string;
   bonificado?: boolean;
+}
+
+/** Linha da tabela de itens: mesmo produto (por EAN, ou descrição quando sem EAN) agrupado com qtd faturada + bonificada. */
+type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem };
+type _keep = {
 };
 
 type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number };
