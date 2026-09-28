@@ -540,9 +540,15 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   });
 
   const updateItem = useMutation({
-    mutationFn: async ({ id, quantidade, preco }: { id: string; quantidade: number; preco: number }) => {
-      const { error } = await supabase.from("pedido_itens").update({ quantidade, preco_passado: preco }).eq("id", id);
-      if (error) throw error;
+    mutationFn: async ({ grupo, quantidade, preco, qtdBonif }: { grupo: GrupoItem; quantidade: number; preco: number; qtdBonif: number }) => {
+      if (grupo.venda) {
+        const { error } = await supabase.from("pedido_itens").update({ quantidade, preco_passado: preco }).eq("id", grupo.venda.id);
+        if (error) throw error;
+      }
+      if (grupo.bonif) {
+        const { error } = await supabase.from("pedido_itens").update({ quantidade: qtdBonif }).eq("id", grupo.bonif.id);
+        if (error) throw error;
+      }
       await syncPedidoValor();
     },
     onSuccess: () => { toast.success("Item atualizado"); setEditItemId(null); invalidateItens(); },
@@ -550,8 +556,9 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   });
 
   const removeItem = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("pedido_itens").delete().eq("id", id);
+    mutationFn: async (grupo: GrupoItem) => {
+      const ids = [grupo.venda?.id, grupo.bonif?.id].filter(Boolean) as string[];
+      const { error } = await supabase.from("pedido_itens").delete().in("id", ids);
       if (error) throw error;
       await syncPedidoValor();
     },
@@ -559,8 +566,6 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  /** Agrupa itens do mesmo produto (por EAN, ou descrição quando sem EAN) em uma única linha. */
-  type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem };
   const grupos: GrupoItem[] = [];
   const grupoIdx = new Map<string, number>();
   for (const it of itens ?? []) {
