@@ -1088,6 +1088,7 @@ export type Database = {
       }
       pedido_itens: {
         Row: {
+          bonificado: boolean
           created_at: string
           created_by: string | null
           descricao: string
@@ -1099,6 +1100,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bonificado?: boolean
           created_at?: string
           created_by?: string | null
           descricao: string
@@ -1110,6 +1112,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bonificado?: boolean
           created_at?: string
           created_by?: string | null
           descricao?: string
