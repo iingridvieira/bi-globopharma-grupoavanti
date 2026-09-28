@@ -208,8 +208,8 @@ function PedidosPage() {
   });
 
   const updatePedido = useMutation({
-    mutationFn: async ({ id, data, cliente_id, ordem_compra, prazo }: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null }) => {
-      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, ordem_compra, prazo }).eq("id", id);
+    mutationFn: async ({ id, data, cliente_id, ordem_compra, prazo, nitro }: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null; nitro: boolean }) => {
+      const { error } = await supabase.from("pedidos_enviados").update({ data, cliente_id, ordem_compra, prazo, nitro }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Pedido atualizado"); setEditId(null); void qc.invalidateQueries({ queryKey: ["pedidos"] }); },
@@ -230,13 +230,15 @@ function PedidosPage() {
   const [editClienteId, setEditClienteId] = useState("");
   const [editOrdemCompra, setEditOrdemCompra] = useState("");
   const [editPrazo, setEditPrazo] = useState("");
+  const [editNitro, setEditNitro] = useState(false);
 
-  function startEdit(p: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null }) {
+  function startEdit(p: { id: string; data: string; cliente_id: string; ordem_compra: string | null; prazo: string | null; nitro: boolean }) {
     setEditId(p.id);
     setEditData(p.data);
     setEditClienteId(p.cliente_id);
     setEditOrdemCompra(p.ordem_compra ?? "");
     setEditPrazo(p.prazo ?? "");
+    setEditNitro(p.nitro);
   }
 
   const clientesVisiveis = allowedNameSet
