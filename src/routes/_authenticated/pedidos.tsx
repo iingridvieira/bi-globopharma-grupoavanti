@@ -47,7 +47,7 @@ type PedidoItem = {
 /** Linha da tabela de itens: mesmo produto (por EAN, ou descrição quando sem EAN) agrupado com qtd faturada + bonificada. */
 type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem };
 
-type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number };
+type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number; bonificado?: boolean };
 
 function splitLine(l: string): string[] {
   if (l.includes("\t")) return l.split("\t").map((c) => c.trim());
@@ -746,7 +746,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   );
 }
 
-function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: string; nome: string }[]; onClose: () => void; onCreated: () => void }) {
+export function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: string; nome: string }[]; onClose: () => void; onCreated: () => void }) {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [clienteId, setClienteId] = useState("");
   const [ordemCompra, setOrdemCompra] = useState("");
@@ -754,12 +754,16 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
   const [nitro, setNitro] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
+  const [bonifOpen, setBonifOpen] = useState(false);
+  const [bonifText, setBonifText] = useState("");
   const [itens, setItens] = useState<ParsedItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const totalPedido = itens.reduce((a, it) => a + it.preco * it.quantidade, 0);
-  const totalQtdPedido = itens.reduce((a, it) => a + it.quantidade, 0);
+  const totalPedido = itens.filter((it) => !it.bonificado).reduce((a, it) => a + it.preco * it.quantidade, 0);
+  const totalQtdPedido = itens.filter((it) => !it.bonificado).reduce((a, it) => a + it.quantidade, 0);
+  const totalQtdBonif = itens.filter((it) => it.bonificado).reduce((a, it) => a + it.quantidade, 0);
+  const temBonificado = itens.some((it) => it.bonificado);
 
   async function importarItens() {
     setBusy(true);
@@ -787,6 +791,33 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
     }
   }
 
+  async function importarBonificados() {
+    setBusy(true);
+    try {
+      const parsed = parseBulkText(bonifText);
+      if (parsed.length === 0) {
+        toast.error("Nenhuma linha válida (esperado: EAN, Quantidade)");
+        return;
+      }
+      const descMap = await lookupDescricoes(parsed.map((p) => p.ean));
+      const semDesc: string[] = [];
+      const novos: ParsedItem[] = parsed.map((p) => {
+        const d = descMap.get(p.ean);
+        if (!d) semDesc.push(p.ean);
+        return { ean: p.ean, descricao: d ?? `(EAN ${p.ean})`, quantidade: p.quantidade, preco: 0, bonificado: true };
+      });
+      setItens((prev) => [...prev, ...novos]);
+      setNitro(true);
+      setBonifText("");
+      setBonifOpen(false);
+      toast.success(`${novos.length} item(ns) bonificado(s) adicionado(s) — pedido marcado como Nitro${semDesc.length ? ` — ${semDesc.length} sem descrição encontrada` : ""}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function removerItem(idx: number) {
     setItens((prev) => prev.filter((_, i) => i !== idx));
   }
@@ -800,7 +831,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
         data,
         cliente_id: clienteId,
         valor: totalPedido,
-         nitro,
+         nitro: nitro || itens.some((it) => it.bonificado),
         ordem_compra: ordemCompra.trim() || null,
         prazo: prazo.trim() || null,
       }).select("id").single();
@@ -812,6 +843,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
         descricao: it.descricao,
         preco_passado: it.preco,
         quantidade: it.quantidade,
+        bonificado: it.bonificado ?? false,
       }));
       for (let i = 0; i < rows.length; i += 500) {
         const { error: er } = await supabase.from("pedido_itens").insert(rows.slice(i, i + 500));
@@ -866,10 +898,37 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-semibold">Itens do pedido {itens.length > 0 && <span className="text-muted-foreground font-normal">({itens.length})</span>}</div>
-              <button type="button" onClick={() => setBulkOpen((v) => !v)} className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 hover:opacity-90">
-                <Plus className="h-4 w-4" /> Importar Itens em Massa
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => { setBonifOpen((v) => !v); setBulkOpen(false); }} className="h-9 px-3 rounded-md border border-primary/50 text-primary text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 hover:bg-primary/10">
+                  <Zap className="h-4 w-4" /> Importar Bonificados
+                </button>
+                <button type="button" onClick={() => { setBulkOpen((v) => !v); setBonifOpen(false); }} className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 hover:opacity-90">
+                  <Plus className="h-4 w-4" /> Importar Itens em Massa
+                </button>
+              </div>
             </div>
+
+            {bonifOpen && (
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2 mb-3">
+                <div className="text-xs text-muted-foreground">
+                  Cole direto do Excel os itens <b>bonificados (Nitro)</b>: <b>EAN · Quantidade</b> (uma linha por item, colunas separadas por TAB, ";" ou ","). Esses itens <b>não somam no valor do pedido</b> e marcam o pedido como Nitro automaticamente.
+                </div>
+                <textarea
+                  value={bonifText}
+                  onChange={(e) => setBonifText(e.target.value)}
+                  rows={6}
+                  autoFocus
+                  placeholder={"7891234567890\t2\n7899876543210\t1"}
+                  className="w-full font-mono text-xs bg-input border border-border rounded-md p-2 outline-none focus:border-primary"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => { setBonifText(""); setBonifOpen(false); }} className="h-9 px-3 rounded-md border border-border text-xs">Cancelar</button>
+                  <button type="button" disabled={busy || !bonifText.trim()} onClick={importarBonificados} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
+                    {busy ? "Processando..." : "Adicionar bonificados"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {bulkOpen && (
               <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2 mb-3">
@@ -907,12 +966,19 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
                 </thead>
                 <tbody>
                   {itens.map((it, idx) => (
-                    <tr key={idx} className="border-b border-border/60">
+                    <tr key={idx} className={`border-b border-border/60 ${it.bonificado ? "bg-primary/5" : ""}`}>
                       <td className="py-2 px-3 font-mono text-xs">{it.ean}</td>
-                      <td className="py-2 px-3">{it.descricao}</td>
-                      <td className="py-2 px-3 text-right tabular-nums">{formatBRL(it.preco)}</td>
+                      <td className="py-2 px-3">
+                        {it.descricao}
+                        {it.bonificado && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2 py-0.5 text-[10px] font-semibold uppercase">
+                            <Zap className="h-3 w-3" /> Bonificado
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-right tabular-nums">{it.bonificado ? "—" : formatBRL(it.preco)}</td>
                       <td className="py-2 px-3 text-right tabular-nums">{it.quantidade.toLocaleString("pt-BR")}</td>
-                      <td className="py-2 px-3 text-right tabular-nums">{formatBRL(it.preco * it.quantidade)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums">{it.bonificado ? "—" : formatBRL(it.preco * it.quantidade)}</td>
                       <td className="py-2 px-2 text-right">
                         <button type="button" title="Remover" onClick={() => removerItem(idx)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-3.5 w-3.5" />
@@ -928,10 +994,13 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
                   <tfoot>
                      <tr className="font-semibold bg-muted/30 border-t border-border">
                        <td colSpan={3} className="py-2 px-3 text-right text-xs uppercase text-muted-foreground">Total do pedido</td>
-                       <td className="py-2 px-3 text-right tabular-nums">{totalQtdPedido.toLocaleString("pt-BR")} un</td>
-                      <td className="py-2 px-3 text-right tabular-nums text-primary text-base">{formatBRL(totalPedido)}</td>
-                      <td />
-                    </tr>
+                       <td className="py-2 px-3 text-right tabular-nums">
+                         {totalQtdPedido.toLocaleString("pt-BR")} un
+                         {temBonificado && <span className="block text-[11px] font-normal text-primary">+ {totalQtdBonif.toLocaleString("pt-BR")} bonif.</span>}
+                       </td>
+                       <td className="py-2 px-3 text-right tabular-nums text-primary text-base">{formatBRL(totalPedido)}</td>
+                       <td />
+                     </tr>
                   </tfoot>
                 )}
               </table>
