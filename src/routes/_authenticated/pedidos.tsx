@@ -536,6 +536,9 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
       }));
       const { error } = await supabase.from("pedido_itens").insert(rows);
       if (error) throw error;
+      // Pedido com itens bonificados é Nitro automaticamente
+      const { error: nitroErr } = await supabase.from("pedidos_enviados").update({ nitro: true }).eq("id", pedidoId);
+      if (nitroErr) throw nitroErr;
       return rows.length;
     },
     onSuccess: (n) => { toast.success(`${n} item(ns) bonificado(s) adicionado(s)`); setBonifText(""); setBonifOpen(false); invalidateItens(); },
