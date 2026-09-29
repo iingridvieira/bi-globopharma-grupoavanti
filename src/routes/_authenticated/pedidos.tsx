@@ -746,7 +746,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
   );
 }
 
-function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: string; nome: string }[]; onClose: () => void; onCreated: () => void }) {
+export function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: string; nome: string }[]; onClose: () => void; onCreated: () => void }) {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [clienteId, setClienteId] = useState("");
   const [ordemCompra, setOrdemCompra] = useState("");
