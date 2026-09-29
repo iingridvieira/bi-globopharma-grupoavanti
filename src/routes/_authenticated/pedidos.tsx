@@ -47,7 +47,7 @@ type PedidoItem = {
 /** Linha da tabela de itens: mesmo produto (por EAN, ou descrição quando sem EAN) agrupado com qtd faturada + bonificada. */
 type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem };
 
-type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number };
+type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number; bonificado?: boolean };
 
 function splitLine(l: string): string[] {
   if (l.includes("\t")) return l.split("\t").map((c) => c.trim());
@@ -754,12 +754,16 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
   const [nitro, setNitro] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkText, setBulkText] = useState("");
+  const [bonifOpen, setBonifOpen] = useState(false);
+  const [bonifText, setBonifText] = useState("");
   const [itens, setItens] = useState<ParsedItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const totalPedido = itens.reduce((a, it) => a + it.preco * it.quantidade, 0);
-  const totalQtdPedido = itens.reduce((a, it) => a + it.quantidade, 0);
+  const totalPedido = itens.filter((it) => !it.bonificado).reduce((a, it) => a + it.preco * it.quantidade, 0);
+  const totalQtdPedido = itens.filter((it) => !it.bonificado).reduce((a, it) => a + it.quantidade, 0);
+  const totalQtdBonif = itens.filter((it) => it.bonificado).reduce((a, it) => a + it.quantidade, 0);
+  const temBonificado = itens.some((it) => it.bonificado);
 
   async function importarItens() {
     setBusy(true);
