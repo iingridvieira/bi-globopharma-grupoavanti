@@ -898,10 +898,37 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-semibold">Itens do pedido {itens.length > 0 && <span className="text-muted-foreground font-normal">({itens.length})</span>}</div>
-              <button type="button" onClick={() => setBulkOpen((v) => !v)} className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 hover:opacity-90">
-                <Plus className="h-4 w-4" /> Importar Itens em Massa
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => { setBonifOpen((v) => !v); setBulkOpen(false); }} className="h-9 px-3 rounded-md border border-primary/50 text-primary text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 hover:bg-primary/10">
+                  <Zap className="h-4 w-4" /> Importar Bonificados
+                </button>
+                <button type="button" onClick={() => { setBulkOpen((v) => !v); setBonifOpen(false); }} className="h-9 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider inline-flex items-center gap-2 hover:opacity-90">
+                  <Plus className="h-4 w-4" /> Importar Itens em Massa
+                </button>
+              </div>
             </div>
+
+            {bonifOpen && (
+              <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2 mb-3">
+                <div className="text-xs text-muted-foreground">
+                  Cole direto do Excel os itens <b>bonificados (Nitro)</b>: <b>EAN · Quantidade</b> (uma linha por item, colunas separadas por TAB, ";" ou ","). Esses itens <b>não somam no valor do pedido</b> e marcam o pedido como Nitro automaticamente.
+                </div>
+                <textarea
+                  value={bonifText}
+                  onChange={(e) => setBonifText(e.target.value)}
+                  rows={6}
+                  autoFocus
+                  placeholder={"7891234567890\t2\n7899876543210\t1"}
+                  className="w-full font-mono text-xs bg-input border border-border rounded-md p-2 outline-none focus:border-primary"
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => { setBonifText(""); setBonifOpen(false); }} className="h-9 px-3 rounded-md border border-border text-xs">Cancelar</button>
+                  <button type="button" disabled={busy || !bonifText.trim()} onClick={importarBonificados} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-semibold uppercase disabled:opacity-50">
+                    {busy ? "Processando..." : "Adicionar bonificados"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {bulkOpen && (
               <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-2 mb-3">
