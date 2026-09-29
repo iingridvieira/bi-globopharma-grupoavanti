@@ -966,12 +966,19 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
                 </thead>
                 <tbody>
                   {itens.map((it, idx) => (
-                    <tr key={idx} className="border-b border-border/60">
+                    <tr key={idx} className={`border-b border-border/60 ${it.bonificado ? "bg-primary/5" : ""}`}>
                       <td className="py-2 px-3 font-mono text-xs">{it.ean}</td>
-                      <td className="py-2 px-3">{it.descricao}</td>
-                      <td className="py-2 px-3 text-right tabular-nums">{formatBRL(it.preco)}</td>
+                      <td className="py-2 px-3">
+                        {it.descricao}
+                        {it.bonificado && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2 py-0.5 text-[10px] font-semibold uppercase">
+                            <Zap className="h-3 w-3" /> Bonificado
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 text-right tabular-nums">{it.bonificado ? "—" : formatBRL(it.preco)}</td>
                       <td className="py-2 px-3 text-right tabular-nums">{it.quantidade.toLocaleString("pt-BR")}</td>
-                      <td className="py-2 px-3 text-right tabular-nums">{formatBRL(it.preco * it.quantidade)}</td>
+                      <td className="py-2 px-3 text-right tabular-nums">{it.bonificado ? "—" : formatBRL(it.preco * it.quantidade)}</td>
                       <td className="py-2 px-2 text-right">
                         <button type="button" title="Remover" onClick={() => removerItem(idx)} className="h-7 w-7 inline-flex items-center justify-center rounded-md border border-destructive/30 text-destructive hover:bg-destructive/10">
                           <Trash2 className="h-3.5 w-3.5" />
@@ -987,10 +994,13 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
                   <tfoot>
                      <tr className="font-semibold bg-muted/30 border-t border-border">
                        <td colSpan={3} className="py-2 px-3 text-right text-xs uppercase text-muted-foreground">Total do pedido</td>
-                       <td className="py-2 px-3 text-right tabular-nums">{totalQtdPedido.toLocaleString("pt-BR")} un</td>
-                      <td className="py-2 px-3 text-right tabular-nums text-primary text-base">{formatBRL(totalPedido)}</td>
-                      <td />
-                    </tr>
+                       <td className="py-2 px-3 text-right tabular-nums">
+                         {totalQtdPedido.toLocaleString("pt-BR")} un
+                         {temBonificado && <span className="block text-[11px] font-normal text-primary">+ {totalQtdBonif.toLocaleString("pt-BR")} bonif.</span>}
+                       </td>
+                       <td className="py-2 px-3 text-right tabular-nums text-primary text-base">{formatBRL(totalPedido)}</td>
+                       <td />
+                     </tr>
                   </tfoot>
                 )}
               </table>
