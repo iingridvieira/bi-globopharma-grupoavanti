@@ -791,6 +791,33 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
     }
   }
 
+  async function importarBonificados() {
+    setBusy(true);
+    try {
+      const parsed = parseBulkText(bonifText);
+      if (parsed.length === 0) {
+        toast.error("Nenhuma linha válida (esperado: EAN, Quantidade)");
+        return;
+      }
+      const descMap = await lookupDescricoes(parsed.map((p) => p.ean));
+      const semDesc: string[] = [];
+      const novos: ParsedItem[] = parsed.map((p) => {
+        const d = descMap.get(p.ean);
+        if (!d) semDesc.push(p.ean);
+        return { ean: p.ean, descricao: d ?? `(EAN ${p.ean})`, quantidade: p.quantidade, preco: 0, bonificado: true };
+      });
+      setItens((prev) => [...prev, ...novos]);
+      setNitro(true);
+      setBonifText("");
+      setBonifOpen(false);
+      toast.success(`${novos.length} item(ns) bonificado(s) adicionado(s) — pedido marcado como Nitro${semDesc.length ? ` — ${semDesc.length} sem descrição encontrada` : ""}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function removerItem(idx: number) {
     setItens((prev) => prev.filter((_, i) => i !== idx));
   }
@@ -804,7 +831,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
         data,
         cliente_id: clienteId,
         valor: totalPedido,
-         nitro,
+         nitro: nitro || itens.some((it) => it.bonificado),
         ordem_compra: ordemCompra.trim() || null,
         prazo: prazo.trim() || null,
       }).select("id").single();
@@ -816,6 +843,7 @@ function NovoPedidoModal({ clientes, onClose, onCreated }: { clientes: { id: str
         descricao: it.descricao,
         preco_passado: it.preco,
         quantidade: it.quantidade,
+        bonificado: it.bonificado ?? false,
       }));
       for (let i = 0; i < rows.length; i += 500) {
         const { error: er } = await supabase.from("pedido_itens").insert(rows.slice(i, i + 500));
