@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL, formatDateBR, MESES_BR_SHORT } from "@/lib/format";
+import { formatBRL, formatBRLSmart, formatDateBR, MESES_BR_SHORT } from "@/lib/format";
 import { ArrowLeft, Upload, Download, Trash2, Link as LinkIcon, FileDown, Save } from "lucide-react";
 import { exportToExcel } from "@/lib/excel";
 import { useEffect, useMemo, useRef, useState } from "react";
