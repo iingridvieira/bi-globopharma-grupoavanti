@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowRight, LineChart, Users2, Factory, UserPlus } from "lucide-react";
+import { Activity, ArrowRight, LineChart, Users2, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_authenticated/")({
       { title: "BI Avanti Pharma" },
       {
         name: "description",
-        content: "Escolha um módulo para começar: BI Globo Pharma, BI IMEC ou CRM.",
+        content: "Escolha um módulo para começar: BI Globo Pharma ou CRM.",
       },
     ],
   }),
@@ -23,13 +23,6 @@ const MODULOS = [
     desc: "Inteligência comercial Sell In e Sell Out, dashboards, pedidos e notas fiscais.",
     icon: LineChart,
     scope: "bi-globo",
-  },
-  {
-    to: "/imec",
-    label: "BI IMEC",
-    desc: "Inteligência comercial da Imec/Nutivit. Módulo em construção.",
-    icon: Factory,
-    scope: "bi-imec",
   },
   {
     to: "/crm",
