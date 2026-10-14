@@ -1467,7 +1467,6 @@ export type Database = {
     }
     Functions: {
       crm_backfill_pedidos_globo: { Args: never; Returns: number }
-      crm_backfill_pedidos_imec: { Args: never; Returns: number }
       crm_sync_pedido: {
         Args: {
           p_cliente_nome: string
@@ -1487,19 +1486,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      imec_calc_investimento_nf: {
-        Args: { p_nota_fiscal_id: string }
-        Returns: number
-      }
-      imec_investimento_recheck_recentes: { Args: never; Returns: number }
-      imec_match_produto: {
-        Args: { p_descricao: string }
-        Returns: {
-          codigo_interno: string
-          ean: string
-        }[]
-      }
-      imec_normalize_produto: { Args: { s: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "representante" | "viewer" | "editor"
