@@ -606,6 +606,9 @@ function fmtPct(v: number | null): string {
   return `${sign}${v.toFixed(2).replace(".", ",")}%`;
 }
 
+const brlCompact = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const fmtCompact = (v: number) => (v ? brlCompact.format(v) : "—");
+
 function MultiYearSection({
   title, rows, anos, colorVar,
 }: {
