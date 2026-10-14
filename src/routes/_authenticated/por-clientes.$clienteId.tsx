@@ -666,13 +666,10 @@ function MultiYearSection({
                 })}
                 <td className="text-right tabular-nums font-semibold text-primary">{formatBRLSmart(row.total)}</td>
                 <td className="text-right tabular-nums font-semibold">{formatBRLSmart(row.media)}</td>
-                <td className={`text-right tabular-nums font-semibold ${pctClass(row.crescimento)}`}>
-                  {fmtPct(row.crescimento)}
-                </td>
               </tr>
             ))}
             {matrix.length === 0 && (
-              <tr><td colSpan={16} className="text-center text-muted-foreground py-8">Sem dados.</td></tr>
+              <tr><td colSpan={15} className="text-center text-muted-foreground py-8">Sem dados.</td></tr>
             )}
           </tbody>
         </table>
