@@ -606,6 +606,9 @@ function fmtPct(v: number | null): string {
   return `${sign}${v.toFixed(2).replace(".", ",")}%`;
 }
 
+const brlCompact = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const fmtCompact = (v: number) => (v ? brlCompact.format(v) : "—");
+
 function MultiYearSection({
   title, rows, anos, colorVar,
 }: {
@@ -640,14 +643,13 @@ function MultiYearSection({
         <p className="text-xs text-muted-foreground mt-0.5">Compilado por ano com crescimento percentual · maior valor de cada mês destacado em verde</p>
       </header>
       <div className="overflow-x-auto">
-        <table className="bi-table">
+        <table className="bi-table w-full whitespace-nowrap [&_th]:px-1 [&_td]:px-1 [&_th]:text-[10px] [&_td]:text-[10px]">
           <thead>
             <tr>
-              <th className="text-left">Ano</th>
+              <th className="text-left w-12">Ano</th>
               {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
               <th className="text-right">Total</th>
               <th className="text-right">Média</th>
-              <th className="text-right">Crescimento</th>
             </tr>
           </thead>
           <tbody>
@@ -661,19 +663,16 @@ function MultiYearSection({
                       key={i}
                       className={`text-right tabular-nums text-xs ${isMax ? "bg-emerald-500/15 text-emerald-500 font-semibold rounded" : ""}`}
                     >
-                      {v ? formatBRL(v) : "—"}
+                      {fmtCompact(v)}
                     </td>
                   );
                 })}
-                <td className="text-right tabular-nums font-semibold text-primary">{formatBRL(row.total)}</td>
-                <td className="text-right tabular-nums font-semibold">{formatBRL(row.media)}</td>
-                <td className={`text-right tabular-nums font-semibold ${pctClass(row.crescimento)}`}>
-                  {fmtPct(row.crescimento)}
-                </td>
+                <td className="text-right tabular-nums font-semibold text-primary">{fmtCompact(row.total)}</td>
+                <td className="text-right tabular-nums font-semibold">{fmtCompact(row.media)}</td>
               </tr>
             ))}
             {matrix.length === 0 && (
-              <tr><td colSpan={16} className="text-center text-muted-foreground py-8">Sem dados.</td></tr>
+              <tr><td colSpan={15} className="text-center text-muted-foreground py-8">Sem dados.</td></tr>
             )}
           </tbody>
         </table>
