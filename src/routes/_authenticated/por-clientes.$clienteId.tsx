@@ -647,7 +647,6 @@ function MultiYearSection({
               {MESES_BR_SHORT.map((m) => <th key={m} className="text-right">{m}</th>)}
               <th className="text-right">Total</th>
               <th className="text-right">Média</th>
-              <th className="text-right">Cresc.</th>
             </tr>
           </thead>
           <tbody>
