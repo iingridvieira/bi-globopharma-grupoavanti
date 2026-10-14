@@ -43,6 +43,13 @@
       "when": 1790636533978,
       "tag": "0005_pedidos_enviados_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791984947650,
+      "tag": "0006_remover_modulo_imec",
+      "breakpoints": true
     }
   ]
 }
