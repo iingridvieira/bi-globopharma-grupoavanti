@@ -643,7 +643,7 @@ function MultiYearSection({
         <p className="text-xs text-muted-foreground mt-0.5">Compilado por ano com crescimento percentual · maior valor de cada mês destacado em verde</p>
       </header>
       <div className="overflow-x-auto">
-        <table className="bi-table w-full whitespace-nowrap [&_th]:px-1.5 [&_td]:px-1.5 [&_th]:text-[10px] [&_td]:text-[11px]">
+        <table className="bi-table w-full whitespace-nowrap [&_th]:px-1 [&_td]:px-1 [&_th]:text-[10px] [&_td]:text-[10px]">
           <thead>
             <tr>
               <th className="text-left w-12">Ano</th>
