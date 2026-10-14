@@ -45,7 +45,7 @@ type PedidoItem = {
 }
 
 /** Linha da tabela de itens: mesmo produto (por EAN, ou descrição quando sem EAN) agrupado com qtd faturada + bonificada. */
-type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem };
+type GrupoItem = { key: string; ean: string | null; descricao: string; venda?: PedidoItem; bonif?: PedidoItem; vendaIds?: string[]; bonifIds?: string[] };
 
 type ParsedItem = { ean: string; descricao: string; quantidade: number; preco: number; bonificado?: boolean };
 
@@ -547,12 +547,17 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
 
   const updateItem = useMutation({
     mutationFn: async ({ grupo, quantidade, preco, qtdBonif }: { grupo: GrupoItem; quantidade: number; preco: number; qtdBonif: number }) => {
+      const extras = [...(grupo.vendaIds ?? []).slice(1), ...(grupo.bonifIds ?? []).slice(1)];
       if (grupo.venda) {
         const { error } = await supabase.from("pedido_itens").update({ quantidade, preco_passado: preco }).eq("id", grupo.venda.id);
         if (error) throw error;
       }
       if (grupo.bonif) {
         const { error } = await supabase.from("pedido_itens").update({ quantidade: qtdBonif }).eq("id", grupo.bonif.id);
+        if (error) throw error;
+      }
+      if (extras.length) {
+        const { error } = await supabase.from("pedido_itens").delete().in("id", extras);
         if (error) throw error;
       }
       await syncPedidoValor();
@@ -563,7 +568,7 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
 
   const removeItem = useMutation({
     mutationFn: async (grupo: GrupoItem) => {
-      const ids = [grupo.venda?.id, grupo.bonif?.id].filter(Boolean) as string[];
+      const ids = [...(grupo.vendaIds ?? []), ...(grupo.bonifIds ?? [])];
       const { error } = await supabase.from("pedido_itens").delete().in("id", ids);
       if (error) throw error;
       await syncPedidoValor();
@@ -580,11 +585,16 @@ function ItensPedidoView({ pedidoId }: { pedidoId: string }) {
     if (idx == null) {
       idx = grupos.length;
       grupoIdx.set(key, idx);
-      grupos.push({ key, ean: it.ean ?? null, descricao: it.descricao });
+      grupos.push({ key, ean: it.ean ?? null, descricao: it.descricao, vendaIds: [], bonifIds: [] });
     }
     const g = grupos[idx];
-    if (it.bonificado) g.bonif = g.bonif ? { ...g.bonif, quantidade: Number(g.bonif.quantidade) + Number(it.quantidade) } : it;
-    else g.venda = g.venda ? { ...g.venda, quantidade: Number(g.venda.quantidade) + Number(it.quantidade) } : it;
+    if (it.bonificado) {
+      g.bonifIds!.push(it.id);
+      g.bonif = g.bonif ? { ...g.bonif, quantidade: Number(g.bonif.quantidade) + Number(it.quantidade) } : it;
+    } else {
+      g.vendaIds!.push(it.id);
+      g.venda = g.venda ? { ...g.venda, quantidade: Number(g.venda.quantidade) + Number(it.quantidade) } : it;
+    }
   }
 
   function startEditItem(g: GrupoItem) {
