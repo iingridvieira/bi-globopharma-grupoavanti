@@ -663,12 +663,12 @@ function MultiYearSection({
                       key={i}
                       className={`text-right tabular-nums text-xs ${isMax ? "bg-emerald-500/15 text-emerald-500 font-semibold rounded" : ""}`}
                     >
-                      {v ? formatBRLSmart(v) : "—"}
+                      {fmtCompact(v)}
                     </td>
                   );
                 })}
-                <td className="text-right tabular-nums font-semibold text-primary">{formatBRLSmart(row.total)}</td>
-                <td className="text-right tabular-nums font-semibold">{formatBRLSmart(row.media)}</td>
+                <td className="text-right tabular-nums font-semibold text-primary">{fmtCompact(row.total)}</td>
+                <td className="text-right tabular-nums font-semibold">{fmtCompact(row.media)}</td>
               </tr>
             ))}
             {matrix.length === 0 && (
