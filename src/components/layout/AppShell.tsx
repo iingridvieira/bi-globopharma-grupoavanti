@@ -15,8 +15,6 @@ import {
   Users2,
   Table2,
   Settings,
-  Factory,
-  Wallet,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
