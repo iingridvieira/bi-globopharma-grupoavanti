@@ -33,7 +33,7 @@ export function useRepresentadas() {
   return useContext(RepresentadasContext);
 }
 
-/** Gera um slug simples e legível a partir do nome (ex: "Imec/Nutivit" -> "imec-nutivit"). */
+/** Gera um slug simples e legível a partir do nome (ex: "Globo Pharma" -> "globo-pharma"). */
 export function slugify(nome: string): string {
   return nome
     .normalize("NFD")
