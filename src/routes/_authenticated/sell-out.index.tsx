@@ -89,6 +89,7 @@ function SellOutPage() {
         <div>
           <div className="bi-stat-label">Consolidado anual</div>
           <h1 className="font-display text-3xl font-bold mt-1">Sell Out · {ano}</h1>
+          <UltimaAtualizacao tabela="sell_out" coluna="created_at" className="mt-2" />
           {isAdmin && (
             <p className="text-xs text-muted-foreground mt-2">
               Passe o mouse sobre um valor e clique no × para removê-lo (apenas admin).

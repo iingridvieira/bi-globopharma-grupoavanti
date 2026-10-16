@@ -128,6 +128,7 @@ function Consolidado() {
           <div>
             <div className="bi-stat-label">Visão anual</div>
             <h1 className="font-display text-2xl font-bold">Consolidado {ano}</h1>
+            <UltimaAtualizacao tabela={["consolidado_overrides", "pendencias", "positivacao"]} className="mt-1" />
           </div>
         </div>
         <select

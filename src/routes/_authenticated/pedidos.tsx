@@ -293,6 +293,7 @@ function PedidosPage() {
         <div>
           <h1 className="font-display text-3xl font-bold">Pedidos Enviados</h1>
           <p className="text-muted-foreground mt-1">Histórico mensal de pedidos enviados aos clientes.</p>
+          <UltimaAtualizacao tabela={["pedidos_enviados", "pedido_itens"]} coluna="created_at" className="mt-2" />
         </div>
         {canEdit && (
           <button

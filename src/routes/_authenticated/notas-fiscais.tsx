@@ -718,7 +718,10 @@ function NFsPage() {
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
+        <div>
+          <h1 className="font-display text-3xl font-bold">Notas Fiscais Faturadas</h1>
+          <UltimaAtualizacao tabela={["notas_fiscais", "nf_entregas"]} className="mt-1" />
+        </div>
         <button
           type="button"
           onClick={() => void exportarRelatorioEntregasPNG()}

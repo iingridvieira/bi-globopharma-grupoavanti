@@ -70,6 +70,7 @@ function GeralPage() {
           <Globe2 className="h-7 w-7 text-primary" /> GERAL · Todos os clientes
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Compilado anual de Sell In e Sell Out de todos os clientes.</p>
+        <UltimaAtualizacao tabela={["sell_in", "sell_out", "positivacao"]} coluna="created_at" className="mt-2" />
       </header>
 
       <MultiYearSection title="Sell In" rows={sellIn ?? []} anos={anos} colorVar="var(--color-chart-1)" />

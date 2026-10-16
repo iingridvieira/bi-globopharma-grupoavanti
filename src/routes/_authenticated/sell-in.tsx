@@ -113,6 +113,7 @@ function SellInPage() {
         <div>
           <div className="bi-stat-label">Consolidado anual</div>
           <h1 className="font-display text-3xl font-bold mt-1">Sell In · {ano}</h1>
+          <UltimaAtualizacao tabela="sell_in" coluna="created_at" className="mt-2" />
         </div>
         <div className="flex items-center gap-3">
           <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md">

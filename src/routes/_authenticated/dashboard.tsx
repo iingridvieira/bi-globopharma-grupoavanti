@@ -117,6 +117,7 @@ function Dashboard() {
         <div>
           <div className="bi-stat-label">Mês de referência · {String(MES).padStart(2, "0")}/{ANO}</div>
           <h1 className="font-display text-3xl font-bold mt-1">Dashboard Executivo</h1>
+          <UltimaAtualizacao tabela={["notas_fiscais", "pedidos_enviados", "metas_mensais"]} coluna="created_at" className="mt-2" />
         </div>
         <div className="flex items-center gap-2">
           <button
