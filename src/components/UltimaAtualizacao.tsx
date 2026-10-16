@@ -12,21 +12,28 @@ export function UltimaAtualizacao({
   coluna = "updated_at",
   className = "",
 }: {
-  tabela: string;
+  tabela: string | string[];
   coluna?: "updated_at" | "created_at";
   className?: string;
 }) {
+  const tabelas = Array.isArray(tabela) ? tabela : [tabela];
   const { data } = useQuery({
-    queryKey: ["ultima-atualizacao", tabela, coluna],
+    queryKey: ["ultima-atualizacao", tabelas.join("|"), coluna],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(tabela as never)
-        .select(coluna)
-        .order(coluna, { ascending: false })
-        .limit(1);
-      if (error) return null;
-      const v = (data?.[0] as Record<string, string> | undefined)?.[coluna];
-      return v ?? null;
+      const resultados = await Promise.all(
+        tabelas.map(async (t) => {
+          const { data, error } = await supabase
+            .from(t as never)
+            .select(coluna)
+            .order(coluna, { ascending: false })
+            .limit(1);
+          if (error) return null;
+          return (data?.[0] as Record<string, string> | undefined)?.[coluna] ?? null;
+        }),
+      );
+      const validos = resultados.filter((v): v is string => !!v);
+      if (!validos.length) return null;
+      return validos.sort().reverse()[0];
     },
     staleTime: 60_000,
   });
