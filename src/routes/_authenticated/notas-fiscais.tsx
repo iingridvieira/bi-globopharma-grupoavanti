@@ -5,6 +5,7 @@ import { formatBRL, formatDateBR, MESES_BR } from "@/lib/format";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { SmallStyles } from "./pedidos";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 import {
   ChevronDown,
   ChevronRight,

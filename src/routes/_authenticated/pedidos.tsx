@@ -10,6 +10,7 @@ import { Download, Send, Pencil, Trash2, Check, X, ChevronRight, ChevronDown, Pa
 import { MultiSelect } from "@/components/MultiSelect";
 import { Button } from "@/components/ui/button";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 import { ClienteLink } from "@/components/ClienteLink";
 
 export const Route = createFileRoute("/_authenticated/pedidos")({

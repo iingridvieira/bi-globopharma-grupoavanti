@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { ArrowLeft } from "lucide-react";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/consolidado")({
   component: Consolidado,

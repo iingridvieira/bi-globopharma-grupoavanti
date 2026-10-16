@@ -8,6 +8,7 @@ import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check,
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ClienteLink } from "@/components/ClienteLink";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
