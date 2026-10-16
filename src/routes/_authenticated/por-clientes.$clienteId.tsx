@@ -222,6 +222,7 @@ function ClienteDetalhe() {
         <div>
           <div className="bi-stat-label">Cliente</div>
           <h1 className="font-display text-3xl font-bold mt-1">{cliente?.nome}</h1>
+          <UltimaAtualizacao tabela={["sell_in", "sell_out", "pendencias", "notas_fiscais"]} coluna="created_at" className="mt-2" />
         </div>
         <select
           value={String(anoSel)}
