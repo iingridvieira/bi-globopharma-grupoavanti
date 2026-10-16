@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { MultiSelect } from "@/components/MultiSelect";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 const ALL_KEY = "ALL";
 const ALL = "ALL" as const;
@@ -222,6 +223,7 @@ function ClienteDetalhe() {
         <div>
           <div className="bi-stat-label">Cliente</div>
           <h1 className="font-display text-3xl font-bold mt-1">{cliente?.nome}</h1>
+          <UltimaAtualizacao tabela={["sell_in", "sell_out", "pendencias", "notas_fiscais"]} coluna="created_at" className="mt-2" />
         </div>
         <select
           value={String(anoSel)}

@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
 
@@ -113,6 +114,7 @@ function SellInPage() {
         <div>
           <div className="bi-stat-label">Consolidado anual</div>
           <h1 className="font-display text-3xl font-bold mt-1">Sell In · {ano}</h1>
+          <UltimaAtualizacao tabela="sell_in" coluna="created_at" className="mt-2" />
         </div>
         <div className="flex items-center gap-3">
           <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="h-10 px-3 bg-input border border-border rounded-md">

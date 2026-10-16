@@ -8,6 +8,7 @@ import { Download, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/components/ColumnFilterHeader";
 import { ClienteLink } from "@/components/ClienteLink";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/sell-out/")({ component: SellOutPage });
 
@@ -89,6 +90,7 @@ function SellOutPage() {
         <div>
           <div className="bi-stat-label">Consolidado anual</div>
           <h1 className="font-display text-3xl font-bold mt-1">Sell Out · {ano}</h1>
+          <UltimaAtualizacao tabela="sell_out" coluna="created_at" className="mt-2" />
           {isAdmin && (
             <p className="text-xs text-muted-foreground mt-2">
               Passe o mouse sobre um valor e clique no × para removê-lo (apenas admin).

@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/format";
 import { ArrowLeft } from "lucide-react";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/consolidado")({
   component: Consolidado,
@@ -128,6 +129,7 @@ function Consolidado() {
           <div>
             <div className="bi-stat-label">Visão anual</div>
             <h1 className="font-display text-2xl font-bold">Consolidado {ano}</h1>
+            <UltimaAtualizacao tabela={["consolidado_overrides", "pendencias", "positivacao"]} className="mt-1" />
           </div>
         </div>
         <select

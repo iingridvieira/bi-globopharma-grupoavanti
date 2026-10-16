@@ -8,6 +8,7 @@ import { Target, Send, FileCheck, TrendingDown, Trophy, Sparkles, Pencil, Check,
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { ClienteLink } from "@/components/ClienteLink";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -117,6 +118,7 @@ function Dashboard() {
         <div>
           <div className="bi-stat-label">Mês de referência · {String(MES).padStart(2, "0")}/{ANO}</div>
           <h1 className="font-display text-3xl font-bold mt-1">Dashboard Executivo</h1>
+          <UltimaAtualizacao tabela={["notas_fiscais", "pedidos_enviados", "metas_mensais"]} coluna="created_at" className="mt-2" />
         </div>
         <div className="flex items-center gap-2">
           <button
