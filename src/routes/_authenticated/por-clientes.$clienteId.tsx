@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { MultiSelect } from "@/components/MultiSelect";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 const ALL_KEY = "ALL";
 const ALL = "ALL" as const;
