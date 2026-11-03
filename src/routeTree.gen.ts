@@ -18,6 +18,7 @@ import { Route as AuthenticatedConsolidadoRouteImport } from './routes/_authenti
 import { Route as AuthenticatedCrmRouteImport } from './routes/_authenticated/crm'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedImportarRouteImport } from './routes/_authenticated/importar'
+import { Route as AuthenticatedNavarroRouteImport } from './routes/_authenticated/navarro'
 import { Route as AuthenticatedNotasFiscaisRouteImport } from './routes/_authenticated/notas-fiscais'
 import { Route as AuthenticatedPedidosRouteImport } from './routes/_authenticated/pedidos'
 import { Route as AuthenticatedSellInRouteImport } from './routes/_authenticated/sell-in'
@@ -75,6 +76,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 const AuthenticatedImportarRoute = AuthenticatedImportarRouteImport.update({
   id: '/importar',
   path: '/importar',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNavarroRoute = AuthenticatedNavarroRouteImport.update({
+  id: '/navarro',
+  path: '/navarro',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedNotasFiscaisRoute =
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/crm': typeof AuthenticatedCrmRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/importar': typeof AuthenticatedImportarRoute
+  '/navarro': typeof AuthenticatedNavarroRoute
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/consolidado': typeof AuthenticatedConsolidadoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/importar': typeof AuthenticatedImportarRoute
+  '/navarro': typeof AuthenticatedNavarroRoute
   '/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/pedidos': typeof AuthenticatedPedidosRoute
   '/sell-in': typeof AuthenticatedSellInRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/crm': typeof AuthenticatedCrmRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/importar': typeof AuthenticatedImportarRoute
+  '/_authenticated/navarro': typeof AuthenticatedNavarroRoute
   '/_authenticated/notas-fiscais': typeof AuthenticatedNotasFiscaisRoute
   '/_authenticated/pedidos': typeof AuthenticatedPedidosRoute
   '/_authenticated/sell-in': typeof AuthenticatedSellInRoute
@@ -234,6 +243,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/dashboard'
     | '/importar'
+    | '/navarro'
     | '/notas-fiscais'
     | '/pedidos'
     | '/sell-in'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/consolidado'
     | '/dashboard'
     | '/importar'
+    | '/navarro'
     | '/notas-fiscais'
     | '/pedidos'
     | '/sell-in'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/_authenticated/crm'
     | '/_authenticated/dashboard'
     | '/_authenticated/importar'
+    | '/_authenticated/navarro'
     | '/_authenticated/notas-fiscais'
     | '/_authenticated/pedidos'
     | '/_authenticated/sell-in'
@@ -363,6 +375,13 @@ declare module '@tanstack/react-router' {
       path: '/importar'
       fullPath: '/importar'
       preLoaderRoute: typeof AuthenticatedImportarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/navarro': {
+      id: '/_authenticated/navarro'
+      path: '/navarro'
+      fullPath: '/navarro'
+      preLoaderRoute: typeof AuthenticatedNavarroRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/notas-fiscais': {
@@ -485,6 +504,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCrmRoute: typeof AuthenticatedCrmRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImportarRoute: typeof AuthenticatedImportarRoute
+  AuthenticatedNavarroRoute: typeof AuthenticatedNavarroRoute
   AuthenticatedNotasFiscaisRoute: typeof AuthenticatedNotasFiscaisRoute
   AuthenticatedPedidosRoute: typeof AuthenticatedPedidosRoute
   AuthenticatedSellInRoute: typeof AuthenticatedSellInRoute
@@ -503,6 +523,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCrmRoute: AuthenticatedCrmRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImportarRoute: AuthenticatedImportarRoute,
+  AuthenticatedNavarroRoute: AuthenticatedNavarroRoute,
   AuthenticatedNotasFiscaisRoute: AuthenticatedNotasFiscaisRoute,
   AuthenticatedPedidosRoute: AuthenticatedPedidosRoute,
   AuthenticatedSellInRoute: AuthenticatedSellInRoute,
