@@ -934,6 +934,39 @@ export type Database = {
           },
         ]
       }
+      navarro_evolucao: {
+        Row: {
+          ano: number
+          id: string
+          mes: number
+          regional: string
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          ano: number
+          id?: string
+          mes: number
+          regional: string
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          id?: string
+          mes?: number
+          regional?: string
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       nf_entregas: {
         Row: {
           canal: string | null
