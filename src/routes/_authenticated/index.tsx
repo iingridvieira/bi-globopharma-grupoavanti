@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, ArrowRight, LineChart, Users2, UserPlus } from "lucide-react";
+import { Activity, ArrowRight, Building2, LineChart, Users2, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 
@@ -29,6 +29,13 @@ const MODULOS = [
     label: "CRM",
     desc: "Carteira de clientes por representada: status de compra, histórico e consolidado.",
     icon: Users2,
+    scope: "crm",
+  },
+  {
+    to: "/navarro",
+    label: "Grupo Navarro",
+    desc: "Evolução de Sell In e Sell Out por regional, com exportação para Excel.",
+    icon: Building2,
     scope: "crm",
   },
 ] as const;
