@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +35,8 @@ import { exportToExcel } from "@/lib/excel";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/notas-fiscais")({ component: NFsPage });
+export const Route = createFileRoute("/_authenticated/notas-fiscais")({
+  head: () => pageHead("Notas Fiscais", "Consulta do faturamento, itens e situação das entregas."), component: NFsPage });
 
 const RESPONSAVEIS: Record<string, string[]> = {
   Alexandre: [

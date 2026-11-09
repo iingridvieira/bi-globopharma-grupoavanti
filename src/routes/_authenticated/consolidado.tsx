@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import React, { useMemo } from "react";
@@ -7,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/consolidado")({
+  head: () => pageHead("Consolidado anual", "Metas, pedidos enviados e faturamento consolidados por mês."),
   component: Consolidado,
 });
 

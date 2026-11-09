@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { readExcelFile, pickCol, rowToBRDate, rowToBRNumber, type ExcelRow } from "@/lib/excel";
@@ -10,7 +11,8 @@ import { parseEntregas } from "@/lib/entregas-import";
 import { useAuth } from "@/hooks/use-auth";
 import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 
-export const Route = createFileRoute("/_authenticated/importar")({ component: ImportarPage });
+export const Route = createFileRoute("/_authenticated/importar")({
+  head: () => pageHead("Importar Excel", "Atualização dos dados comerciais por planilhas Excel."), component: ImportarPage });
 
 type TipoImport =
   | "faturamento"

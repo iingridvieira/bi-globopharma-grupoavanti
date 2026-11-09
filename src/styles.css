@@ -551,3 +551,71 @@
     touch-action: manipulation;
   }
 }
+
+/* Compact phone presentation. No declarations in this block apply to desktop. */
+@media (max-width: 767px) {
+  main > div { padding: 0.75rem !important; }
+  main .mb-8, main .mb-6 { margin-bottom: 0.875rem !important; }
+  main .mt-6, main .mt-5 { margin-top: 0.875rem !important; }
+  main .mb-10 { margin-bottom: 1.25rem !important; }
+  main .mt-12 { margin-top: 1.5rem !important; }
+  main .bi-card.p-5, main .bi-card-accent.p-5,
+  main .bi-card.p-4, main .bi-card.p-7 { padding: 0.625rem !important; }
+  main .bi-stat-label { font-size: 9px; line-height: 1.35; letter-spacing: 0; }
+  main .bi-stat-value { font-size: 16px !important; line-height: 1.3; letter-spacing: 0; overflow-wrap: anywhere; }
+  main .bi-stat-value.mt-3 { margin-top: 0.5rem; }
+  main .bi-card h2, main .bi-card-accent h2 { font-size: 15px; line-height: 1.35; }
+  main .bi-card header { padding: 0.625rem !important; gap: 0.5rem; }
+  main .bi-card header p { font-size: 10px; }
+  main .grid.grid-cols-1:has(> .bi-card),
+  main .grid.grid-cols-1:has(> .bi-card-accent) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+  main .grid:has(> .bi-card-accent:only-child) { grid-template-columns: minmax(0, 1fr); }
+  main .grid > .bi-card:has(table) { grid-column: 1 / -1; }
+  main .bi-card .flex.items-start.justify-between { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 0.25rem; }
+  main .bi-card .flex.items-start.justify-between > svg { width: 16px; height: 16px; }
+  main > div > header > .flex,
+  main .flex.flex-wrap:has(> .mobile-select) {
+    display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; gap: 0.5rem;
+  }
+  main .mobile-select { width: 100% !important; min-width: 0; max-width: 100%; }
+  main .mobile-select .bi-input-sm { min-height: 40px; padding: 0.5rem; }
+  main select { max-width: 100%; min-height: 40px; }
+  main .mobile-select-panel {
+    position: fixed; inset: auto 0.75rem 1rem !important; width: auto !important;
+    min-width: 0 !important; max-width: none !important; max-height: 55dvh !important; resize: none !important;
+  }
+  main .mobile-select-panel button { min-height: 36px; }
+  main .mobile-select-panel input { height: 42px; }
+  main .bi-card > div:has(> .recharts-responsive-container) { height: 185px !important; padding: 0.5rem !important; }
+  main .recharts-legend-wrapper { font-size: 10px !important; }
+  main .recharts-cartesian-axis-tick text { font-size: 9px; }
+
+  /* Reflow tables instead of hiding data or making users drag sideways. */
+  main :is(.overflow-x-auto,.overflow-auto):has(> table[data-mobile-table]) { overflow-x: visible; max-width: 100%; }
+  main table[data-mobile-table], main table[data-mobile-table] :is(thead,tbody,tfoot) { display: block; width: 100%; white-space: normal; }
+  main table[data-mobile-table] thead tr { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.25rem; padding: 0.5rem; background: var(--surface-2); }
+  main table[data-mobile-table] thead th { width: auto; min-width: 0; padding: 0.25rem !important; border: 0; font-size: 9px; letter-spacing: 0; white-space: normal; text-align: left; }
+  main table[data-mobile-table] thead th:empty { display: none; }
+  main table[data-mobile-table="months"] thead { display: none; }
+  main table[data-mobile-filters="false"] thead { display: none; }
+  main table[data-mobile-table] tr[data-mobile-row="data"] { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.5rem 0.75rem; padding: 0.625rem; border-bottom: 1px solid var(--border); }
+  main table[data-mobile-table] :is(td,th) { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+  main table[data-mobile-table] tr[data-mobile-row="data"] td { display: block; width: auto; padding: 0 !important; border: 0; font-size: 12px; text-align: left; background: transparent; box-shadow: none; position: static; white-space: normal; }
+  main table[data-mobile-table] td[data-mobile-label]:not([data-mobile-label=""])::before { content: attr(data-mobile-label); display: block; margin-bottom: 2px; font-size: 9px; line-height: 1.3; font-weight: 500; color: var(--muted-foreground); }
+  main table[data-mobile-table] td[data-mobile-primary="true"] { grid-column: 1 / -1; font-weight: 600; }
+  main table[data-mobile-table] td[data-mobile-empty="true"] { display: none !important; }
+  main table[data-mobile-table] tr[data-mobile-row="spanning"] { display: flex; flex-wrap: wrap; gap: 0.5rem; width: 100%; }
+  main table[data-mobile-table] tr[data-mobile-row="spanning"] > td { display: block; padding: 0.5rem !important; }
+  main table[data-mobile-table] tr[data-mobile-row="spanning"] > td[colspan] { flex: 1 1 100%; }
+  main table[data-mobile-table] td :is(input,select) { width: 100%; max-width: 100%; }
+  main table[data-mobile-table] tfoot { background: var(--surface-2); border-top: 2px solid var(--primary); }
+  main table[data-mobile-table] thead .absolute.z-50 { position: fixed; inset: auto 0.75rem 1rem !important; width: auto; }
+  main table[data-mobile-table="months"] tr[data-mobile-row="data"] { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0.5rem; }
+  main table[data-mobile-table="months"] tr[data-mobile-row="data"] td { font-size: 10px !important; }
+  main table[data-mobile-table="months"] td:is([data-mobile-label="Total"],[data-mobile-label="Média"],[data-mobile-label="TOTAL"],[data-mobile-label="MÉDIA"]) { padding-top: 0.5rem !important; border-top: 1px solid var(--border); font-size: 12px !important; }
+  main table[data-mobile-table] td[rowspan] { writing-mode: horizontal-tb !important; transform: none !important; grid-column: 1 / -1; }
+  main .bi-card .flex.items-center.gap-2:has(> .bi-stat-value) { display: grid; grid-template-columns: minmax(0,1fr) auto; }
+  main .bi-card .flex.items-center.gap-2:has(> .bi-stat-value) > button { justify-self: end; }
+  main .flex.flex-wrap:has(> .min-w-\[160px\]) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.5rem; }
+  main .min-w-\[160px\] { min-width: 0; padding: 0.5rem; }
+}

@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,7 +6,8 @@ import { useAuth } from "@/hooks/use-auth";
 
 import { Users, Globe2 } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/por-clientes/")({ component: PorClientesIndex });
+export const Route = createFileRoute("/_authenticated/por-clientes/")({
+  head: () => pageHead("Por Clientes", "Seleção de clientes para consultar os resultados comerciais."), component: PorClientesIndex });
 
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 

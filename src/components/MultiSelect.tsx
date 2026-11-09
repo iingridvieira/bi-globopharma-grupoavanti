@@ -66,7 +66,7 @@ export function MultiSelect({
         : `${selected.length} selecionados`;
 
   return (
-    <div ref={wrapRef} className={`relative ${className}`} style={{ width }}>
+    <div ref={wrapRef} className={`mobile-select relative ${className}`} style={{ width }}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -91,7 +91,7 @@ export function MultiSelect({
 
       {open && (
         <div
-          className={`absolute z-50 mt-1 bg-popover border border-border rounded-md shadow-lg ${resizable ? "flex flex-col" : "w-full overflow-hidden"}`}
+          className={`mobile-select-panel absolute z-50 mt-1 bg-popover border border-border rounded-md shadow-lg ${resizable ? "flex flex-col" : "w-full overflow-hidden"}`}
           style={resizable ? {
             resize: "both",
             overflow: "hidden",

@@ -1,18 +1,11 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, ArrowRight, Building2, LineChart, Users2, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 
 export const Route = createFileRoute("/_authenticated/")({
-  head: () => ({
-    meta: [
-      { title: "BI Avanti Pharma" },
-      {
-        name: "description",
-        content: "Escolha um módulo para começar: BI Globo Pharma ou CRM.",
-      },
-    ],
-  }),
+  head: () => pageHead("Módulos", "BI Globo Pharma, CRM e resultados do Grupo Navarro."),
   component: HubPage,
 });
 

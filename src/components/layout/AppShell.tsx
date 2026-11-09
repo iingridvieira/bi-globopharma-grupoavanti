@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import logoAvantiWhite from "@/assets/avanti-pharma-logo-white.png.asset.json";
+import { MobileDataLayout } from "./MobileDataLayout";
 
 type NavItem = {
   to: string;
@@ -195,6 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {children}
+        <MobileDataLayout />
       </main>
     </div>
   );

@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +15,8 @@ import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 const ALL_KEY = "ALL";
 const ALL = "ALL" as const;
 
-export const Route = createFileRoute("/_authenticated/por-clientes/$clienteId")({ component: ClienteDetalhe });
+export const Route = createFileRoute("/_authenticated/por-clientes/$clienteId")({
+  head: () => pageHead("Resultados do cliente", "Sell In, Sell Out, positivação e pendências por cliente."), component: ClienteDetalhe });
 
 function ClienteDetalhe() {
   const { clienteId } = Route.useParams();

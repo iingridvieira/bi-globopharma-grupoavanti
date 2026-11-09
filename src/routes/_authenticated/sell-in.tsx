@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +12,8 @@ import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/comp
 import { ClienteLink } from "@/components/ClienteLink";
 import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
-export const Route = createFileRoute("/_authenticated/sell-in")({ component: SellInPage });
+export const Route = createFileRoute("/_authenticated/sell-in")({
+  head: () => pageHead("Sell In", "Faturamento mensal e anual por cliente Globo Pharma."), component: SellInPage });
 
 const normNomeSI = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 
