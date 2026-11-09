@@ -108,19 +108,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="px-5 py-5 border-b border-sidebar-border">
           <Link
             to="/"
-            className="flex items-center gap-3 -m-1 p-1 rounded-md hover:bg-sidebar-accent transition-colors"
+            className="block -m-1 p-1 rounded-md hover:bg-sidebar-accent transition-colors"
             title="Voltar ao painel inicial"
           >
-            <div
-              className={`h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0 ${iconGlow}`}
-            >
-              <Activity className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <div className="leading-tight">
-              <div className="font-display text-[15px] font-bold tracking-tight">{brandTitle}</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/60">
-                {brandSubtitle}
-              </div>
+            <img src={logoAvantiWhite.url} alt="Avanti Pharma" className="h-8 w-auto" />
+            <div className="mt-2.5 text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/60">
+              {brandLine}
             </div>
           </Link>
         </div>
