@@ -63,9 +63,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isGreenScope = isHub || isCrm;
   const navItems = isCrm ? CRM_NAV : NAV;
 
-  const brandTitle = isGreenScope ? "BI AVANTI PHARMA" : "BI GLOBO PHARMA";
-  const brandSubtitle = isCrm ? "CRM · Carteira de Clientes" : "Inteligência Comercial";
-  const iconGlow = isGreenScope ? "crm-green-glow" : "bi-orange-glow";
+  const brandLine = isCrm
+    ? "CRM · Carteira de Clientes"
+    : isHub
+      ? "Inteligência Comercial"
+      : "BI GLOBO PHARMA";
   const navSectionLabel = isCrm ? "CRM" : "Operação";
 
   return (
