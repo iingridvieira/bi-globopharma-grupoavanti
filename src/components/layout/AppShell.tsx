@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
+import logoAvantiWhite from "@/assets/avanti-pharma-logo-white.png.asset.json";
 
 type NavItem = {
   to: string;
@@ -62,9 +63,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isGreenScope = isHub || isCrm;
   const navItems = isCrm ? CRM_NAV : NAV;
 
-  const brandTitle = isGreenScope ? "BI AVANTI PHARMA" : "BI GLOBO PHARMA";
-  const brandSubtitle = isCrm ? "CRM · Carteira de Clientes" : "Inteligência Comercial";
-  const iconGlow = isGreenScope ? "crm-green-glow" : "bi-orange-glow";
+  const brandLine = isCrm
+    ? "CRM · Carteira de Clientes"
+    : isHub
+      ? "Inteligência Comercial"
+      : "BI GLOBO PHARMA";
   const navSectionLabel = isCrm ? "CRM" : "Operação";
 
   return (
@@ -80,8 +83,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <Menu className="h-6 w-6" />
         </button>
-        <Link to="/" className="min-w-0 truncate font-display text-[15px] font-bold tracking-tight">
-          {brandTitle}
+        <Link to="/" className="shrink-0" aria-label="Voltar ao painel inicial">
+          <img src={logoAvantiWhite.url} alt="Avanti Pharma" className="h-6 w-auto" />
         </Link>
       </header>
       {menuOpen && (
@@ -105,19 +108,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="px-5 py-5 border-b border-sidebar-border">
           <Link
             to="/"
-            className="flex items-center gap-3 -m-1 p-1 rounded-md hover:bg-sidebar-accent transition-colors"
+            className="block -m-1 p-1 rounded-md hover:bg-sidebar-accent transition-colors"
             title="Voltar ao painel inicial"
           >
-            <div
-              className={`h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0 ${iconGlow}`}
-            >
-              <Activity className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <div className="leading-tight">
-              <div className="font-display text-[15px] font-bold tracking-tight">{brandTitle}</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/60">
-                {brandSubtitle}
-              </div>
+            <img src={logoAvantiWhite.url} alt="Avanti Pharma" className="h-8 w-auto" />
+            <div className="mt-2.5 text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/60">
+              {brandLine}
             </div>
           </Link>
         </div>
