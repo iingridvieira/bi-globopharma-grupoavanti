@@ -83,8 +83,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         >
           <Menu className="h-6 w-6" />
         </button>
-        <Link to="/" className="min-w-0 truncate font-display text-[15px] font-bold tracking-tight">
-          {brandTitle}
+        <Link to="/" className="shrink-0" aria-label="Voltar ao painel inicial">
+          <img src={logoAvantiWhite.url} alt="Avanti Pharma" className="h-6 w-auto" />
         </Link>
       </header>
       {menuOpen && (
