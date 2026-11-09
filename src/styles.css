@@ -269,7 +269,16 @@
   body {
     font-family: var(--font-sans);
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
   body {
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
     background-color: var(--color-background);
     color: var(--color-foreground);
     background-attachment: fixed;
