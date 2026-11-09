@@ -574,7 +574,7 @@
   main .bi-card .flex.items-start.justify-between { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 0.25rem; }
   main .bi-card .flex.items-start.justify-between > svg { width: 16px; height: 16px; }
   main > div > header > .flex,
-  main > div > .flex.flex-wrap:has(> .mobile-select) {
+  main .flex.flex-wrap:has(> .mobile-select) {
     display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; gap: 0.5rem;
   }
   main .mobile-select { width: 100% !important; min-width: 0; max-width: 100%; }
@@ -597,6 +597,7 @@
   main table[data-mobile-table] thead th { width: auto; min-width: 0; padding: 0.25rem !important; border: 0; font-size: 9px; letter-spacing: 0; white-space: normal; text-align: left; }
   main table[data-mobile-table] thead th:empty { display: none; }
   main table[data-mobile-table="months"] thead { display: none; }
+  main table[data-mobile-filters="false"] thead { display: none; }
   main table[data-mobile-table] tr[data-mobile-row="data"] { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.5rem 0.75rem; padding: 0.625rem; border-bottom: 1px solid var(--border); }
   main table[data-mobile-table] :is(td,th) { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
   main table[data-mobile-table] tr[data-mobile-row="data"] td { display: block; width: auto; padding: 0 !important; border: 0; font-size: 12px; text-align: left; background: transparent; box-shadow: none; position: static; white-space: normal; }
@@ -611,7 +612,10 @@
   main table[data-mobile-table] thead .absolute.z-50 { position: fixed; inset: auto 0.75rem 1rem !important; width: auto; }
   main table[data-mobile-table="months"] tr[data-mobile-row="data"] { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0.5rem; }
   main table[data-mobile-table="months"] tr[data-mobile-row="data"] td { font-size: 10px !important; }
-  main table[data-mobile-table="months"] td:is([data-mobile-label="Total"],[data-mobile-label="Média"]) { padding-top: 0.5rem !important; border-top: 1px solid var(--border); font-size: 12px !important; }
+  main table[data-mobile-table="months"] td:is([data-mobile-label="Total"],[data-mobile-label="Média"],[data-mobile-label="TOTAL"],[data-mobile-label="MÉDIA"]) { padding-top: 0.5rem !important; border-top: 1px solid var(--border); font-size: 12px !important; }
+  main table[data-mobile-table] td[rowspan] { writing-mode: horizontal-tb !important; grid-column: 1 / -1; }
+  main .bi-card .flex.items-center.gap-2:has(> .bi-stat-value) { display: grid; grid-template-columns: minmax(0,1fr) auto; }
+  main .bi-card .flex.items-center.gap-2:has(> .bi-stat-value) > button { justify-self: end; }
   main .flex.flex-wrap:has(> .min-w-\[160px\]) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.5rem; }
   main .min-w-\[160px\] { min-width: 0; padding: 0.5rem; }
 }

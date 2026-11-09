@@ -12,20 +12,25 @@ export function MobileDataLayout() {
         const headers = Array.from(table.tHead?.rows[0]?.cells ?? []);
         if (!headers.length) return;
         const labels = headers.map((cell) => cell.textContent?.trim() ?? "");
-        const monthly = labels.some((label) => /^JAN$/i.test(label)) && labels.some((label) => /^DEZ$/i.test(label));
+        const monthly = labels.some((label) => /^(JAN|JANEIRO)$/i.test(label)) && labels.some((label) => /^(DEZ|DEZEMBRO)$/i.test(label));
         table.dataset.mobileTable = monthly ? "months" : "records";
+        table.dataset.mobileFilters = headers.some((cell) => cell.querySelector("button")) ? "true" : "false";
         for (const section of [...Array.from(table.tBodies), ...(table.tFoot ? [table.tFoot] : [])]) {
+          const occupied: number[] = [];
           Array.from(section.rows).forEach((row) => {
             const spanning = Array.from(row.cells).some((cell) => cell.colSpan > 1);
             row.dataset.mobileRow = spanning ? "spanning" : "data";
             let column = 0;
             Array.from(row.cells).forEach((cell) => {
+              while ((occupied[column] ?? 0) > 0) column++;
               const label = labels[column] ?? "";
               cell.dataset.mobileLabel = label;
               cell.dataset.mobilePrimary = /^(cliente|produto|descrição|arquivo|regional|indicador|ano)$/i.test(label) ? "true" : "false";
               cell.dataset.mobileEmpty = !cell.textContent?.trim() && !cell.querySelector("button,input,select,textarea,svg,table") ? "true" : "false";
+              for (let span = 0; span < cell.colSpan; span++) occupied[column + span] = cell.rowSpan;
               column += cell.colSpan;
             });
+            occupied.forEach((remaining, index) => { occupied[index] = Math.max(0, remaining - 1); });
           });
         }
       });
