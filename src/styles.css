@@ -532,7 +532,12 @@
   main .bi-stat-value {
     word-break: break-word;
   }
-  main [class*="min-w-["] {
+  main .flex > svg,
+  main .shrink-0 {
+    flex-shrink: 0;
+  }
+  main span[class*="min-w-["],
+  main button[class*="min-w-["] {
     min-width: 0 !important;
   }
   main .recharts-responsive-container {
