@@ -449,6 +449,95 @@
   main > div[class*="p-8"] {
     padding: 1rem !important;
   }
+
+  /* --- Mobile compacto (só celular; desktop intacto) --- */
+  main {
+    max-width: 100vw;
+  }
+  main .p-8,
+  main .p-7,
+  main .p-6 {
+    padding: 0.875rem !important;
+  }
+  main .p-5 {
+    padding: 0.75rem !important;
+  }
+  main .px-8,
+  main .px-6 {
+    padding-left: 0.875rem !important;
+    padding-right: 0.875rem !important;
+  }
+  main .py-8,
+  main .py-6 {
+    padding-top: 0.875rem !important;
+    padding-bottom: 0.875rem !important;
+  }
+  main .gap-8,
+  main .gap-6 {
+    gap: 0.75rem !important;
+  }
+  main .space-y-8 > :not(:last-child),
+  main .space-y-6 > :not(:last-child) {
+    margin-bottom: 0.875rem !important;
+  }
+  main .text-4xl {
+    font-size: 1.625rem !important;
+    line-height: 2rem !important;
+  }
+  main .text-3xl {
+    font-size: 1.375rem !important;
+    line-height: 1.75rem !important;
+  }
+  main .text-2xl {
+    font-size: 1.2rem !important;
+    line-height: 1.6rem !important;
+  }
+  main h1 {
+    word-break: break-word;
+  }
+  main .bi-card,
+  main .bi-card-accent {
+    min-width: 0;
+  }
+  /* Grades fixas de 3+ colunas viram 2 no celular */
+  main .grid-cols-3,
+  main .grid-cols-4,
+  main .grid-cols-5,
+  main .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  main .grid > * {
+    min-width: 0;
+  }
+  /* Itens flex não podem empurrar a tela para os lados */
+  main .flex > * {
+    min-width: 0;
+  }
+  main .flex.items-center.justify-between:not(.flex-nowrap) {
+    flex-wrap: wrap;
+  }
+  /* Tabelas: rolam dentro do próprio card, nunca a página */
+  main table {
+    max-width: none;
+  }
+  main .bi-table thead th {
+    padding: 8px 8px;
+    font-size: 10px;
+  }
+  main .bi-table tbody td,
+  main .bi-table tfoot td {
+    padding: 8px 8px;
+    font-size: 12px;
+  }
+  main .bi-stat-value {
+    word-break: break-word;
+  }
+  main [class*="min-w-["] {
+    min-width: 0 !important;
+  }
+  main .recharts-responsive-container {
+    max-width: 100%;
+  }
 }
 @media (hover: none) {
   button,
