@@ -426,3 +426,34 @@
     box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--primary) 60%, transparent);
   }
 }
+
+/* === iPhone / PWA adaptations === */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* prevents iOS auto-zoom on focus */
+  }
+  main table {
+    font-size: 12px;
+  }
+  main .overflow-x-auto,
+  main .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  main img,
+  main canvas,
+  main svg {
+    max-width: 100%;
+  }
+  main > div[class*="p-8"] {
+    padding: 1rem !important;
+  }
+}
+@media (hover: none) {
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+}

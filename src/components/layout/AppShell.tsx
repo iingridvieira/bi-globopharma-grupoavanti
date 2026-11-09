@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   Activity,
   LayoutDashboard,
@@ -15,6 +16,8 @@ import {
   Users2,
   Table2,
   Settings,
+  Menu,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -51,6 +54,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { user, roles, signOut, canEdit, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [path]);
 
   const isHub = path === "/";
   const isCrm = path.startsWith("/crm");
@@ -64,7 +69,39 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={`min-h-screen flex page-glow ${isGreenScope ? "crm" : ""}`}>
-      <aside className="w-[260px] shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col">
+      <header
+        className="md:hidden fixed top-0 inset-x-0 z-40 flex items-center gap-3 border-b border-sidebar-border bg-sidebar text-sidebar-foreground px-3"
+        style={{ paddingTop: "env(safe-area-inset-top)", height: "calc(56px + env(safe-area-inset-top))" }}
+      >
+        <button
+          onClick={() => setMenuOpen(true)}
+          aria-label="Abrir menu"
+          className="h-11 w-11 shrink-0 flex items-center justify-center rounded-md hover:bg-sidebar-accent"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <Link to="/" className="min-w-0 truncate font-display text-[15px] font-bold tracking-tight">
+          {brandTitle}
+        </Link>
+      </header>
+      {menuOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-background/70 backdrop-blur-sm"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+      <aside
+        className={`w-[260px] max-w-[85vw] shrink-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground flex flex-col fixed md:static inset-y-0 left-0 z-50 transition-transform duration-200 md:translate-x-0 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <button
+          onClick={() => setMenuOpen(false)}
+          aria-label="Fechar menu"
+          className="md:hidden absolute right-2 top-2 h-10 w-10 flex items-center justify-center rounded-md hover:bg-sidebar-accent"
+          style={{ marginTop: "env(safe-area-inset-top)" }}
+        >
+          <X className="h-5 w-5" />
+        </button>
         <div className="px-5 py-5 border-b border-sidebar-border">
           <Link
             to="/"
@@ -157,7 +194,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0">{children}</main>
+      <main
+        className="flex-1 min-w-0 overflow-x-hidden pt-[calc(56px+env(safe-area-inset-top))] md:pt-0"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {children}
+      </main>
     </div>
   );
 }
