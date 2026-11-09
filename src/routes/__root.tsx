@@ -13,6 +13,8 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/sonner";
+import { useEffect } from "react";
+import { registerAppServiceWorker } from "@/lib/pwa-register";
 
 function NotFoundComponent() {
   return (
@@ -57,7 +59,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0f5c33" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "BI Avanti" },
+      { name: "application-name", content: "BI Avanti" },
+      { name: "format-detection", content: "telephone=no" },
       { title: "BI GLOBO PHARMA — Inteligência Comercial" },
       { name: "description", content: "Plataforma executiva de gestão comercial Sell In e Sell Out para representação farmacêutica." },
       { property: "og:title", content: "BI GLOBO PHARMA — Inteligência Comercial" },
@@ -74,6 +83,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" },
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
     ],
 
   }),
@@ -94,6 +106,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    registerAppServiceWorker();
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
