@@ -1,9 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, ShieldCheck, Send, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
+import { ShieldCheck, Send, ArrowRight, Eye, EyeOff, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
+import logoAvanti from "@/assets/avanti-pharma-logo.png.asset.json";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: async () => {
@@ -67,17 +68,14 @@ function LoginPage() {
     <div className="auth-shell min-h-dvh w-full flex flex-col">
       {/* Top bar */}
       <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5">
-        <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-lg bg-[#123D2E] flex items-center justify-center shadow-[0_6px_18px_-6px_rgba(18,61,46,.55)]">
-            <Activity className="h-5 w-5 text-white" strokeWidth={2.8} />
-          </div>
-          <div className="leading-none">
-            <div className="font-display text-[15px] font-bold tracking-tight text-slate-900">
-              BI AVANTI PHARMA
-            </div>
-            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500 mt-1">
-              Inteligência Comercial
-            </div>
+        <div className="flex items-center gap-3">
+          <img
+            src={logoAvanti.url}
+            alt="Avanti Pharma"
+            className="h-9 w-auto sm:h-10"
+          />
+          <div className="hidden sm:block border-l border-slate-200 pl-3 text-[10px] uppercase tracking-[0.22em] text-slate-500">
+            Inteligência Comercial
           </div>
         </div>
         <div className="hidden sm:inline-flex items-center gap-1.5 text-[12px] text-slate-600">
