@@ -1,5 +1,5 @@
 - [x] Exibir quantidades faturada e bonificada lado a lado nos itens do pedido.
 - [x] Permitir marcar Nitro no cadastro e na edição, indicando pedidos Nitro na lista.
 - [x] Mostrar quantidade e valor dos produtos escolhidos no filtro de pedidos.
-- [ ] Compactar cards e filtros no celular, reorganizando tabelas sem rolagem horizontal e preservando desktop.
-- [ ] Conferir as telas com dados reais em celular e comparar a apresentação no computador.
+- [x] Compactar cards e filtros no celular, reorganizando tabelas sem rolagem horizontal e preservando desktop.
+- [x] Conferir as telas com dados reais em celular e comparar a apresentação no computador.

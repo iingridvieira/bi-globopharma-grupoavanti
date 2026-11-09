@@ -613,7 +613,7 @@
   main table[data-mobile-table="months"] tr[data-mobile-row="data"] { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0.5rem; }
   main table[data-mobile-table="months"] tr[data-mobile-row="data"] td { font-size: 10px !important; }
   main table[data-mobile-table="months"] td:is([data-mobile-label="Total"],[data-mobile-label="Média"],[data-mobile-label="TOTAL"],[data-mobile-label="MÉDIA"]) { padding-top: 0.5rem !important; border-top: 1px solid var(--border); font-size: 12px !important; }
-  main table[data-mobile-table] td[rowspan] { writing-mode: horizontal-tb !important; grid-column: 1 / -1; }
+  main table[data-mobile-table] td[rowspan] { writing-mode: horizontal-tb !important; transform: none !important; grid-column: 1 / -1; }
   main .bi-card .flex.items-center.gap-2:has(> .bi-stat-value) { display: grid; grid-template-columns: minmax(0,1fr) auto; }
   main .bi-card .flex.items-center.gap-2:has(> .bi-stat-value) > button { justify-self: end; }
   main .flex.flex-wrap:has(> .min-w-\[160px\]) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0.5rem; }
