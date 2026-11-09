@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,8 @@ import { ColumnFilterHeader, ClearFiltersButton, useColumnFilters } from "@/comp
 import { ClienteLink } from "@/components/ClienteLink";
 import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
-export const Route = createFileRoute("/_authenticated/sell-out/")({ component: SellOutPage });
+export const Route = createFileRoute("/_authenticated/sell-out/")({
+  head: () => pageHead("Sell Out", "Resultados mensais e anuais de Sell Out por cliente."), component: SellOutPage });
 
 const normNomeSO = (s: string) => (s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
 

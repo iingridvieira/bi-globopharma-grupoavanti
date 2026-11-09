@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,8 @@ import React, { useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
-export const Route = createFileRoute("/_authenticated/por-clientes/geral")({ component: GeralPage });
+export const Route = createFileRoute("/_authenticated/por-clientes/geral")({
+  head: () => pageHead("Visão geral dos clientes", "Resultados consolidados de Sell In, Sell Out e positivação."), component: GeralPage });
 
 type Row = { ano: number; mes: number; valor: number | string };
 type PositRow = { ano: number; mes: number; positivacao_total: number | string; positivacao_globo: number | string };

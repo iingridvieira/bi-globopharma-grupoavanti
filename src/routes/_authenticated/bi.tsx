@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/bi")({
+  head: () => pageHead("BI Globo Pharma", "Indicadores comerciais, pedidos, faturamento e clientes Globo Pharma."),
   component: HomePage,
 });
 

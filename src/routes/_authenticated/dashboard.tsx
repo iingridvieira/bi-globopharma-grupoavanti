@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { forwardRef, useEffect, useRef, useState } from "react";
@@ -11,6 +12,7 @@ import { ClienteLink } from "@/components/ClienteLink";
 import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => pageHead("Dashboard Executivo", "Resumo mensal de metas, pedidos e faturamento por cliente."),
   component: Dashboard,
 });
 

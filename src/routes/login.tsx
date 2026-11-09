@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import logoAvanti from "@/assets/avanti-pharma-logo.png.asset.json";
 
 export const Route = createFileRoute("/login")({
+  head: () => pageHead("Acesso", "Acesso corporativo à inteligência comercial Avanti Pharma."),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/" });

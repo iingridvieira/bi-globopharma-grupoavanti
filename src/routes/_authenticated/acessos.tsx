@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -9,7 +10,8 @@ import { SmallStyles } from "./pedidos";
 import { toast } from "sonner";
 import { UserCheck, UserX, ShieldAlert } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/acessos")({ component: AcessosPage });
+export const Route = createFileRoute("/_authenticated/acessos")({
+  head: () => pageHead("Solicitações de acesso", "Gestão das solicitações de acesso à plataforma Avanti Pharma."), component: AcessosPage });
 
 function AcessosPage() {
   const { isAdmin } = useAuth();
