@@ -21,14 +21,16 @@ export function UltimaAtualizacao({
     queryKey: ["ultima-atualizacao", tabelas.join("|"), coluna],
     queryFn: async () => {
       const resultados = await Promise.all(
-        tabelas.map(async (t) => {
+        tabelas.map(async (entrada) => {
+          // Aceita "tabela:coluna" para tabelas sem a coluna padrão.
+          const [t, col = coluna] = entrada.split(":");
           const { data, error } = await supabase
             .from(t as never)
-            .select(coluna)
-            .order(coluna, { ascending: false })
+            .select(col)
+            .order(col, { ascending: false })
             .limit(1);
           if (error) return null;
-          return (data?.[0] as Record<string, string> | undefined)?.[coluna] ?? null;
+          return (data?.[0] as Record<string, string> | undefined)?.[col] ?? null;
         }),
       );
       const validos = resultados.filter((v): v is string => !!v);
