@@ -37,7 +37,15 @@ export async function readExcelFile(file: File): Promise<{ sheets: Record<string
   const sheets: Record<string, ExcelRow[]> = {};
   wb.SheetNames.forEach((name) => {
     const ws = wb.Sheets[name];
-    sheets[name] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+    // Relatório da Carteira: a aba "Notas" tem título nas 3 primeiras linhas;
+    // o cabeçalho real é a primeira linha que contém a célula "NF".
+    let range: number | undefined;
+    if (/^notas$/i.test(name)) {
+      const aoa = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "" }).slice(0, 15);
+      const h = aoa.findIndex((r) => r.some((c) => String(c).trim().toUpperCase() === "NF"));
+      if (h > 0) range = h;
+    }
+    sheets[name] = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true, range });
   });
   return { sheets };
 }

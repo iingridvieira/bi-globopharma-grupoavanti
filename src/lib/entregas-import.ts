@@ -30,9 +30,9 @@ export type EntregaRow = {
  */
 const COLS = {
   numero: ["NOTA", "NF", "Número", "Numero", "Número da NF", "Numero da NF"],
-  emissao: ["DATA EMISSÃO NF", "DATA EMISSAO NF"],
-  data_entrega: ["DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega"],
-  data_agendamento: ["DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento"],
+  emissao: ["DATA EMISSÃO NF", "DATA EMISSAO NF", "Emissão", "Emissao"],
+  data_entrega: ["DATA ENTREGA (Alterar Data)", "DATA ENTREGA", "Data Entrega", "Data de Entrega", "Entrega"],
+  data_agendamento: ["DATA AGENDAMENTO", "Data Agendamento", "Data de Agendamento", "Agendamento"],
   previsao_entrega: [
     "PREVISÃO DE ENTREGA SITE",
     "PREVISAO DE ENTREGA SITE",
@@ -42,15 +42,18 @@ const COLS = {
     "PREVISAO ENTREGA TABELA TRANSPORTADORA",
     "PREVISÃO DE ENTREGA SITE TRASP",
     "PREVISAO DE ENTREGA SITE TRASP",
+    "Previsão",
+    "Previsao",
   ],
   previsao_entrega_inicial: ["PREVISÃO ENTREGA INICIAL", "PREVISAO ENTREGA INICIAL"],
   transportadora: ["TRANSPORTADORA", "Transportadora"],
   // "OBS DE RASTREIO" é o texto que a transportadora devolve no rastreio.
-  observacao: ["OBS DE RASTREIO", "STATUS", "OBSERVAÇÃO", "OBSERVACAO", "Observação", "Observacao"],
+  observacao: ["OBS DE RASTREIO", "Último evento", "Ultimo evento", "STATUS", "OBSERVAÇÃO", "OBSERVACAO", "Observação", "Observacao"],
   status_entrega_planilha: [
     "STATUS ENTREGA - OK (NÃO ALTERAR NADA)",
     "STATUS ENTREGA - OK",
     "STATUS ENTREGA",
+    "Status",
   ],
   // No modelo atual "STATUS DE AGENDAMENTO" vem vazio e o detalhe do agendamento
   // (ex: "AGENDAMENTO PELO CLIENTE PARA DIA 25/08/2026") fica em "AÇÃO REUNIÃO".
@@ -58,7 +61,7 @@ const COLS = {
   // Só usado para detectar extravio; não é gravado.
   status_agendamento: ["STATUS AGENDAMENTO"],
   status_coleta: ["STATUS COLETA"],
-  data_coleta: ["DATA COLETA"],
+  data_coleta: ["DATA COLETA", "Expedição (coleta)", "Expedicao (coleta)"],
   previsao_coleta: ["DATA PREVISÃO COLETA", "DATA PREVISAO COLETA"],
   data_emissao_cte: ["DATA EMISSÃO CTE", "DATA EMISSAO CTE"],
   cte: ["CTE", "NUMERO CTE", "NÚMERO CTE", "NUMERO DO CTE", "NÚMERO DO CTE"],
@@ -179,7 +182,7 @@ export function parseEntregas(rows: ExcelRow[]): EntregasParseadas {
     const numero = String(pickCol(r, ...COLS.numero) ?? "")
       .trim()
       .replace(/\.0$/, "");
-    if (!numero || numero === "undefined") {
+    if (!numero || numero === "undefined" || /^total$/i.test(numero)) {
       puladas++;
       continue;
     }
