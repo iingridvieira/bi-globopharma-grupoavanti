@@ -167,7 +167,9 @@ export function parseEntregas(rows: ExcelRow[]): EntregasParseadas {
 
   const temBlocoEntrega = presentes.has("data_entrega") || presentes.has("previsao_entrega");
   const temBlocoColeta = presentes.has("status_coleta") || presentes.has("data_coleta");
-  const colunasFaltando = (Object.keys(PADRAO_ATUAL) as (keyof typeof PADRAO_ATUAL)[])
+  // O Relatório da Carteira não traz CTE/vendedor/gerente: não é erro.
+  const relatorioCarteira = hasCol(rows[0], "Último evento", "Ultimo evento");
+  const colunasFaltando = relatorioCarteira ? [] : (Object.keys(PADRAO_ATUAL) as (keyof typeof PADRAO_ATUAL)[])
     .filter((campo) => !presentes.has(campo))
     .map((campo) => PADRAO_ATUAL[campo]);
   const blocosFaltando = [!temBlocoEntrega && "entrega", !temBlocoColeta && "coleta"].filter(
