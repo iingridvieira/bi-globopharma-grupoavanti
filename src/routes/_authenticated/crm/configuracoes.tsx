@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,15 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/crm/configuracoes")({
-  head: () => ({
-    meta: [
-      { title: "Configurações | CRM · BI Avanti Pharma" },
-      {
-        name: "description",
-        content: "Indústrias/representadas, logos e integração com o BI Globo Pharma.",
-      },
-    ],
-  }),
+  head: () => pageHead("Configurações · CRM", "Indústrias/representadas, logos e integração com o BI Globo Pharma."),
   component: ConfiguracoesPage,
 });
 

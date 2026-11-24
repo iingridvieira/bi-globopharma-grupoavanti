@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,15 +20,7 @@ import { toast } from "sonner";
 import { ordenar, SortDropdown, type SortKey } from "@/lib/crm/sort";
 
 export const Route = createFileRoute("/_authenticated/crm/clientes")({
-  head: () => ({
-    meta: [
-      { title: "Clientes | CRM · BI Avanti Pharma" },
-      {
-        name: "description",
-        content: "Cadastro único de clientes. Vincule cada cliente a uma ou mais representadas.",
-      },
-    ],
-  }),
+  head: () => pageHead("Clientes · CRM", "Cadastro único de clientes. Vincule cada cliente a uma ou mais representadas."),
   component: ClientesPage,
 });
 

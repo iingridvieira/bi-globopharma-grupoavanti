@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,15 +22,7 @@ import { STATUS_META, STATUS_ORDER, type ClienteStatus } from "@/lib/crm/status"
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/crm/consolidado")({
-  head: () => ({
-    meta: [
-      { title: "Consolidado | CRM · BI Avanti Pharma" },
-      {
-        name: "description",
-        content: "Visão consolidada de todos os clientes e representadas em uma única lista.",
-      },
-    ],
-  }),
+  head: () => pageHead("Consolidado · CRM", "Visão consolidada de todos os clientes e representadas em uma única lista."),
   component: ConsolidadoPage,
 });
 

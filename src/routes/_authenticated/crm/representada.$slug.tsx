@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link, notFound, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -54,12 +55,7 @@ import { registrarCompra, useUltimasCompras } from "@/lib/crm/compras";
 import { ordenar, SortDropdown, type SortKey } from "@/lib/crm/sort";
 
 export const Route = createFileRoute("/_authenticated/crm/representada/$slug")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.slug} | CRM · BI Avanti Pharma` },
-      { name: "description", content: `Clientes da representada ${params.slug}.` },
-    ],
-  }),
+  head: ({ params }) => pageHead(`${params.slug} · CRM`, `Clientes da representada ${params.slug}.`),
   component: RepresentadaPage,
 });
 

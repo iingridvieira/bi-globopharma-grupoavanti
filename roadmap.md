@@ -3,5 +3,5 @@
 - [x] Mostrar quantidade e valor dos produtos escolhidos no filtro de pedidos.
 - [x] Compactar cards e filtros no celular, reorganizando tabelas sem rolagem horizontal e preservando desktop.
 - [x] Conferir as telas com dados reais em celular e comparar a apresentação no computador.
-- [ ] Corrigir datas numéricas do Excel e identificar o Relatório da Carteira como entregas.
-- [ ] Validar importação autenticada e testes de regressão sem alterar dados financeiros.
+- [x] Corrigir datas numéricas do Excel e identificar o Relatório da Carteira como entregas.
+- [x] Validar importação autenticada e testes de regressão sem alterar dados financeiros.

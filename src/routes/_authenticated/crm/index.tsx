@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,15 +10,7 @@ import { useMes, formatMesLabel, isCurrentMes } from "@/lib/crm/mes";
 import { RepresentadaLogo } from "@/lib/crm/representadas";
 
 export const Route = createFileRoute("/_authenticated/crm/")({
-  head: () => ({
-    meta: [
-      { title: "Painel CRM | BI Avanti Pharma" },
-      {
-        name: "description",
-        content: "Visão geral da carteira de clientes por representada e mês.",
-      },
-    ],
-  }),
+  head: () => pageHead("Painel CRM", "Visão geral da carteira de clientes por representada e mês."),
   component: Dashboard,
 });
 

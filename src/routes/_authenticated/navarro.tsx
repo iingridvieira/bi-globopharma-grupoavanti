@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -10,12 +11,7 @@ import { readExcelFile, pickCol, rowToBRNumber } from "@/lib/excel";
 import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/navarro")({
-  head: () => ({
-    meta: [
-      { title: "Grupo Navarro · Evolução Sell In e Sell Out" },
-      { name: "description", content: "Resultados do Grupo Navarro por regional: Sell In e Sell Out mensais." },
-    ],
-  }),
+  head: () => pageHead("Grupo Navarro · Evolução Sell In e Sell Out", "Resultados do Grupo Navarro por regional: Sell In e Sell Out mensais."),
   component: NavarroPage,
 });
 
