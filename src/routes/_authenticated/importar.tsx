@@ -7,7 +7,7 @@ import { Upload, FileSpreadsheet, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildClienteIndex, clienteIdFromRazao, normalizeKey } from "@/lib/cliente-mapping";
-import { parseEntregas } from "@/lib/entregas-import";
+import { findRelatorioCarteira, parseEntregas } from "@/lib/entregas-import";
 import { useAuth } from "@/hooks/use-auth";
 import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 
@@ -210,13 +210,18 @@ function ImportarPage() {
     setResumo(null);
     try {
       const { sheets } = await readExcelFile(file);
-      const firstSheet = Object.values(sheets)[0] as ExcelRow[];
+      const notasCarteira = findRelatorioCarteira(sheets);
+      const firstSheet = notasCarteira ?? Object.values(sheets)[0];
       if (!firstSheet || firstSheet.length === 0) throw new Error("Planilha vazia");
 
       const idx = buildClienteIndex(clientes ?? []);
       let resumoTxt = "";
 
-      if (tipo === "faturamento") {
+      // O relatório de rastreio nunca pode recriar NFs/itens como faturamento.
+      if (notasCarteira) {
+        setTipo("entregas");
+        resumoTxt = await processEntregas(notasCarteira, file.name);
+      } else if (tipo === "faturamento") {
         resumoTxt = await processFaturamento(firstSheet, idx);
       } else if (tipo === "pedidos") {
         const rows = firstSheet

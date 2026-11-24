@@ -150,6 +150,13 @@ export type EntregasParseadas = {
   blocosFaltando: string[];
 };
 
+/** Identifica o relatório logístico pelo conteúdo, nunca apenas pelo nome do arquivo. */
+export function findRelatorioCarteira(sheets: Record<string, ExcelRow[]>): ExcelRow[] | null {
+  return Object.values(sheets).find((rows) =>
+    hasCol(rows[0], ...COLS.numero) && hasCol(rows[0], "Último evento", "Ultimo evento"),
+  ) ?? null;
+}
+
 /**
  * Converte as linhas da planilha de Entregas em linhas de `nf_entregas`.
  *

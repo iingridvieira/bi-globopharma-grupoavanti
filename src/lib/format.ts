@@ -72,25 +72,45 @@ export function parseBRNumber(value: unknown): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-/** Converte string "DD/MM/AAAA" para ISO YYYY-MM-DD. Aceita Date também. */
+/** Retorna apenas datas ISO completas, sem anos expandidos ou datas inválidas. */
+function dateToISO(date: Date): string | null {
+  if (!Number.isFinite(date.getTime())) return null;
+  const iso = date.toISOString().slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(iso) ? iso : null;
+}
+
+/** Converte datas brasileiras, Date e seriais Excel para ISO YYYY-MM-DD. */
 export function parseBRDate(value: unknown): string | null {
-  if (!value) return null;
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return null;
-    return value.toISOString().slice(0, 10);
-  }
+  if (value == null || value === "") return null;
+  if (value instanceof Date) return dateToISO(value);
   const s = String(value).trim();
+  // Células numéricas sem formato de data chegam como serial Excel. Nunca
+  // usar new Date("46038"): isso interpreta o serial como o ano 46038.
+  if (typeof value === "number" || /^\d{5,7}(?:[.,]\d+)?$/.test(s)) {
+    const serial = typeof value === "number" ? value : Number(s.replace(",", "."));
+    if (!Number.isFinite(serial) || serial < 1 || serial >= 2958466) return null;
+    const day = Math.floor(serial);
+    // O Excel inclui o fictício 29/02/1900 (serial 60).
+    if (day === 60) return null;
+    const offset = day < 60 ? 25568 : 25569;
+    return dateToISO(new Date((day - offset) * 86400000));
+  }
   // DD/MM/AAAA
   const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if (m) {
-    let [, dd, mm, yy] = m;
+    const dd = m[1];
+    const mm = m[2];
+    let yy = m[3];
+    if (!dd || !mm || !yy) return null;
     if (yy.length === 2) yy = "20" + yy;
-    return `${yy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    const iso = `${yy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+    return dateToISO(new Date(iso)) === iso ? iso : null;
   }
-  // ISO
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-  return null;
+  // Não aceitar um número isolado como ano, nem corrigir um dia ISO inválido.
+  if (/^[+-]?\d+(?:[.,]\d+)?$/.test(s)) return null;
+  const iso = dateToISO(new Date(s));
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s) && iso !== s) return null;
+  return iso;
 }
 
 export const MESES_BR = [
