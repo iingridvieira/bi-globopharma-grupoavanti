@@ -9,7 +9,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildClienteIndex, clienteIdFromRazao, normalizeKey } from "@/lib/cliente-mapping";
 import { findRelatorioCarteira, parseEntregas } from "@/lib/entregas-import";
 import { useAuth } from "@/hooks/use-auth";
-import { parseBRDate, parseBRNumber, parseValorFaturado, MESES_BR } from "@/lib/format";
+import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
+import { notasComValorNegativo } from "@/lib/faturamento";
 
 export const Route = createFileRoute("/_authenticated/importar")({
   head: () => pageHead("Importar Excel", "Atualização dos dados comerciais por planilhas Excel."), component: ImportarPage });
@@ -763,6 +764,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     { cliente_id: string; ano: number; mes: number; valor: number }
   >();
   let puladas = 0;
+  const valoresLidos: Array<{ numero: string; valor: number }> = [];
 
   for (const r of rows) {
     const numero = String(
@@ -781,7 +783,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     const rs = String(
       pickCol(r, "Cliente", "Cliente nome", "Cliente Nome", "Razão Social", "Razao Social") ?? "",
     ).trim();
-    const valor = parseValorFaturado(
+    const valor = parseBRNumber(
       pickCol(
         r,
         "Faturado (R$)",
@@ -826,6 +828,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
       .toUpperCase();
     const nitro = nitroRaw === "S" || nitroRaw === "SIM" || nitroRaw === "YES";
 
+    valoresLidos.push({ numero, valor });
     if (!numero || !dataISO || !rs) {
       puladas++;
       continue;
@@ -861,8 +864,36 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     sellInAgg.set(k, cur);
   }
 
+  // NF com valor negativo não é reconhecida: sai da importação e, se já existir
+  // no sistema, é removida com itens e dados de entrega.
+  const negativas = Array.from(notasComValorNegativo(valoresLidos));
+  for (const numero of negativas) nfMap.delete(numero);
+  let removidas = 0;
+  for (let i = 0; i < negativas.length; i += 200) {
+    const slice = negativas.slice(i, i + 200);
+    const { data: exist, error: exErr } = await supabase
+      .from("notas_fiscais")
+      .select("id")
+      .in("numero", slice);
+    if (exErr) throw new Error(`Notas negativas: ${exErr.message}`);
+    const ids = (exist ?? []).map((n) => n.id);
+    if (ids.length > 0) {
+      const { error: e1 } = await supabase.from("itens_nf").delete().in("nota_fiscal_id", ids);
+      if (e1) throw new Error(`Remover itens de notas negativas: ${e1.message}`);
+      const { error: e2 } = await supabase.from("notas_fiscais").delete().in("id", ids);
+      if (e2) throw new Error(`Remover notas negativas: ${e2.message}`);
+      removidas += ids.length;
+    }
+    const { error: e3 } = await supabase.from("nf_entregas").delete().in("numero", slice);
+    if (e3) throw new Error(`Remover entregas de notas negativas: ${e3.message}`);
+  }
+  const avisoNeg =
+    negativas.length > 0
+      ? ` · ${negativas.length} NFs com valor negativo não importadas${removidas > 0 ? ` (${removidas} removidas do sistema)` : ""}`
+      : "";
+
   const nfsArr = Array.from(nfMap.values());
-  if (nfsArr.length === 0) {
+  if (nfsArr.length === 0 && negativas.length === 0) {
     return `Nenhuma NF válida encontrada. ${puladas} linhas puladas (verifique colunas Data, NF, Cliente).`;
   }
 
@@ -1046,7 +1077,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
   void normalizeKey;
 
   const aviso = puladas > 0 ? ` · ${puladas} linhas ignoradas` : "";
-  return `${nfsArr.length} NFs · ${itensRows.length} itens · ${sellInRecalc.length} períodos sell in recalculados (dados existentes preservados)${aviso}.`;
+  return `${nfsArr.length} NFs · ${itensRows.length} itens · ${sellInRecalc.length} períodos sell in recalculados (dados existentes preservados)${aviso}${avisoNeg}.`;
 }
 
 /**

@@ -72,14 +72,6 @@ export function parseBRNumber(value: unknown): number {
   return Number.isNaN(n) ? 0 : n;
 }
 
-/**
- * Valor monetário do relatório de faturamento: valores negativos (bonificações
- * lançadas com sinal de menos) não são reconhecidos e contam como zero.
- */
-export function parseValorFaturado(value: unknown): number {
-  return Math.max(0, parseBRNumber(value));
-}
-
 /** Retorna apenas datas ISO completas, sem anos expandidos ou datas inválidas. */
 function dateToISO(date: Date): string | null {
   if (!Number.isFinite(date.getTime())) return null;

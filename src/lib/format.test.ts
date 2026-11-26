@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseBRDate, parseValorFaturado } from "./format";
+import { parseBRDate } from "./format";
 
 describe("parseBRDate — datas de importação", () => {
   it("converte o serial 46038 do erro em 16/01/2026, não no ano 46038", () => {
@@ -30,16 +30,5 @@ describe("parseBRDate — datas de importação", () => {
     expect(parseBRDate(59)).toBe("1900-02-28");
     expect(parseBRDate(60)).toBeNull();
     expect(parseBRDate(61)).toBe("1900-03-01");
-  });
-});
-describe("parseValorFaturado — relatório de faturamento", () => {
-  it("não reconhece valores negativos: contam como zero", () => {
-    expect(parseValorFaturado(-717.64)).toBe(0);
-    expect(parseValorFaturado("-717,64")).toBe(0);
-  });
-
-  it("mantém valores positivos", () => {
-    expect(parseValorFaturado("1.234,56")).toBe(1234.56);
-    expect(parseValorFaturado(717.64)).toBe(717.64);
   });
 });

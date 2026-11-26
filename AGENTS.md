@@ -2,3 +2,4 @@ Pedidos Enviados guarda a identificação Nitro no pedido e os itens bonificados
 - MobileDataLayout annotates live table cells with presentation labels; all reflow rules are scoped below 768px and exclude hidden exports, preserving desktop and existing table controls.
 - Use pageHead for shared leaf-route metadata defaults so each content page has its own title and social description without changing visible UI.
 - Parse imported dates through parseBRDate, including Excel serials, and route workbooks with NF + Último evento columns through the delivery importer; this prevents invalid dates and accidental invoice/item replacement.
+- Billing-report import drops any NF that has a negative line (notasComValorNegativo) and deletes an already-stored NF with that number plus its items and delivery row; negative lines mean the invoice must not exist in the BI.
