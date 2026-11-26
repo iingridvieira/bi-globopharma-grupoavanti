@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { buildClienteIndex, clienteIdFromRazao, normalizeKey } from "@/lib/cliente-mapping";
 import { findRelatorioCarteira, parseEntregas } from "@/lib/entregas-import";
 import { useAuth } from "@/hooks/use-auth";
-import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
+import { parseBRDate, parseBRNumber, parseValorFaturado, MESES_BR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/importar")({
   head: () => pageHead("Importar Excel", "Atualização dos dados comerciais por planilhas Excel."), component: ImportarPage });
@@ -781,7 +781,7 @@ async function processFaturamento(rows: ExcelRow[], idx: Map<string, string>): P
     const rs = String(
       pickCol(r, "Cliente", "Cliente nome", "Cliente Nome", "Razão Social", "Razao Social") ?? "",
     ).trim();
-    const valor = rowToBRNumber(
+    const valor = parseValorFaturado(
       pickCol(
         r,
         "Faturado (R$)",
