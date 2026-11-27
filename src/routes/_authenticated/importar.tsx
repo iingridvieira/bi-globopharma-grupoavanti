@@ -11,12 +11,14 @@ import { findRelatorioCarteira, parseEntregas } from "@/lib/entregas-import";
 import { useAuth } from "@/hooks/use-auth";
 import { parseBRDate, parseBRNumber, MESES_BR } from "@/lib/format";
 import { notasComValorNegativo } from "@/lib/faturamento";
+import { importarSellInNavarro } from "@/lib/navarro-import";
 
 export const Route = createFileRoute("/_authenticated/importar")({
   head: () => pageHead("Importar Excel", "Atualização dos dados comerciais por planilhas Excel."), component: ImportarPage });
 
 type TipoImport =
   | "faturamento"
+  | "navarro"
   | "metas"
   | "pedidos"
   | "sell_out"
@@ -30,8 +32,14 @@ const TIPOS: { key: TipoImport; label: string; desc: string; color: ColorKey }[]
   {
     key: "faturamento",
     label: "Faturamento Sell In",
-    desc: "Planilha com Data Lançamento, NF, Cliente, EAN, Faturado (R$). Cria NFs + itens + sell in automaticamente.",
+    desc: "Planilha com Data Lançamento, NF, Cliente, EAN, Faturado (R$). Cria NFs + itens + sell in automaticamente e atualiza o Sell In da Navarro SP.",
     color: "primary",
+  },
+  {
+    key: "navarro",
+    label: "Faturamento Navarro (Sell In)",
+    desc: "Planilha de faturamento da Navarro com a coluna Vendedor (define a regional), MÊS/ANO e Faturado (R$). Atualiza o Sell In do Grupo Navarro nos meses do arquivo.",
+    color: "blue",
   },
   {
     key: "metas",
@@ -224,6 +232,14 @@ function ImportarPage() {
         resumoTxt = await processEntregas(notasCarteira, file.name);
       } else if (tipo === "faturamento") {
         resumoTxt = await processFaturamento(firstSheet, idx);
+        const nav = await importarSellInNavarro(firstSheet, { spDasNotas: true });
+        if (nav)
+          resumoTxt += `\nGrupo Navarro: Sell In atualizado em ${nav.meses} mês(es) (${nav.regionais.join(", ")}).`;
+      } else if (tipo === "navarro") {
+        const nav = await importarSellInNavarro(firstSheet, { spDasNotas: false });
+        if (!nav)
+          throw new Error("Nenhuma linha da Navarro reconhecida. Confira as colunas Cliente, Vendedor, MÊS/ANO e Faturado (R$).");
+        resumoTxt = `Grupo Navarro: Sell In atualizado em ${nav.meses} mês(es).${nav.ignorados.length ? ` Vendedores sem regional ignorados: ${nav.ignorados.join(", ")}.` : ""}`;
       } else if (tipo === "pedidos") {
         const rows = firstSheet
           .map((r) => {

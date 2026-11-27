@@ -7,7 +7,8 @@ import { Download, Upload, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { formatBRL } from "@/lib/format";
-import { readExcelFile, pickCol, rowToBRNumber } from "@/lib/excel";
+import { readExcelFile, rowToBRNumber } from "@/lib/excel";
+import { importarSellInNavarro } from "@/lib/navarro-import";
 import { UltimaAtualizacao } from "@/components/UltimaAtualizacao";
 
 export const Route = createFileRoute("/_authenticated/navarro")({
@@ -24,11 +25,7 @@ const REGIONAIS: { id: Regional; nome: string; rep: string; siRow: number; soRow
   { id: "ES", nome: "NAVARRO ES", rep: "Cleber", siRow: 71, soRow: 79 },
   { id: "PR", nome: "NAVARRO PR - SC", rep: "Suellen", siRow: 87, soRow: 95 },
 ];
-const VENDEDOR_REGIONAL: Record<string, Regional> = {
-  "PAULO COLELLA": "SP", JESSICA: "RJ", "JÉSSICA": "RJ", VICTOR: "MG", CLEBER: "ES", SUELLEN: "PR",
-};
 const MESES = ["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
-const MES_ABREV: Record<string, number> = { jan:1,fev:2,mar:3,abr:4,mai:5,jun:6,jul:7,ago:8,set:9,out:10,nov:11,dez:12 };
 
 type Row = { regional: Regional; tipo: Tipo; ano: number; mes: number; valor: number };
 type Mat = Record<number, number[]>; // ano -> 12 valores
@@ -99,36 +96,10 @@ function NavarroPage() {
     try {
       const { sheets } = await readExcelFile(file);
       const linhas = Object.values(sheets)[0] ?? [];
-      const soma = new Map<string, number>();
-      const ignorados = new Set<string>();
-      for (const l of linhas) {
-        const vend = String(pickCol(l, "Vendedor") ?? "").trim().toUpperCase();
-        const reg = VENDEDOR_REGIONAL[vend];
-        const ma = String(pickCol(l, "MÊS/ANO", "MES/ANO") ?? "").trim().toLowerCase();
-        const mm = ma.match(/^([a-zç]{3})\/(\d{2,4})$/);
-        if (!vend && !ma) continue;
-        if (!reg) { ignorados.add(vend || "(sem vendedor)"); continue; }
-        if (!mm || !MES_ABREV[mm[1]]) continue;
-        const ano = mm[2].length === 2 ? 2000 + Number(mm[2]) : Number(mm[2]);
-        const k = `${reg}|${ano}|${MES_ABREV[mm[1]]}`;
-        soma.set(k, (soma.get(k) ?? 0) + rowToBRNumber(pickCol(l, "Faturado (R$)")));
-      }
-      if (soma.size === 0) throw new Error("Nenhuma linha reconhecida. Confira as colunas Vendedor, MÊS/ANO e Faturado (R$).");
-      const { data: u } = await supabase.auth.getUser();
-      // Meses presentes no arquivo são substituídos para todas as regionais (inclusive zerando quem não faturou).
-      const mesesArquivo = new Set([...soma.keys()].map((k) => k.split("|").slice(1).join("|")));
-      const payload = [...mesesArquivo].flatMap((am) => {
-        const [ano, mes] = am.split("|").map(Number);
-        return REGIONAIS.map((r) => ({
-          regional: r.id, tipo: "sell_in" as const, ano, mes,
-          valor: Math.round((soma.get(`${r.id}|${am}`) ?? 0) * 100) / 100,
-          updated_by: u.user?.id ?? null, updated_at: new Date().toISOString(),
-        }));
-      });
-      const { error } = await supabase.from("navarro_evolucao").upsert(payload, { onConflict: "regional,tipo,ano,mes" });
-      if (error) throw error;
-      toast.success(`Sell In atualizado em ${mesesArquivo.size} mês(es).`);
-      if (ignorados.size) toast.warning(`Vendedores sem regional ignorados: ${[...ignorados].join(", ")}`);
+      const r = await importarSellInNavarro(linhas, { spDasNotas: false });
+      if (!r) throw new Error("Nenhuma linha reconhecida. Confira as colunas Vendedor, MÊS/ANO e Faturado (R$).");
+      toast.success(`Sell In atualizado em ${r.meses} mês(es).`);
+      if (r.ignorados.length) toast.warning(`Vendedores sem regional ignorados: ${r.ignorados.join(", ")}`);
       qc.invalidateQueries({ queryKey: ["navarro-evolucao"] });
       qc.invalidateQueries({ queryKey: ["ultima-atualizacao"] });
     } catch (e) {
@@ -201,7 +172,7 @@ function NavarroPage() {
       </header>
       {canEdit && (
         <p className="text-xs text-muted-foreground mb-6">
-          Clique em um valor das regionais para editar. O Sell In também pode ser atualizado importando a planilha de faturamento (Vendedor → regional).
+          Clique em um valor das regionais para editar. O Sell In também é atualizado pelo relatório de faturamento: em Importar Excel → Faturamento Sell In (Navarro SP) ou pelo botão acima com a planilha da Navarro (Vendedor → regional).
         </p>
       )}
 
